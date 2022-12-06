@@ -6,7 +6,6 @@ RECURSE(
     attrs
     backcall
     colorama
-    configparser
     contextlib2
     dateutil
     decorator
@@ -44,7 +43,6 @@ RECURSE(
     pyparsing
     pytest
     pytz
-    scandir
     scikit-learn
     scipy
     setuptools

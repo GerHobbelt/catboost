@@ -7523,7 +7523,7 @@
         },
         "ytyndexer": {
             "formula": {
-                "sandbox_id": 1531614470,
+                "sandbox_id": 1538761429,
                 "match": "YTYNDEXER"
             },
             "executable": {
@@ -8367,7 +8367,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1535427754,
+                "sandbox_id": 1539616091,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8488,7 +8488,7 @@
         "qyp": {
             "formula": {
                 "sandbox_id": [
-                    1497641770
+                    1537123313
                 ],
                 "match": "infra/qyp/vmctl/bin/vmctl"
             },
