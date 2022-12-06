@@ -315,6 +315,9 @@
         "taxi-format": {
             "description": "Run taxi formatters utility"
         },
+        "taxi-linter": {
+            "description": "Run taxi linters utility"
+        },
         "saas2": {
             "description": "Run saas2 cli"
         },
@@ -563,6 +566,9 @@
         },
         "grut": {
             "description": "Run GrUT CLI"
+        },
+        "nots": {
+            "description": "Run nots CLI"
         }
     },
     "toolchain": {
@@ -5481,6 +5487,28 @@
                 }
             ]
         },
+        "taxi-linter": {
+            "tools": {
+                "taxi-linter": {
+                    "bottle": "taxi-linter",
+                    "executable": "taxi-linter"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
         "apphost": {
             "tools": {
                 "apphost": {
@@ -6642,6 +6670,28 @@
                     "default": true
                 }
             ]
+        },
+        "nots": {
+            "tools": {
+                "nots": {
+                    "bottle": "nots",
+                    "executable": "nots"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
         }
     },
     "bottles": {
@@ -6778,7 +6828,7 @@
         "swagger": {
             "formula": {
                 "sandbox_id": [
-                    1325945221
+                    1488214649
                 ],
                 "match": "swagger"
             },
@@ -7431,10 +7481,13 @@
         },
         "yt": {
             "formula": {
-                "sandbox_id": [
-                    1277508845
-                ],
-                "match": "YT"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "YT_CLI",
+                        "owner": "YT"
+                    }
+                },
+                "update_interval": 604800
             },
             "executable": {
                 "yt": [
@@ -7444,7 +7497,7 @@
         },
         "yndexer": {
             "formula": {
-                "sandbox_id": 992600186,
+                "sandbox_id": 1488038654,
                 "match": "YNDEXER"
             },
             "executable": {
@@ -7658,8 +7711,8 @@
         "gdbnew": {
             "formula": {
                 "sandbox_id": [
-                    1467143446,
-                    1470108465
+                    1494385453,
+                    1494387618
                 ],
                 "platform_replacements": {},
                 "match": "GDB"
@@ -7749,8 +7802,8 @@
         "rtmr-deploy": {
             "formula": {
                 "sandbox_id": [
-                    1210829227,
-                    1210811623
+                    1499116508,
+                    1499106904
                 ],
                 "match": "rtmr-deploy"
             },
@@ -8271,13 +8324,28 @@
             },
             "executable": {
                 "taxi-format": [
-                    "taxi-format"
+                    "bin_taxi_format/taxi-format"
+                ]
+            }
+        },
+        "taxi-linter": {
+            "formula": {
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "TAXI_LINTER_BINARY",
+                        "owner": "TAXI-AUTOMATIZATION"
+                    }
+                }
+            },
+            "executable": {
+                "taxi-linter": [
+                    "bin_taxi_linter/taxi-linter"
                 ]
             }
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1482941673,
+                "sandbox_id": 1509483534,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8406,7 +8474,7 @@
         "qyp": {
             "formula": {
                 "sandbox_id": [
-                    1454282981
+                    1497641770
                 ],
                 "match": "infra/qyp/vmctl/bin/vmctl"
             },
@@ -8680,7 +8748,7 @@
         },
         "yfm-docs": {
             "formula": {
-                "sandbox_id": 1438634718,
+                "sandbox_id": 1503822523,
                 "match": "yfm-docs"
             },
             "executable": {
@@ -8783,7 +8851,7 @@
         "black": {
             "formula": {
                 "sandbox_id": [
-                    1432126614
+                    1491465120
                 ],
                 "match": "black"
             },
@@ -8942,7 +9010,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1482941149,
+                "sandbox_id": 1509484768,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8953,7 +9021,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1482940832,
+                "sandbox_id": 1505213895,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8982,7 +9050,7 @@
                     }
                 },
                 "match": "bb_cluster_analyzer",
-                "sandbox_id": 1482941861
+                "sandbox_id": 1502578849
             },
             "executable": {
                 "bb_cluster_analyzer": [
@@ -9030,7 +9098,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1482942393,
+                "sandbox_id": 1505213655,
                 "match": "yt_sync"
             },
             "executable": {
@@ -9041,7 +9109,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1482942568,
+                "sandbox_id": 1502579275,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -9052,7 +9120,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1482941908,
+                "sandbox_id": 1505215029,
                 "match": "exp_stats"
             },
             "executable": {
@@ -9063,7 +9131,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1466124753,
+                "sandbox_id": 1504710740,
                 "match": "lama"
             },
             "executable": {
@@ -9154,7 +9222,7 @@
         },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1482942321,
+                "sandbox_id": 1509483846,
                 "match": "profile_size_analyzer"
             },
             "executable": {
@@ -9212,7 +9280,7 @@
         },
         "tasklet": {
             "formula": {
-                "sandbox_id": 1417351261,
+                "sandbox_id": 1504791690,
                 "match": "tasklet-tool"
             },
             "executable": {
@@ -9248,6 +9316,24 @@
             "executable": {
                 "grut": [
                     "grut"
+                ]
+            }
+        },
+        "nots": {
+            "formula": {
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "NOTS_TOOL_BINARY",
+                        "owner": "FRONTEND_BUILD_PLATFORM",
+                        "attributes": {
+                            "released": "stable"
+                        }
+                    }
+                }
+            },
+            "executable": {
+                "nots": [
+                    "bootstrap"
                 ]
             }
         }
