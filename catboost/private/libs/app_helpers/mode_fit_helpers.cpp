@@ -12,6 +12,10 @@
 #include <catboost/private/libs/options/pool_metainfo_options.h>
 #include <catboost/libs/train_lib/train_model.h>
 
+#if defined(HAVE_CUDA)
+#include <catboost/cuda/cuda_lib/devices_provider.h>
+#include <catboost/cuda/cuda_lib/cuda_manager.h>
+#endif
 
 #if defined(USE_MPI)
 #include <catboost/cuda/cuda_lib/cuda_manager.h>
@@ -38,23 +42,34 @@ int NCB::ModeFitImpl(int argc, const char* argv[]) {
         return 0;
     }
     #endif
-    NCatboostOptions::TPoolLoadParams poolLoadParams;
-    TString paramsFile;
-    NJson::TJsonValue catBoostFlatJsonOptions(NJson::JSON_MAP);
-    ParseCommandLine(argc, argv, &catBoostFlatJsonOptions, &paramsFile, &poolLoadParams);
-    NJson::TJsonValue catBoostJsonOptions;
-    NJson::TJsonValue outputOptionsJson;
-    InitOptions(paramsFile, &catBoostJsonOptions, &outputOptionsJson);
-    NCatboostOptions::LoadPoolMetaInfoOptions(poolLoadParams.PoolMetaInfoPath, &catBoostJsonOptions);
-    ConvertIgnoredFeaturesFromStringToIndices(poolLoadParams, &catBoostFlatJsonOptions);
-    NCatboostOptions::PlainJsonToOptions(catBoostFlatJsonOptions, &catBoostJsonOptions, &outputOptionsJson);
-    ConvertParamsToCanonicalFormat(poolLoadParams, &catBoostJsonOptions);
-    CopyIgnoredFeaturesToPoolParams(catBoostJsonOptions, &poolLoadParams);
-    NCatboostOptions::TOutputFilesOptions outputOptions;
-    outputOptions.Load(outputOptionsJson);
-    //Cout << LabeledOutput(outputOptions.UseBestModel.IsSet()) << Endl;
+    {
+        NCatboostOptions::TPoolLoadParams poolLoadParams;
+        TString paramsFile;
+        NJson::TJsonValue catBoostFlatJsonOptions(NJson::JSON_MAP);
+        ParseCommandLine(argc, argv, &catBoostFlatJsonOptions, &paramsFile, &poolLoadParams);
+        NJson::TJsonValue catBoostJsonOptions;
+        NJson::TJsonValue outputOptionsJson;
+        InitOptions(paramsFile, &catBoostJsonOptions, &outputOptionsJson);
+        NCatboostOptions::LoadPoolMetaInfoOptions(poolLoadParams.PoolMetaInfoPath, &catBoostJsonOptions);
+        ConvertIgnoredFeaturesFromStringToIndices(poolLoadParams, &catBoostFlatJsonOptions);
+        NCatboostOptions::PlainJsonToOptions(catBoostFlatJsonOptions, &catBoostJsonOptions, &outputOptionsJson);
+        #if defined(HAVE_CUDA)
+        THolder<TStopCudaManagerCallback> stopCudaManagerGuard;
+        if (NCatboostOptions::GetTaskType(catBoostFlatJsonOptions) == ETaskType::GPU) {
+            auto options = NCatboostOptions::LoadOptions(catBoostJsonOptions);
+            stopCudaManagerGuard = StartCudaManager(
+                NCudaLib::CreateDeviceRequestConfig(options),
+                options.LoggingLevel);
+        }
+        #endif
+        ConvertParamsToCanonicalFormat(poolLoadParams, &catBoostJsonOptions);
+        CopyIgnoredFeaturesToPoolParams(catBoostJsonOptions, &poolLoadParams);
+        NCatboostOptions::TOutputFilesOptions outputOptions;
+        outputOptions.Load(outputOptionsJson);
+        //Cout << LabeledOutput(outputOptions.UseBestModel.IsSet()) << Endl;
 
-    TrainModel(poolLoadParams, outputOptions, catBoostJsonOptions);
+        TrainModel(poolLoadParams, outputOptions, catBoostJsonOptions);
+    }
 
     #if defined(USE_MPI)
     if (mpiManager.IsMaster()) {

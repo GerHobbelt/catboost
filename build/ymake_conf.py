@@ -1427,7 +1427,6 @@ class GnuCompiler(Compiler):
                 '-Wimport-preprocessor-directive-pedantic',
                 '-Wno-undefined-var-template',
                 '-Wno-return-std-move',
-                '-Wno-address-of-packed-member',
                 '-Wno-defaulted-function-deleted',
                 '-Wno-pessimizing-move',
                 '-Wno-range-loop-construct',
@@ -2448,9 +2447,6 @@ class MSVCCompiler(MSVC, Compiler):
             flags += [
                 # Allow <windows.h> to be included via <Windows.h> in case-sensitive file-systems.
                 '-fcase-insensitive-paths',
-                # Enable standard-conforming behavior and generate duplicate symbol error in case of duplicated global constants.
-                # See: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=85678#c0
-                '-fno-common',
             ]
             if target.is_x86:
                 flags.append('-m32')
@@ -2459,15 +2455,11 @@ class MSVCCompiler(MSVC, Compiler):
 
             c_warnings.extend((
                 '-Wno-bitwise-op-parentheses',
-                '-Wno-dll-attribute-on-redeclaration',
-                '-Wno-extern-initializer',
                 '-Wno-format',
-                '-Wno-inconsistent-dllimport',
                 '-Wno-logical-op-parentheses',
                 '-Wno-macro-redefined',
                 '-Wno-parentheses',
                 '-Wno-pragma-pack',
-                '-Wno-unknown-argument',
                 '-Wno-unknown-warning-option',
             ))
 

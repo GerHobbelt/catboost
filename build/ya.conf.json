@@ -80,6 +80,12 @@
         "gdbserver": {
             "description": "Run gdbserver"
         },
+        "gdbnew": {
+            "description": "Run gdb for Ubuntu 16.04 or later"
+        },
+        "gdbservernew": {
+            "description": "Run gdbserver for Ubuntu 16.04 or later"
+        },
         "ag": {
             "description": "Run ag (super fast source-code grep)"
         },
@@ -305,11 +311,11 @@
         "gofmt": {
             "description": "Run gofmt tool (1.17.7)"
         },
-        "go_1.18beta2": {
-            "description": "Run go tool (1.18beta2)"
+        "go_1.18rc1": {
+            "description": "Run go tool (1.18rc1)"
         },
-        "gofmt_1.18beta2": {
-            "description": "Run gofmt tool (1.18beta2)"
+        "gofmt_1.18rc1": {
+            "description": "Run gofmt tool (1.18rc1)"
         },
         "godoc": {
             "description": "Arcadia version of godoc"
@@ -2967,6 +2973,43 @@
                 }
             ]
         },
+        "gdbnew": {
+            "tools": {
+                "gdbnew": {
+                    "bottle": "gdbnew",
+                    "executable": "gdb"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                }
+            ],
+            "env": {
+                "TERMINFO": [
+                    "$(ROOT)/gdb/lib/terminfo"
+                ]
+            }
+        },
+        "gdbservernew": {
+            "tools": {
+                "gdbservernew": {
+                    "bottle": "gdbnew",
+                    "executable": "gdbserver"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                }
+            ]
+        },
         "python": {
             "tools": {
                 "python": {
@@ -5026,19 +5069,19 @@
                 "version": "1.17.7"
             }
         },
-        "golang_1_18beta2": {
+        "golang_1_18rc1": {
             "tools": {
-                "golang_1.18beta2": {
-                    "bottle": "golang_1.18beta2",
-                    "executable": "golang_1.18beta2"
+                "golang_1.18rc1": {
+                    "bottle": "golang_1.18rc1",
+                    "executable": "golang_1.18rc1"
                 },
-                "go_1.18beta2": {
-                    "bottle": "golang_1.18beta2",
-                    "executable": "go_1.18beta2"
+                "go_1.18rc1": {
+                    "bottle": "golang_1.18rc1",
+                    "executable": "go_1.18rc1"
                 },
-                "gofmt_1.18beta2": {
-                    "bottle": "golang_1.18beta2",
-                    "executable": "gofmt_1.18beta2"
+                "gofmt_1.18rc1": {
+                    "bottle": "golang_1.18rc1",
+                    "executable": "gofmt_1.18rc1"
                 }
             },
             "platforms": [
@@ -5070,7 +5113,7 @@
             ],
             "params": {
                 "type": "golang",
-                "version": "1.18beta2"
+                "version": "1.18rc1"
             }
         },
         "godoc": {
@@ -5949,7 +5992,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1220934101
+                    1230411341
                 ],
                 "match": "ymake"
             },
@@ -6006,7 +6049,7 @@
         "arc": {
             "formula": {
                 "sandbox_id": [
-                    1215975806
+                    1234159318
                 ],
                 "match": "arc"
             },
@@ -6119,7 +6162,7 @@
         },
         "tvmknife": {
             "formula": {
-                "sandbox_id": 1217042689,
+                "sandbox_id": 1231443941,
                 "match": "tvmknife"
             },
             "executable": {
@@ -6290,11 +6333,11 @@
         "clang12": {
             "formula": {
                 "sandbox_id": [
-                    1042818759,
-                    1042820568,
-                    1042823154,
-                    1042827120,
-                    1042828064
+                    1223443270,
+                    1223441613,
+                    1225508579,
+                    1223439797,
+                    1223436300
                 ],
                 "match": "CLANG"
             },
@@ -7009,6 +7052,24 @@
                 ]
             }
         },
+        "gdbnew": {
+            "formula": {
+                "sandbox_id": [
+                    1230533443
+                ],
+                "match": "GDB"
+            },
+            "executable": {
+                "gdb": [
+                    "bin",
+                    "gdb"
+                ],
+                "gdbserver": [
+                    "bin",
+                    "gdbserver"
+                ]
+            }
+        },
         "pprof": {
             "formula": {
                 "sandbox_id": 1115456319,
@@ -7091,7 +7152,7 @@
         "yp-util": {
             "formula": {
                 "sandbox_id": [
-                    1223505487
+                    1230597266
                 ],
                 "match": "yp_util"
             },
@@ -7449,7 +7510,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1226278037,
+                "sandbox_id": 1234471400,
                 "match": "horadric"
             },
             "executable": {
@@ -7592,7 +7653,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1226278001,
+                "sandbox_id": 1234469365,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -7642,7 +7703,7 @@
         },
         "saas2": {
             "formula": {
-                "sandbox_id": 1222768210,
+                "sandbox_id": 1229425647,
                 "match": "saas2"
             },
             "executable": {
@@ -7672,22 +7733,22 @@
                 ]
             }
         },
-        "golang_1.18beta2": {
+        "golang_1.18rc1": {
             "formula": {
                 "sandbox_id": [
-                    1206631393,
-                    1206631765,
-                    1206632232,
-                    1206632597
+                    1225225209,
+                    1225225645,
+                    1225225909,
+                    1225226383
                 ],
                 "match": "GOLANG"
             },
             "executable": {
-                "go_1.18beta2": [
+                "go_1.18rc1": [
                     "bin",
                     "go"
                 ],
-                "gofmt_1.18beta2": [
+                "gofmt_1.18rc1": [
                     "bin",
                     "gofmt"
                 ]
@@ -8022,7 +8083,7 @@
         },
         "sedem": {
             "formula": {
-                "sandbox_id": 1211251431,
+                "sandbox_id": 1232901498,
                 "match": "SEDEM archive"
             },
             "executable": {
@@ -8244,7 +8305,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1226279272,
+                "sandbox_id": 1234469677,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8255,7 +8316,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1226278641,
+                "sandbox_id": 1234469556,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8277,7 +8338,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1226278941,
+                "sandbox_id": 1234469475,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8288,7 +8349,7 @@
         },
         "bigb_yt_profiles_dumper": {
             "formula": {
-                "sandbox_id": 1226277852,
+                "sandbox_id": 1234469079,
                 "match": "yt_profiles_dumper"
             },
             "executable": {
@@ -8299,7 +8360,7 @@
         },
         "bigb_ab": {
             "formula": {
-                "sandbox_id": 1226280514,
+                "sandbox_id": 1234469075,
                 "match": "ab"
             },
             "executable": {
@@ -8323,7 +8384,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1226279126,
+                "sandbox_id": 1234469089,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8334,7 +8395,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1226278651,
+                "sandbox_id": 1234467836,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8345,7 +8406,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1226279195,
+                "sandbox_id": 1234467806,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8356,7 +8417,7 @@
         },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1226278665,
+                "sandbox_id": 1234467754,
                 "match": "profile_size_analyzer"
             },
             "executable": {
