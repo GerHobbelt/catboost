@@ -1,18 +1,17 @@
 
 
 RECURSE(
+    asttokens
     atomicwrites
     attrs
     backcall
-    backports.functools-lru-cache
-    backports.shutil-get-terminal-size
     colorama
     configparser
     contextlib2
     dateutil
     decorator
     enum34
-    faulthandler
+    executing
     filelock
     funcsigs
     graphviz
@@ -39,6 +38,7 @@ RECURSE(
     prompt-toolkit
     protobuf
     ptyprocess
+    pure-eval
     py
     Pygments
     pyparsing
@@ -50,7 +50,7 @@ RECURSE(
     setuptools
     simplegeneric
     six
-    subprocess32
+    stack-data
     testpath
     tomli
     tornado
@@ -61,7 +61,7 @@ RECURSE(
 
 IF (OS_WINDOWS)
     RECURSE(
-    win_unicode_console
+    win-unicode-console
 )
 ENDIF()
 

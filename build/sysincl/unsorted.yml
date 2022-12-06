@@ -513,9 +513,6 @@
   - android/api-level.h
   - android/ndk-version.h
   #endif
-  #if defined(__HP_aCC)
-  - acxx_demangle.h
-  #endif
   #if defined(HAVE_CONFIG_H) && TODO
   - config_auto.h
   #endif
@@ -553,7 +550,6 @@
   - sys/systemcfg.h
   - sys/thread.h
   #endif
-  - mbarrier.h
   - iostream.h
   - streambuf.h
   - ostream.h
