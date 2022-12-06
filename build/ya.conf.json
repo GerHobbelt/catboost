@@ -6086,6 +6086,40 @@
                     "default": true
                 }
             ]
+        },
+        "nds32le-elf-mculib-v5f": {
+            "tools": {
+                "cc": {
+                    "bottle": "nds32le-elf-mculib-v5f",
+                    "executable": "cc"
+                },
+                "c++": {
+                    "bottle": "nds32le-elf-mculib-v5f",
+                    "executable": "c++"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "target": {
+                        "os": "NONE",
+                        "arch": "nds32le_elf_mculib_v5f"
+                    },
+                    "default": true
+                }
+            ],
+            "params": {
+                "type": "gnu",
+                "match_root": "RISCV",
+                "werror_mode": "compiler_specific",
+                "c_compiler": "$(RISCV)/bin/riscv32-elf-gcc",
+                "cxx_compiler": "$(RISCV)/bin/riscv32-elf-g++",
+                "ar": "$(RISCV)/bin/riscv32-elf-ar",
+                "objcopy": "$(RISCV)/bin/riscv32-elf-objcopy",
+                "gcc_version": "7.4.0"
+            }
         }
     },
     "bottles": {
@@ -6106,7 +6140,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1249643898
+                    1257062795
                 ],
                 "match": "ymake"
             },
@@ -6276,7 +6310,7 @@
         },
         "tvmknife": {
             "formula": {
-                "sandbox_id": 1251052820,
+                "sandbox_id": 1262117740,
                 "match": "tvmknife"
             },
             "executable": {
@@ -7318,7 +7352,7 @@
         "infractl": {
             "formula": {
                 "sandbox_id": [
-                    1256030352
+                    1262119440
                 ],
                 "match": "infractl"
             },
@@ -7650,7 +7684,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1257400373,
+                "sandbox_id": 1263077163,
                 "match": "horadric"
             },
             "executable": {
@@ -7793,7 +7827,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1257418563,
+                "sandbox_id": 1263077676,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -7832,7 +7866,7 @@
         },
         "news": {
             "formula": {
-                "sandbox_id": 1240664469,
+                "sandbox_id": 1260940182,
                 "match": "news_launcher"
             },
             "executable": {
@@ -7927,7 +7961,7 @@
         "qyp": {
             "formula": {
                 "sandbox_id": [
-                    1197649240
+                    1253668008
                 ],
                 "match": "infra/qyp/vmctl/bin/vmctl"
             },
@@ -8225,7 +8259,7 @@
         },
         "sedem": {
             "formula": {
-                "sandbox_id": 1253638317,
+                "sandbox_id": 1261548618,
                 "match": "SEDEM archive"
             },
             "executable": {
@@ -8296,7 +8330,7 @@
         "black": {
             "formula": {
                 "sandbox_id": [
-                    1209137306
+                    1259729400
                 ],
                 "match": "black"
             },
@@ -8436,7 +8470,7 @@
         },
         "eductl": {
             "formula": {
-                "sandbox_id": 1255739375,
+                "sandbox_id": 1262494761,
                 "match": "eductl"
             },
             "executable": {
@@ -8447,7 +8481,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1257411606,
+                "sandbox_id": 1263073099,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8458,7 +8492,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1258239785,
+                "sandbox_id": 1263077454,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8480,7 +8514,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1257414098,
+                "sandbox_id": 1263074582,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8502,7 +8536,7 @@
         },
         "bigb_ab": {
             "formula": {
-                "sandbox_id": 1257421746,
+                "sandbox_id": 1263078212,
                 "match": "ab"
             },
             "executable": {
@@ -8526,7 +8560,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1257410818,
+                "sandbox_id": 1263079864,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8537,7 +8571,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1257402242,
+                "sandbox_id": 1263078040,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8548,7 +8582,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1258243281,
+                "sandbox_id": 1263074988,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8559,7 +8593,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1256094494,
+                "sandbox_id": 1261784847,
                 "match": "lama"
             },
             "executable": {
@@ -8570,12 +8604,28 @@
         },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1257408554,
+                "sandbox_id": 1263077136,
                 "match": "profile_size_analyzer"
             },
             "executable": {
                 "profile_size_analyzer": [
                     "profile_size_analyzer"
+                ]
+            }
+        },
+        "nds32le-elf-mculib-v5f": {
+            "formula": {
+                "sandbox_id": 1261704938,
+                "match": "nds32le-elf-mculib-v5f"
+            },
+            "executable": {
+                "c++": [
+                    "bin",
+                    "riscv32-elf-g++"
+                ],
+                "cc": [
+                    "bin",
+                    "riscv32-elf-gcc"
                 ]
             }
         }
