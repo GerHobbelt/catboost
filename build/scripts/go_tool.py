@@ -347,11 +347,9 @@ def _do_compile_go(args):
         '-o',
         args.output,
         '-p',
-        import_path,
+        import_path if import_path != "unsafe" else "",
         '-D',
         '""',
-        '-goversion',
-        'go{}'.format(args.goversion)
     ]
     if args.lang:
         cmd.append('-lang=go{}'.format(args.lang))
@@ -490,7 +488,9 @@ def do_link_exe(args):
     if args.link_flags:
         cmd += args.link_flags
 
-    if args.mode in ('exe', 'test'):
+    if args.buildmode:
+        cmd.append('-buildmode={}'.format(args.buildmode))
+    elif args.mode in ('exe', 'test'):
         cmd.append('-buildmode=exe')
     elif args.mode == 'dll':
         cmd.append('-buildmode=c-shared')
@@ -786,6 +786,7 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(prefix_chars='+')
     parser.add_argument('++mode', choices=['dll', 'exe', 'lib', 'test'], required=True)
+    parser.add_argument('++buildmode', choices=['c-shared', 'exe', 'pie'])
     parser.add_argument('++srcs', nargs='*', required=True)
     parser.add_argument('++cgo-srcs', nargs='*')
     parser.add_argument('++test_srcs', nargs='*')

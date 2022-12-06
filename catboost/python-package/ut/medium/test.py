@@ -1321,23 +1321,28 @@ def fit_from_file(params, learn_file, test_file, cd_file):
     return model, model.predict(test_pool)
 
 
-def test_fit_with_texts(task_type):
+@pytest.mark.parametrize('problem_type', ['binclass', 'multiclass', 'regression'])
+def test_fit_with_texts(task_type, problem_type):
     params = {
         'dictionaries': [
             {'dictionary_id': 'UniGram', 'token_level_type': 'Letter', 'occurrence_lower_bound': '1'},
             {'dictionary_id': 'BiGram', 'token_level_type': 'Letter', 'occurrence_lower_bound': '1', 'gram_order': '2'},
             {'dictionary_id': 'Word', 'occurrence_lower_bound': '1'},
         ],
-        'feature_calcers': ['NaiveBayes', 'BoW:top_tokens_count=10'],
+        'feature_calcers': ['BoW:top_tokens_count=10'] if problem_type == 'regression' else ['NaiveBayes', 'BoW:top_tokens_count=10'],
         'iterations': 100,
-        'loss_function': 'MultiClass',
+        'loss_function': {
+            'binclass': 'Logloss',
+            'multiclass': 'MultiClass',
+            'regression': 'RMSE'
+        }[problem_type],
         'task_type': task_type,
         'devices': '0'
     }
 
     learn = ROTTEN_TOMATOES_TRAIN_FILE
     test = ROTTEN_TOMATOES_TEST_FILE
-    cd = ROTTEN_TOMATOES_CD_FILE
+    cd = ROTTEN_TOMATOES_CD_FILE if problem_type == 'multiclass' else ROTTEN_TOMATOES_CD_BINCLASS_FILE
 
     preds1 = fit_from_df(params, learn, test, cd)
     _, preds2 = fit_from_file(params, learn, test, cd)
@@ -3454,7 +3459,8 @@ def test_cv_with_cat_features_param(param_type):
         cv(pool, params_with_wrong_cat_features)
 
 
-def test_cv_with_text():
+@pytest.mark.parametrize('problem_type', ['binclass', 'multiclass', 'regression'])
+def test_cv_with_text(problem_type):
     cats_words = ['Meow', 'Kitten', 'Paw', 'Tail', 'Purring', 'Crouch', 'Whisker']
     dogs_words = ['Puppy', 'Whelp', 'Woof', 'Tail', 'Paw', 'Snarl', 'Barking']
     words = [cats_words, dogs_words]
@@ -3464,7 +3470,11 @@ def test_cv_with_text():
     data_pool = Pool(data=texts, label=labels, text_features=[0])
     train_dir_prefix = test_output_path('')
     params = {
-        'loss_function': 'Logloss',
+        'loss_function':  {
+            'binclass': 'Logloss',
+            'multiclass': 'MultiClass',
+            'regression': 'RMSE'
+        }[problem_type],
         'iterations': 10,
         'random_seed': 42,
         'learning_rate': 0.5,
@@ -3474,7 +3484,7 @@ def test_cv_with_text():
 
     preds_path = test_output_path(CV_CSV_PATH)
     result.to_csv(preds_path)
-    return local_canonical_file(preds_path)
+    return local_canonical_file(preds_path, diff_tool=get_limited_precision_json_diff_tool(1.e-6))
 
 
 def test_cv_with_save_snapshot(task_type):
@@ -5092,14 +5102,11 @@ def test_option_used_ram_limit():
     for limit in [1000, 1234.56, 0, 0.0, 0.5,
                   '100', '34.56', '0', '0.0', '0.5',
                   '1.2mB', '1000b', '', None, 'none', 'inf']:
-        CatBoost({'used_ram_limit': limit})
+        CatBoost({'used_ram_limit': limit}).fit([[0, 1], [2, 3]], [0, 1])
 
     for limit in [-1000, 'any', '-0.5', 'nolimit', 'oo']:
-        try:
-            CatBoost({'used_ram_limit': limit})
-            assert False, "Shall not allow used_ram_limit={!r}".format(limit)
-        except:
-            assert True
+        with pytest.raises(Exception):
+            CatBoost({'used_ram_limit': limit, 'iterations': 1}).fit([[0, 1], [2, 3]], [0, 1])
 
 
 def get_values_that_json_dumps_breaks_on():
@@ -5115,7 +5122,7 @@ def get_values_that_json_dumps_breaks_on():
                 continue
             name_value[name] = value
             name_value['array of ' + name] = np.array([[1, 0], [0, 1]], dtype=dtype)
-        except:
+        except Exception:
             pass
     return name_value
 
@@ -5258,7 +5265,7 @@ class TestInvalidCustomLossAndMetric(object):
         model.fit(pool)
 
     def test_loss_none_metric_incomplete(self):
-        with pytest.raises(CatBoostError, match='*evaluate()*incorrect*'):
+        with pytest.raises(CatBoostError, match='has no.*evaluate'):
             model = CatBoost({"eval_metric": self.IncompleteCustomMetric(), "iterations": 2})
             prng = np.random.RandomState(seed=20181219)
             pool = Pool(*random_xy(10, 5, prng=prng))
@@ -7234,17 +7241,15 @@ def test_grow_policy_restriction(task_type, grow_policy):
         'devices': '0',
         'grow_policy': grow_policy
     }
-    is_failed = False
-    try:
+
+    with pytest.raises(Exception):
         if grow_policy == 'Lossguide':
             params['max_leaves'] = 65537
         else:
             params['max_depth'] = 17
         classifier = CatBoostClassifier(**params)
         classifier.fit(pool)
-    except:
-        is_failed = True
-    assert is_failed
+
     if grow_policy == 'Lossguide':
         params['max_leaves'] = 65536
     else:
@@ -9189,11 +9194,8 @@ def test_bad_uncertainty_prediction_types_usage():
     regressor = CatBoostRegressor(iterations=100, posterior_sampling=True)
     regressor.fit(pool)
     for prediction_type in ['TotalUncertainty', 'VirtEnsembles']:
-        try:
+        with pytest.raises(Exception):
             regressor.predict(pool, prediction_type=prediction_type)
-        except:
-            continue
-        assert False
 
 
 @pytest.mark.parametrize('virtual_ensembles_count', [1, 5])
