@@ -737,6 +737,11 @@ class YMake(object):
         else:
             print('@import "${CONF_ROOT}/conf/jbuild.ymake.conf"')
 
+        if is_positive_str(presets.get('EXPORT_GRADLE', 'no')):
+            print('@import "${CONF_ROOT}/conf/export_gradle.yes.conf"')
+        else:
+            print('@import "${CONF_ROOT}/conf/export_gradle.no.conf"')
+
         if presets:
             print('# Variables set from command line by -D options')
             for key in sorted(presets):
@@ -1391,7 +1396,6 @@ class GnuCompiler(Compiler):
         self.c_warnings += [
             '-Wno-parentheses',
             '-Wno-unused-but-set-variable',
-            '-Wno-unused-but-set-parameter',
         ]
 
         self.c_defines = ['-DFAKEID=$CPP_FAKEID']

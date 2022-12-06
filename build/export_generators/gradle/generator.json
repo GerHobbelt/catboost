@@ -16,10 +16,13 @@
   {
     "KnownTargets":
     [
-      "jar"
+      "jar",
+      "jar_proto"
     ],
     "KnownAttrs":
     [
+      "proto_files",
+      "proto_namespace"
     ],
     "KnownInducedAttrs":
     [
