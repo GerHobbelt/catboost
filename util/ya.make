@@ -238,6 +238,10 @@ JOIN_SRCS(
     string/vector.cpp
 )
 
+IF (GCC OR CLANG OR CLANG_CL)
+    CFLAGS(-Wnarrowing)
+ENDIF()
+
 IF (ARCH_ARM)
     CFLAGS(-D_FORTIFY_SOURCE=0)
 ENDIF()
@@ -325,7 +329,7 @@ JOIN_SRCS(
     system/yield.cpp
 )
 
-SRC(system/compiler.cpp -fno-lto)
+SRC_CPP_NO_LTO(system/compiler.cpp)
 
 IF (OS_WINDOWS)
     SRCS(

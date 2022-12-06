@@ -27,7 +27,7 @@
 #include "kmp_wait_release.h"
 
 #if OMPT_SUPPORT
-#include "ompt-specific.h"
+#error #include "ompt-specific.h"
 #endif
 
 /* these are temporary issues to be dealt with */
@@ -37,6 +37,7 @@
 #if KMP_OS_WINDOWS
 #include <process.h>
 #endif
+
 
 #if defined(KMP_GOMP_COMPAT)
 char const __kmp_version_alt_comp[] = KMP_VERSION_PREFIX "alternative compiler support: yes";

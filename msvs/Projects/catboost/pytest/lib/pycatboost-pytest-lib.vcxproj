@@ -417,6 +417,18 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\expat\contrib-libs-expat.vcxproj">
       <Project>{BF794ED3-B687-CE38-5FC3-A9AC59EC392B}</Project>
     </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\farmhash\arch\sse41\farmhash-arch-sse41.vcxproj">
+      <Project>{786F1317-9200-AD1B-EA39-65E68AEE6D3A}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\farmhash\arch\sse42\farmhash-arch-sse42.vcxproj">
+      <Project>{C8CA3BCD-F73D-FC20-2052-518590325FDC}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\farmhash\arch\sse42_aesni\farmhash-arch-sse42_aesni.vcxproj">
+      <Project>{A993C899-B035-BA9E-F539-6F76A4717981}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\farmhash\contrib-libs-farmhash.vcxproj">
+      <Project>{B8ABCDE4-AB07-4A0F-FB0A-AB18C556F7DB}</Project>
+    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\fastlz\contrib-libs-fastlz.vcxproj">
       <Project>{D709661F-2EAC-6991-0421-E9D659AB8256}</Project>
     </ProjectReference>
@@ -566,6 +578,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\six\pycontrib-python-six.vcxproj">
       <Project>{045AAA08-9E22-8E9E-4CC3-999EEA7560DE}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\testpath\py2\pypython-testpath-py2.vcxproj">
+      <Project>{FD7CE518-0A37-DEFA-92AA-187002C1F09B}</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\testpath\pycontrib-python-testpath.vcxproj">
       <Project>{8E9D3E5D-72FC-14BE-D403-F8FC953F8164}</Project>

@@ -2462,15 +2462,11 @@ class MSVCCompiler(MSVC, Compiler):
                 '-Wno-dll-attribute-on-redeclaration',
                 '-Wno-extern-initializer',
                 '-Wno-format',
-                '-Wno-ignored-pragma-optimize',
                 '-Wno-inconsistent-dllimport',
-                '-Wno-int-conversion',
-                '-Wno-invalid-noreturn',
                 '-Wno-logical-op-parentheses',
                 '-Wno-macro-redefined',
                 '-Wno-parentheses',
                 '-Wno-pragma-pack',
-                '-Wno-tautological-constant-out-of-range-compare',
                 '-Wno-unknown-argument',
                 '-Wno-unknown-warning-option',
             ))
@@ -3092,7 +3088,7 @@ class Cuda(object):
         if self.cuda_version.value in ('8.0', '9.0', '9.1', '9.2', '10.0'):
             raise ConfigureError('CUDA versions 8.x, 9.x and 10.0 are no longer supported.\nSee DEVTOOLS-7108.')
 
-        if self.cuda_version.value in ('10.1', '11.0', '11.3', '11.4'):
+        if self.cuda_version.value in ('10.1', '11.0', '11.1', '11.3', '11.4'):
             return True
 
         return False
