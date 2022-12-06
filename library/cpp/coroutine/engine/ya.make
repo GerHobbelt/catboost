@@ -30,4 +30,6 @@ END()
 
 RECURSE(
     stack/benchmark
+    stack/ut
+    ut
 )

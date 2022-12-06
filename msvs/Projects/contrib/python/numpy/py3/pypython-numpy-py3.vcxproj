@@ -57,8 +57,8 @@
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <UseFullPaths>true</UseFullPaths>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/nologo /Zm500 /GR /bigobj /FC /EHs /errorReport:prompt /Zc:inline /utf-8 /permissive- /FD /MP /Ob0 /Od /D_DEBUG /MTd /Zi /FS /DARCADIA_ROOT=$(SolutionDir).. /DARCADIA_BUILD_ROOT=$(SolutionDir)$(Configuration) /DFAKEID=9403851 /DWIN32 /D_WIN32 /D_WINDOWS /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS /D_USE_MATH_DEFINES /D__STDC_CONSTANT_MACROS /D__STDC_FORMAT_MACROS /D_USING_V110_SDK71_ /D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_WIN64 /DWIN64 /D_WIN32_WINNT=0x0601 /D_MBCS /DSSE_ENABLED=1 /DSSE3_ENABLED=1 /DSSSE3_ENABLED=1 /DSSE41_ENABLED=1 /DSSE42_ENABLED=1 /DPOPCNT_ENABLED=1 /DCX16_ENABLED=1  -DHAVE_CBLAS -DHAVE_NPY_CONFIG_H=1 -DNO_ATLAS_INFO=1 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -D_LARGEFILE_SOURCE=1 -DNPY_INTERNAL_BUILD=1 -DPyInit__multiarray_umath=PyInit_5numpy4core17_multiarray_umath -DPyInit__multiarray_tests=PyInit_5numpy4core17_multiarray_tests -DPyInit__operand_flag_tests=PyInit_5numpy4core19_operand_flag_tests -DPyInit__rational_tests=PyInit_5numpy4core15_rational_tests -DPyInit__simd=PyInit_5numpy4core5_simd -DPyInit__struct_ufunc_tests=PyInit_5numpy4core19_struct_ufunc_tests -DPyInit__umath_tests=PyInit_5numpy4core12_umath_tests -DPyInit__pocketfft_internal=PyInit_5numpy3fft19_pocketfft_internal -DPyInit__umath_linalg=PyInit_5numpy6linalg13_umath_linalg -DPyInit_lapack_lite=PyInit_5numpy6linalg11lapack_lite -D_LIBCPP_VASPRINTF_DEFINED -D_WCHAR_H_CPLUSPLUS_98_CONFORMANCE_ -DXML_STATIC -DLZMA_API_STATIC -DFFI_BUILDING -DUSE_PYTHON3 /DY_UCRT_INCLUDE="$(UniversalCRT_IncludePath.Split(';')[0].Replace('\','/'))" /DY_MSVC_INCLUDE="$(VC_VC_IncludePath.Split(';')[0].Replace('\','/'))" -DCATBOOST_OPENSOURCE=yes -DCATBOOST_OPENSOURCE=yes -DUSE_STL_SYSTEM /D__SSE2__=1 /D__SSE3__=1 /D__SSSE3__=1 /D__SSE4_1__=1 /D__SSE4_2__=1 /D__POPCNT__=1  -DUSE_PYTHON3 /std:c++latest /Zc:__cplusplus /D_CRT_USE_BUILTIN_OFFSETOF    -DCATBOOST_OPENSOURCE=yes </AdditionalOptions>
-      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/nologo /Zm500 /GR /bigobj /FC /EHs /errorReport:prompt /Zc:inline /utf-8 /permissive- /FD /MP /Ox /Ob2 /Oi /DNDEBUG /MT /Zi /FS /DARCADIA_ROOT=$(SolutionDir).. /DARCADIA_BUILD_ROOT=$(SolutionDir)$(Configuration) /DFAKEID=9403851 /DWIN32 /D_WIN32 /D_WINDOWS /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS /D_USE_MATH_DEFINES /D__STDC_CONSTANT_MACROS /D__STDC_FORMAT_MACROS /D_USING_V110_SDK71_ /D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_WIN64 /DWIN64 /D_WIN32_WINNT=0x0601 /D_MBCS /DSSE_ENABLED=1 /DSSE3_ENABLED=1 /DSSSE3_ENABLED=1 /DSSE41_ENABLED=1 /DSSE42_ENABLED=1 /DPOPCNT_ENABLED=1 /DCX16_ENABLED=1  -DHAVE_CBLAS -DHAVE_NPY_CONFIG_H=1 -DNO_ATLAS_INFO=1 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -D_LARGEFILE_SOURCE=1 -DNPY_INTERNAL_BUILD=1 -DPyInit__multiarray_umath=PyInit_5numpy4core17_multiarray_umath -DPyInit__multiarray_tests=PyInit_5numpy4core17_multiarray_tests -DPyInit__operand_flag_tests=PyInit_5numpy4core19_operand_flag_tests -DPyInit__rational_tests=PyInit_5numpy4core15_rational_tests -DPyInit__simd=PyInit_5numpy4core5_simd -DPyInit__struct_ufunc_tests=PyInit_5numpy4core19_struct_ufunc_tests -DPyInit__umath_tests=PyInit_5numpy4core12_umath_tests -DPyInit__pocketfft_internal=PyInit_5numpy3fft19_pocketfft_internal -DPyInit__umath_linalg=PyInit_5numpy6linalg13_umath_linalg -DPyInit_lapack_lite=PyInit_5numpy6linalg11lapack_lite -D_LIBCPP_VASPRINTF_DEFINED -D_WCHAR_H_CPLUSPLUS_98_CONFORMANCE_ -DXML_STATIC -DLZMA_API_STATIC -DFFI_BUILDING -DUSE_PYTHON3 /DY_UCRT_INCLUDE="$(UniversalCRT_IncludePath.Split(';')[0].Replace('\','/'))" /DY_MSVC_INCLUDE="$(VC_VC_IncludePath.Split(';')[0].Replace('\','/'))" -DCATBOOST_OPENSOURCE=yes -DCATBOOST_OPENSOURCE=yes -DUSE_STL_SYSTEM /D__SSE2__=1 /D__SSE3__=1 /D__SSSE3__=1 /D__SSE4_1__=1 /D__SSE4_2__=1 /D__POPCNT__=1  -DUSE_PYTHON3 /std:c++latest /Zc:__cplusplus /D_CRT_USE_BUILTIN_OFFSETOF    -DCATBOOST_OPENSOURCE=yes </AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/nologo /Zm500 /GR /bigobj /FC /EHs /errorReport:prompt /Zc:inline /utf-8 /permissive- /FD /MP /Ob0 /Od /D_DEBUG /MTd /Zi /FS /DARCADIA_ROOT=$(SolutionDir).. /DARCADIA_BUILD_ROOT=$(SolutionDir)$(Configuration) /DFAKEID=9517719 /DWIN32 /D_WIN32 /D_WINDOWS /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS /D_USE_MATH_DEFINES /D__STDC_CONSTANT_MACROS /D__STDC_FORMAT_MACROS /D_USING_V110_SDK71_ /D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_WIN64 /DWIN64 /D_WIN32_WINNT=0x0601 /D_MBCS /DSSE_ENABLED=1 /DSSE3_ENABLED=1 /DSSSE3_ENABLED=1 /DSSE41_ENABLED=1 /DSSE42_ENABLED=1 /DPOPCNT_ENABLED=1 /DCX16_ENABLED=1  -DHAVE_CBLAS -DHAVE_NPY_CONFIG_H=1 -DNO_ATLAS_INFO=1 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -D_LARGEFILE_SOURCE=1 -DNPY_INTERNAL_BUILD=1 -DPyInit__multiarray_umath=PyInit_5numpy4core17_multiarray_umath -DPyInit__multiarray_tests=PyInit_5numpy4core17_multiarray_tests -DPyInit__operand_flag_tests=PyInit_5numpy4core19_operand_flag_tests -DPyInit__rational_tests=PyInit_5numpy4core15_rational_tests -DPyInit__simd=PyInit_5numpy4core5_simd -DPyInit__struct_ufunc_tests=PyInit_5numpy4core19_struct_ufunc_tests -DPyInit__umath_tests=PyInit_5numpy4core12_umath_tests -DPyInit__pocketfft_internal=PyInit_5numpy3fft19_pocketfft_internal -DPyInit__umath_linalg=PyInit_5numpy6linalg13_umath_linalg -DPyInit_lapack_lite=PyInit_5numpy6linalg11lapack_lite -D_LIBCPP_VASPRINTF_DEFINED -D_WCHAR_H_CPLUSPLUS_98_CONFORMANCE_ -DXML_STATIC -DLZMA_API_STATIC -DFFI_BUILDING -DUSE_PYTHON3 /DY_UCRT_INCLUDE="$(UniversalCRT_IncludePath.Split(';')[0].Replace('\','/'))" /DY_MSVC_INCLUDE="$(VC_VC_IncludePath.Split(';')[0].Replace('\','/'))" -DCATBOOST_OPENSOURCE=yes -DCATBOOST_OPENSOURCE=yes -DUSE_STL_SYSTEM /D__SSE2__=1 /D__SSE3__=1 /D__SSSE3__=1 /D__SSE4_1__=1 /D__SSE4_2__=1 /D__POPCNT__=1  -DUSE_PYTHON3 /std:c++latest /Zc:__cplusplus /D_CRT_USE_BUILTIN_OFFSETOF    -DCATBOOST_OPENSOURCE=yes </AdditionalOptions>
+      <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/nologo /Zm500 /GR /bigobj /FC /EHs /errorReport:prompt /Zc:inline /utf-8 /permissive- /FD /MP /Ox /Ob2 /Oi /DNDEBUG /MT /Zi /FS /DARCADIA_ROOT=$(SolutionDir).. /DARCADIA_BUILD_ROOT=$(SolutionDir)$(Configuration) /DFAKEID=9517719 /DWIN32 /D_WIN32 /D_WINDOWS /D_CRT_SECURE_NO_WARNINGS /D_CRT_NONSTDC_NO_WARNINGS /D_USE_MATH_DEFINES /D__STDC_CONSTANT_MACROS /D__STDC_FORMAT_MACROS /D_USING_V110_SDK71_ /D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES /DWIN32_LEAN_AND_MEAN /DNOMINMAX /D_WIN64 /DWIN64 /D_WIN32_WINNT=0x0601 /D_MBCS /DSSE_ENABLED=1 /DSSE3_ENABLED=1 /DSSSE3_ENABLED=1 /DSSE41_ENABLED=1 /DSSE42_ENABLED=1 /DPOPCNT_ENABLED=1 /DCX16_ENABLED=1  -DHAVE_CBLAS -DHAVE_NPY_CONFIG_H=1 -DNO_ATLAS_INFO=1 -D_FILE_OFFSET_BITS=64 -D_LARGEFILE64_SOURCE=1 -D_LARGEFILE_SOURCE=1 -DNPY_INTERNAL_BUILD=1 -DPyInit__multiarray_umath=PyInit_5numpy4core17_multiarray_umath -DPyInit__multiarray_tests=PyInit_5numpy4core17_multiarray_tests -DPyInit__operand_flag_tests=PyInit_5numpy4core19_operand_flag_tests -DPyInit__rational_tests=PyInit_5numpy4core15_rational_tests -DPyInit__simd=PyInit_5numpy4core5_simd -DPyInit__struct_ufunc_tests=PyInit_5numpy4core19_struct_ufunc_tests -DPyInit__umath_tests=PyInit_5numpy4core12_umath_tests -DPyInit__pocketfft_internal=PyInit_5numpy3fft19_pocketfft_internal -DPyInit__umath_linalg=PyInit_5numpy6linalg13_umath_linalg -DPyInit_lapack_lite=PyInit_5numpy6linalg11lapack_lite -D_LIBCPP_VASPRINTF_DEFINED -D_WCHAR_H_CPLUSPLUS_98_CONFORMANCE_ -DXML_STATIC -DLZMA_API_STATIC -DFFI_BUILDING -DUSE_PYTHON3 /DY_UCRT_INCLUDE="$(UniversalCRT_IncludePath.Split(';')[0].Replace('\','/'))" /DY_MSVC_INCLUDE="$(VC_VC_IncludePath.Split(';')[0].Replace('\','/'))" -DCATBOOST_OPENSOURCE=yes -DCATBOOST_OPENSOURCE=yes -DUSE_STL_SYSTEM /D__SSE2__=1 /D__SSE3__=1 /D__SSSE3__=1 /D__SSE4_1__=1 /D__SSE4_2__=1 /D__POPCNT__=1  -DUSE_PYTHON3 /std:c++latest /Zc:__cplusplus /D_CRT_USE_BUILTIN_OFFSETOF    -DCATBOOST_OPENSOURCE=yes </AdditionalOptions>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
       <RemoveUnreferencedCodeData Condition="'$(Configuration)|$(Platform)'=='Debug|x64'"/>
       <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
@@ -79,6 +79,9 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\_simd\_simd.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\_simd\_simd.dispatch.c">
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\common\array_assign.c">
@@ -331,6 +334,9 @@
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\_umath_tests.c">
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\_umath_tests.dispatch.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\clip.cpp"/>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\dispatching.c">
       <CompileAs>CompileAsC</CompileAs>
@@ -342,6 +348,24 @@
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_arithm_fp.dispatch.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_arithmetic.dispatch.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_exponent_log.dispatch.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_trigonometric.dispatch.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_umath_fp.dispatch.c">
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_unary_fp.dispatch.c">
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\matmul.c">
@@ -387,9 +411,6 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\_simd\_simd.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\_simd\_simd.dispatch.fma3.avx2.c">
       <CompileAs>CompileAsC</CompileAs>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)_simd.dispatch.fma3.avx2.c.avx2.obj</ObjectFileName>
@@ -407,9 +428,6 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/arch:AVX2 /DAVX2_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/arch:AVX2 /DAVX2_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\_umath_tests.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\_umath_tests.dispatch.sse41.c">
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -424,9 +442,6 @@
       <CompileAs>CompileAsC</CompileAs>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_arithm_fp.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_arithmetic.dispatch.avx2.c">
       <CompileAs>CompileAsC</CompileAs>
@@ -445,9 +460,6 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_arithmetic.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_arithmetic.dispatch.sse41.c">
       <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
@@ -461,9 +473,6 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_exponent_log.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_exponent_log.dispatch.fma3.avx2.c">
       <CompileAs>CompileAsC</CompileAs>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)loops_exponent_log.dispatch.fma3.avx2.c.avx2.obj</ObjectFileName>
@@ -476,9 +485,6 @@
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_trigonometric.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_trigonometric.dispatch.fma3.avx2.c">
       <CompileAs>CompileAsC</CompileAs>
       <ObjectFileName Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(IntDir)loops_trigonometric.dispatch.fma3.avx2.c.avx2.obj</ObjectFileName>
@@ -490,12 +496,6 @@
       <CompileAs>CompileAsC</CompileAs>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
       <AdditionalOptions Condition="'$(Configuration)|$(Platform)'=='Release|x64'">/arch:AVX /DAVX_ENABLED=1 /arch:AVX2 /DAVX2_ENABLED=1 /arch:AVX512 /DAVX512_ENABLED=1 %(AdditionalOptions)</AdditionalOptions>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_umath_fp.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
-    </ClCompile>
-    <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_unary_fp.dispatch.c">
-      <CompileAs>CompileAsC</CompileAs>
     </ClCompile>
     <ClCompile Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\loops_unary_fp.dispatch.sse41.c">
       <CompileAs>CompileAsC</CompileAs>
@@ -7282,7 +7282,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ClInclude Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\reduction.h"/>
     <ClInclude Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\ufunc_object.h"/>
     <ClInclude Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\core\src\umath\ufunc_type_resolution.h"/>
+    <ClInclude Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\distutils\include\npy_cpu_dispatch_config.aarch64.h"/>
     <ClInclude Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\distutils\include\npy_cpu_dispatch_config.h"/>
+    <ClInclude Include="$(SolutionDir)..\contrib\python\numpy\py3\numpy\distutils\include\npy_cpu_dispatch_config.x86_64.h"/>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
   <ImportGroup Label="ExtensionTargets"/>

@@ -39,6 +39,7 @@ from catboost.utils import eval_metric, create_cd, read_cd, get_roc_curve, selec
 from catboost.utils import DataMetaInfo, TargetStats, compute_training_options
 import os.path
 import os
+import pandas as pd
 from pandas import read_csv, DataFrame, Series, Categorical
 from pandas.arrays import SparseArray
 import scipy.sparse
@@ -1968,6 +1969,25 @@ def test_inconsistent_labels_and_class_names():
 
 
 def test_inconsistent_class_labels_count():
+    classifier = CatBoostClassifier(
+        iterations=2,
+        loss_function='Logloss',
+        class_names=[0, 1, 2],
+    )
+    with pytest.raises(CatBoostError):
+        classifier.fit([[0], [1], [2]], [0, 1, 2])
+
+    classifier = CatBoostClassifier(
+        iterations=2,
+        loss_function='MultiClass',
+        class_names=[0, 1],
+        classes_count=3
+    )
+    with pytest.raises(CatBoostError):
+        classifier.fit([[0], [1], [2]], [0, 1, 2])
+
+
+def test_unknown_class_labels_in_eval_dataset():
     classifier = CatBoostClassifier(
         iterations=2,
         loss_function='Logloss',
@@ -5305,6 +5325,29 @@ def test_feature_names_from_model():
             output.write(str(model.feature_names_) + '\n')
 
     return local_canonical_file(output_file)
+
+
+@pytest.mark.parametrize('format', ['cbm', 'json'])
+def test_feature_names_from_loaded_model(format):
+    df = DataFrame({
+        'a': np.random.choice(['X', 'Y', 'Z'], 100),
+        'b': np.random.randint(0, 10, 100),
+        'c': np.random.randint(0, 10, 100),
+        'target': np.random.randint(0, 10, 100),
+    })
+
+    feature_names = ['a', 'b', 'c']
+    cat_features = ['a']
+    pool = Pool(data=df[feature_names], label=df['target'], cat_features=cat_features, feature_names=feature_names)
+
+    model = CatBoostRegressor(iterations=10)
+    model.fit(pool)
+    assert model.feature_names_ == feature_names
+
+    model_file = test_output_path('model')
+    model.save_model(model_file, format=format, pool=pool)
+    loaded_model = CatBoostRegressor().load_model(model_file, format=format)
+    assert loaded_model.feature_names_ == feature_names
 
 
 Value_AcceptableAsEmpty = [
@@ -10378,3 +10421,10 @@ def test_embedding_features_data_dict_with_data_with_objects_order():
     )
 
     assert _have_equal_features(pool1, pool2)
+
+
+def test_pandas_integer_array():
+    X = DataFrame({'feature': list(range(10))}, dtype=pd.Int64Dtype())
+    y = list(range(10))
+    cb = CatBoostRegressor(iterations=1)
+    cb.fit(X, y)

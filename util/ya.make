@@ -132,6 +132,7 @@ JOIN_SRCS(
     generic/typetraits.cpp
     generic/utility.cpp
     generic/va_args.cpp
+    generic/variant.cpp
     generic/vector.cpp
     generic/xrange.cpp
     generic/yexception.cpp
@@ -386,6 +387,19 @@ JOIN_SRCS(
 
 END()
 
-RECURSE_FOR_TESTS(
-    tests/ut
+RECURSE(
+    charset
+    datetime
+    digest
+    draft
+    folder
+    generic
+    memory
+    network
+    random
+    stream
+    string
+    system
+    thread
+    ut
 )
