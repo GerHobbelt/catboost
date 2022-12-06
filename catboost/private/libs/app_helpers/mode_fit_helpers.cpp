@@ -48,11 +48,16 @@ int NCB::ModeFitImpl(int argc, const char* argv[]) {
         InitOptions(paramsFile, &catBoostJsonOptions, &outputOptionsJson);
         NCatboostOptions::LoadPoolMetaInfoOptions(poolLoadParams.PoolMetaInfoPath, &catBoostJsonOptions);
         ConvertIgnoredFeaturesFromStringToIndices(poolLoadParams, &catBoostFlatJsonOptions);
+        ConvertFixedBinarySplitsFromStringToIndices(poolLoadParams, &catBoostFlatJsonOptions);
         NCatboostOptions::PlainJsonToOptions(catBoostFlatJsonOptions, &catBoostJsonOptions, &outputOptionsJson);
         ConvertParamsToCanonicalFormat(poolLoadParams, &catBoostJsonOptions);
 
-        auto options = NCatboostOptions::LoadOptions(catBoostJsonOptions);
+        // need json w/o feature names dependent params or LoadOptions can fail (because feature names could be extracted from Pool data)
+        NJson::TJsonValue catBoostJsonOptionsWithoutFeatureNamesDependentParams = catBoostJsonOptions;
+        ExtractFeatureNamesDependentParams(&catBoostJsonOptionsWithoutFeatureNamesDependentParams);
+        auto options = NCatboostOptions::LoadOptions(catBoostJsonOptionsWithoutFeatureNamesDependentParams);
         auto trainerEnv = NCB::CreateTrainerEnv(options);
+
         CopyIgnoredFeaturesToPoolParams(catBoostJsonOptions, &poolLoadParams);
         NCatboostOptions::TOutputFilesOptions outputOptions;
         outputOptions.Load(outputOptionsJson);

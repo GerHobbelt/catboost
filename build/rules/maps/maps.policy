@@ -41,6 +41,7 @@ DENY .* -> maps/libs/deprecated
 ALLOW .* -> maps/doc/proto
 
 # These libraries are allowed for general use
+ALLOW .* -> maps/libs/chrono
 ALLOW .* -> maps/libs/common
 ALLOW .* -> maps/libs/csv
 ALLOW .* -> maps/libs/enum_io
@@ -168,6 +169,7 @@ ALLOW yql/udfs/maps -> maps/
 ALLOW maps_adv/ -> maps/
 ALLOW maps_adv/ -> maps_adv/
 ALLOW smb/ -> maps_adv/
+ALLOW (geoadv/|direct/) -> maps_adv/geosmb/landlord/proto
 DENY .* -> maps_adv/
 
 ALLOW sdg/library/python/revision_manager -> maps/wikimap/mapspro/libs/common

@@ -4,9 +4,9 @@ PROGRAM()
 
 
 
-VERSION(3.9.12)
+VERSION(3.10.4)
 
-ORIGINAL_SOURCE(https://github.com/python/cpython/archive/v3.9.12.tar.gz)
+ORIGINAL_SOURCE(https://github.com/python/cpython/archive/v3.10.4.tar.gz)
 
 LICENSE(Python-2.0)
 
@@ -28,5 +28,8 @@ END()
 
 RECURSE(
     pycc
+    src
     src/Lib
+    src/Modules
+    src/Modules/_sqlite
 )

@@ -1,4 +1,4 @@
-service: ci
+service: matrixnet
 title: catboost-python-package-ut-medium-gpu
 ci:
   secret: sec-01dqsrttc93hr0m4s6p87kzba4
@@ -8,3 +8,6 @@ ci:
     large-autostart:
       - target: catboost/python-package/ut/medium/gpu
         toolchains: default-linux-x86_64-release
+    native-builds:
+      default-win-x86_64-debug:
+        - catboost

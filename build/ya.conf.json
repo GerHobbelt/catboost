@@ -531,6 +531,9 @@
         },
         "vh3": {
             "description": "Run VH3 CLI"
+        },
+        "marketsre": {
+            "description": "Run Market SRE Cli"
         }
     },
     "toolchain": {
@@ -765,6 +768,41 @@
                 {
                     "host": {
                         "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "marketsre": {
+            "tools": {
+                "marketsre": {
+                    "bottle": "marketsre",
+                    "executable": "marketsre"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "WIN"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN",
+                        "arch": "arm64"
                     },
                     "default": true
                 },
@@ -5976,9 +6014,7 @@
         },
         "ymake": {
             "formula": {
-                "sandbox_id": [
-                    1276126724
-                ],
+                "sandbox_id": [1295687321],
                 "match": "ymake"
             },
             "executable": {
@@ -6034,7 +6070,7 @@
         "arc": {
             "formula": {
                 "sandbox_id": [
-                    1267570188
+                    1289767737
                 ],
                 "match": "arc"
             },
@@ -6834,7 +6870,7 @@
         },
         "sre": {
             "formula": {
-                "sandbox_id": "1256218491",
+                "sandbox_id": "1281939415",
                 "match": "infra/rtc/sretools/sretools.tar.gz"
             },
             "executable": {
@@ -6960,16 +6996,18 @@
         "gdbnew": {
             "formula": {
                 "sandbox_id": [
-                    1230533443
+                    1293473647
                 ],
                 "match": "GDB"
             },
             "executable": {
                 "gdb": [
+                    "gdb",
                     "bin",
                     "gdb"
                 ],
                 "gdbserver": [
+                    "gdb",
                     "bin",
                     "gdbserver"
                 ]
@@ -7108,7 +7146,7 @@
         },
         "infractl": {
             "formula": {
-                "sandbox_id": 1271253228,
+                "sandbox_id": 1294371202,
                 "match": "infractl"
             },
             "executable": {
@@ -7193,7 +7231,7 @@
         "node-search": {
             "formula": {
                 "sandbox_id": [
-                    1254567852
+                    1293225955
                 ],
                 "match": "node_search"
             },
@@ -7439,7 +7477,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1279645264,
+                "sandbox_id": 1297573487,
                 "match": "horadric"
             },
             "executable": {
@@ -7494,7 +7532,7 @@
         },
         "python3": {
             "formula": {
-                "sandbox_id": 1256021863,
+                "sandbox_id": 1281554182,
                 "match": "python3"
             },
             "executable": {
@@ -7560,7 +7598,7 @@
         },
         "ya-tc": {
             "formula": {
-                "sandbox_id": 981372621,
+                "sandbox_id": 1283355427,
                 "match": "ya-tc"
             },
             "executable": {
@@ -7582,7 +7620,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1279642763,
+                "sandbox_id": 1298336900,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -7990,7 +8028,7 @@
         },
         "yfm-docs": {
             "formula": {
-                "sandbox_id": 1255978609,
+                "sandbox_id": 1285319405,
                 "match": "yfm-docs"
             },
             "executable": {
@@ -8014,8 +8052,11 @@
         },
         "sedem": {
             "formula": {
-                "sandbox_id": 1269048032,
-                "match": "SEDEM archive"
+                "sandbox_id": [
+                    1294348798,
+                    1294348794
+                ],
+                "match": "bin/sedem"
             },
             "executable": {
                 "sedem": [
@@ -8058,8 +8099,8 @@
         "devtools_license_analyzer_bundle": {
             "formula": {
                 "sandbox_id": [
-                    1245895776,
-                    1245895981
+                    1291677795,
+                    1291680132
                 ],
                 "match": "license_analyzer"
             },
@@ -8085,7 +8126,7 @@
         "black": {
             "formula": {
                 "sandbox_id": [
-                    1259729400
+                    1282614229
                 ],
                 "match": "black"
             },
@@ -8225,7 +8266,7 @@
         },
         "eductl": {
             "formula": {
-                "sandbox_id": 1267274359,
+                "sandbox_id": 1287048455,
                 "match": "eductl"
             },
             "executable": {
@@ -8236,7 +8277,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1279641720,
+                "sandbox_id": 1298337230,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8247,7 +8288,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1279646261,
+                "sandbox_id": 1298336678,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8269,7 +8310,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1279642386,
+                "sandbox_id": 1298337232,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8315,7 +8356,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1279646476,
+                "sandbox_id": 1298336410,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8326,7 +8367,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1279645011,
+                "sandbox_id": 1298337379,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8337,7 +8378,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1278442087,
+                "sandbox_id": 1297573503,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8348,7 +8389,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1277955834,
+                "sandbox_id": 1293423252,
                 "match": "lama"
             },
             "executable": {
@@ -8368,9 +8409,20 @@
                 ]
             }
         },
+        "marketsre": {
+            "formula": {
+                "sandbox_id": 1293298923,
+                "match": "marketsre"
+            },
+            "executable": {
+                "marketsre": [
+                    "marketsre"
+                ]
+            }
+        },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1279643858,
+                "sandbox_id": 1298337446,
                 "match": "profile_size_analyzer"
             },
             "executable": {

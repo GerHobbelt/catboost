@@ -657,9 +657,6 @@
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\xxhash\contrib-libs-xxhash.vcxproj">
       <Project>93F9D338-B2A4-2DC4-8B30-A39701C2F9EE</Project>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\xz\common\libs-xz-common.vcxproj">
-      <Project>F9804092-4C13-EB40-22ED-4230BA4B282E</Project>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\xz\liblzma\libs-xz-liblzma.vcxproj">
       <Project>D34AC41F-BA71-4FE6-9395-4F644C2FED80</Project>
     </ProjectReference>
@@ -786,8 +783,11 @@
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\configparser\pycontrib-python-configparser.vcxproj">
       <Project>6DF26701-68E9-E05A-808F-1840FF373955</Project>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\contextlib2\pycontrib-python-contextlib2.global.vcxproj">
-      <Project>316F54BD-5BD5-E215-D004-3FF525553F89</Project>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\contextlib2\py2\pypython-contextlib2-py2.global.vcxproj">
+      <Project>0C87376C-3858-BEF0-771C-05C9396F34EB</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\contextlib2\py2\pypython-contextlib2-py2.vcxproj">
+      <Project>C73FE68A-A501-4B46-F074-0D16416E9647</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\contextlib2\pycontrib-python-contextlib2.vcxproj">
       <Project>76AD5AB3-EDE1-7BAC-90B7-9BA08DC851AD</Project>
