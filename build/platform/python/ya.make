@@ -2,6 +2,12 @@ RESOURCES_LIBRARY()
 
 
 
+OPENSOURCE_EXPORT_REPLACEMENT(
+    CMAKE Python3
+    CMAKE_TARGET Python3::Module
+    CMAKE_COMPONENT Development
+)
+
 INCLUDE(resources.inc)
 
 IF (USE_SYSTEM_PYTHON)

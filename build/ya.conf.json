@@ -340,6 +340,10 @@
             "description": "Autocheck data inspection tool",
             "visible": false
         },
+        "coverage-diff-report": {
+            "description": "Run coverage diff report",
+            "visible": false
+        },
         "releaser": {
             "description": "Release tool"
         },
@@ -4548,6 +4552,13 @@
                         "os": "DARWIN"
                     },
                     "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN",
+                        "arch": "arm64"
+                    },
+                    "default": true
                 }
             ]
         },
@@ -4719,6 +4730,28 @@
                 "node-search": {
                     "bottle": "node-search",
                     "executable": "node-search"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "coverage-diff-report": {
+            "tools": {
+                "coverage-diff-report": {
+                    "bottle": "coverage-diff-report",
+                    "executable": "coverage-diff-report"
                 }
             },
             "platforms": [
@@ -6727,7 +6760,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1419775644
+                    1452793716
                 ],
                 "match": "ymake"
             },
@@ -6799,8 +6832,7 @@
                         },
                         "owner": "ARC"
                     },
-                    "update_interval": 86400,
-                    "ignore_platform": false
+                    "update_interval": 86400
                 }
             },
             "executable": {
@@ -6901,7 +6933,7 @@
         "releaser": {
             "formula": {
                 "sandbox_id": [
-                    1026890210
+                    1438208210
                 ],
                 "match": "releaser"
             },
@@ -6913,7 +6945,7 @@
         },
         "tvmknife": {
             "formula": {
-                "sandbox_id": 1262117740,
+                "sandbox_id": 1435123761,
                 "match": "tvmknife"
             },
             "executable": {
@@ -7143,8 +7175,11 @@
         "clang14": {
             "formula": {
                 "sandbox_id": [
-                    1407778338,
-                    1375826129
+                    1441176665,
+                    1432506119,
+                    1445478860,
+                    1445454611,
+                    1445513330
                 ],
                 "match": "CLANG"
             },
@@ -7888,8 +7923,7 @@
                         "owner": "YP"
                     }
                 },
-                "update_interval": 604800,
-                "ignore_platform": false
+                "update_interval": 604800
             },
             "executable": {
                 "yp-util": [
@@ -7905,8 +7939,7 @@
                         "owner": "YP"
                     }
                 },
-                "update_interval": 604800,
-                "ignore_platform": false
+                "update_interval": 604800
             },
             "executable": {
                 "yp": [
@@ -7930,7 +7963,7 @@
         "dctl": {
             "formula": {
                 "sandbox_id": [
-                    1333782205
+                    1431168071
                 ],
                 "match": "dctl"
             },
@@ -7942,8 +7975,16 @@
         },
         "infractl": {
             "formula": {
-                "sandbox_id": 1423114746,
-                "match": "infractl"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "INFRACTL_CLI_BINARY",
+                        "attributes": {
+                            "released": "stable"
+                        },
+                        "owner": "DRUG-RELEASERS"
+                    },
+                    "update_inteval": 43200
+                }
             },
             "executable": {
                 "infractl": [
@@ -8034,13 +8075,31 @@
                         },
                         "owner": "YATOOL"
                     },
-                    "update_interval": 86400,
-                    "ignore_platform": false
+                    "update_interval": 86400
                 }
             },
             "executable": {
                 "node-search": [
                     "node_search"
+                ]
+            }
+        },
+        "coverage-diff-report": {
+            "formula": {
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "COVERAGE_DIFF_REPORT_BIN",
+                        "attributes": {
+                            "released": "stable"
+                        },
+                        "owner": "YATOOL"
+                    },
+                    "update_interval": 86400
+                }
+            },
+            "executable": {
+                "coverage-diff-report": [
+                    "coverage_diff"
                 ]
             }
         },
@@ -8158,7 +8217,7 @@
         },
         "allure_commandline": {
             "formula": {
-                "sandbox_id": 569859192,
+                "sandbox_id": 1436878274,
                 "match": "Allure Commandline"
             },
             "executable": {
@@ -8213,8 +8272,7 @@
                         },
                         "owner": "STABILITY"
                     },
-                    "update_interval": 86400,
-                    "ignore_platform": false
+                    "update_interval": 86400
                 }
             },
             "executable": {
@@ -8269,7 +8327,7 @@
         },
         "python3": {
             "formula": {
-                "sandbox_id": 1410891863,
+                "sandbox_id": 1447597827,
                 "match": "python3"
             },
             "executable": {
@@ -8357,7 +8415,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1423576935,
+                "sandbox_id": 1454946871,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8371,6 +8429,7 @@
                 "latest_matched": {
                     "query": {
                         "resource_type": "REPORT_RENDERER_BUNDLE",
+                        "owner": "REPORT_RENDERER",
                         "attributes": {
                             "released": "stable"
                         }
@@ -8388,6 +8447,7 @@
                 "latest_matched": {
                     "query": {
                         "resource_type": "APPTEKA_BUNDLE",
+                        "owner": "avtumanova",
                         "attributes": {
                             "released": "stable"
                         }
@@ -8484,7 +8544,7 @@
         "qyp": {
             "formula": {
                 "sandbox_id": [
-                    1411809641
+                    1454282981
                 ],
                 "match": "infra/qyp/vmctl/bin/vmctl"
             },
@@ -8758,7 +8818,7 @@
         },
         "yfm-docs": {
             "formula": {
-                "sandbox_id": 1351149216,
+                "sandbox_id": 1438634718,
                 "match": "yfm-docs"
             },
             "executable": {
@@ -8790,8 +8850,7 @@
                             "released": "stable"
                         }
                     },
-                    "update_interval": 86400,
-                    "ignore_platform": false
+                    "update_interval": 86400
                 }
             },
             "executable": {
@@ -8862,7 +8921,7 @@
         "black": {
             "formula": {
                 "sandbox_id": [
-                    1361568667
+                    1432126614
                 ],
                 "match": "black"
             },
@@ -8953,7 +9012,7 @@
         },
         "skotty": {
             "formula": {
-                "sandbox_id": 1405509931,
+                "sandbox_id": 1433668519,
                 "match": "launcher"
             },
             "executable": {
@@ -9013,7 +9072,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1423581607,
+                "sandbox_id": 1454945448,
                 "match": "bb_requester"
             },
             "executable": {
@@ -9024,7 +9083,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1423581585,
+                "sandbox_id": 1454947359,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -9046,7 +9105,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1423576089,
+                "sandbox_id": 1454948544,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -9079,9 +9138,12 @@
         },
         "bigrt_cli": {
             "formula": {
-                "sandbox_id": [
-                    1063136697
-                ],
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "BIGRT_CLI_TGZ",
+                        "owner": "BSYETI"
+                    }
+                },
                 "match": "big_rt_cli"
             },
             "executable": {
@@ -9092,7 +9154,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1423581537,
+                "sandbox_id": 1454947867,
                 "match": "yt_sync"
             },
             "executable": {
@@ -9103,7 +9165,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1423578052,
+                "sandbox_id": 1454947636,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -9114,7 +9176,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1423582041,
+                "sandbox_id": 1454947222,
                 "match": "exp_stats"
             },
             "executable": {
@@ -9125,7 +9187,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1421371541,
+                "sandbox_id": 1454027788,
                 "match": "lama"
             },
             "executable": {
@@ -9141,8 +9203,7 @@
                         "resource_type": "MAPS_FRONT_TOOLKIT",
                         "owner": "MAPS_FRONT"
                     },
-                    "update_interval": 86400,
-                    "ignore_platform": false
+                    "update_interval": 86400
                 }
             },
             "executable": {
@@ -9154,7 +9215,7 @@
         "vh3": {
             "formula": {
                 "sandbox_id": [
-                    1389153629
+                    1432784381
                 ],
                 "match": "vh3"
             },
@@ -9166,8 +9227,16 @@
         },
         "marketsre": {
             "formula": {
-                "sandbox_id": 1413362862,
-                "match": "marketsre"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "MARKET_SRE_CLI_BINARY",
+                        "attributes": {
+                            "released": "stable"
+                        },
+                        "owner": "MARKETSRE"
+                    },
+                    "update_interval": 86400
+                }
             },
             "executable": {
                 "marketsre": [
@@ -9182,8 +9251,7 @@
                         "resource_type": "DNS_CLIENT2_BINARY",
                         "owner": "MNT_TRAF"
                     },
-                    "update_interval": 86400,
-                    "ignore_platform": false
+                    "update_interval": 86400
                 }
             },
             "executable": {
@@ -9199,8 +9267,7 @@
                         "resource_type": "PUNCHER_CLI",
                         "owner": "NOCDEV"
                     },
-                    "update_interval": 86400,
-                    "ignore_platform": false
+                    "update_interval": 86400
                 }
             },
             "executable": {
@@ -9211,7 +9278,7 @@
         },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1423581927,
+                "sandbox_id": 1454947200,
                 "match": "profile_size_analyzer"
             },
             "executable": {
@@ -9249,8 +9316,16 @@
         },
         "abcd": {
             "formula": {
-                "sandbox_id": 1391496425,
-                "match": "quota_mover"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "ABCD_CLI",
+                        "owner": "atridis",
+                        "attributes": {
+                            "released": "stable"
+                        }
+                    },
+                    "update_interval": 86400
+                }
             },
             "executable": {
                 "abcd": [

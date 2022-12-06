@@ -1345,9 +1345,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\lz4\contrib-libs-lz4.vcxproj">
       <Project>{3E6BC25C-7681-5FB8-F139-A03845C5F910}</Project>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\lz4\generated\libs-lz4-generated.vcxproj">
-      <Project>{B1939F66-2680-431C-0803-80E79529B7E9}</Project>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\lzma\contrib-libs-lzma.vcxproj">
       <Project>{67104716-36C7-D4F8-BC46-5B33214C649D}</Project>
     </ProjectReference>
@@ -1407,18 +1404,6 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\zstd06\contrib-libs-zstd06.vcxproj">
       <Project>{149CAE2F-67B1-E007-9F05-67247453CE03}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\Jinja2\py3\pypython-Jinja2-py3.vcxproj">
-      <Project>{3D4B481E-2985-E2CB-DB77-D5D8985A9A73}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\Jinja2\py3contrib-python-Jinja2.vcxproj">
-      <Project>{7B02C64E-9C71-F289-7191-EBB8E5746133}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\MarkupSafe\py3\pypython-MarkupSafe-py3.vcxproj">
-      <Project>{FC9A76DB-4BF2-BCBF-BF48-AD3E3AF6EC57}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\MarkupSafe\py3contrib-python-MarkupSafe.vcxproj">
-      <Project>{0AF8F6ED-AFD8-CA23-BD1D-2D750C053CF0}</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\dateutil\py3contrib-python-dateutil.vcxproj">
       <Project>{D274033C-8742-EABF-10AB-335A323CB8E0}</Project>

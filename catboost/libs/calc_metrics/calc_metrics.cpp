@@ -15,7 +15,7 @@ namespace NCB {
 
         TVector<TVector<double>> GetApproxes(NPar::TLocalExecutor* localExecutor) const;
         TVector<TSharedVector<float>> GetLabels(NPar::TLocalExecutor* localExecutor) const;
-        const TWeights<float>& GetWeights() const;
+        TSharedWeights<float> GetWeights(NPar::TLocalExecutor* localExecutor) const;
         TMaybe<TSharedVector<TQueryInfo>> GetQueriesInfo() const;
 
         void ExtractApproxesToBackOfVector(TVector<TVector<double>>* approxesPtr, NPar::TLocalExecutor* localExecutor) const;
@@ -95,8 +95,13 @@ namespace NCB {
         );
     }
 
-    const TWeights<float>& TCalcMetricDataProvider::GetWeights() const {
-        return DataProvider->RawTargetData.GetWeights();
+    TSharedWeights<float> TCalcMetricDataProvider::GetWeights(NPar::TLocalExecutor* localExecutor) const {
+        const auto weights = NCB::MakeWeights(
+            DataProvider->RawTargetData.GetWeights(),
+            DataProvider->RawTargetData.GetGroupWeights(),
+            /*isForGpu*/ false,
+            localExecutor);
+        return weights;
     }
 
     TMaybe<TSharedVector<TQueryInfo>> TCalcMetricDataProvider::GetQueriesInfo() const {
@@ -151,7 +156,7 @@ namespace NCB {
         TVector<TVector<double>> approx = dataProvider.GetApproxes(localExecutor);
         TVector<TSharedVector<float>> labels = dataProvider.GetLabels(localExecutor);
 
-        auto& weights = dataProvider.GetWeights();
+        auto weightsPtr = dataProvider.GetWeights(localExecutor);
         TMaybe<TSharedVector<TQueryInfo>> queriesInfo = dataProvider.GetQueriesInfo();
         TConstArrayRef<TQueryInfo> queriesInfoRef;
         if (queriesInfo.Defined()) {
@@ -168,7 +173,7 @@ namespace NCB {
             /*approxDelts*/{},
             /*isExpApprox*/false,
             labelRef,
-            weights.IsTrivial() ? TConstArrayRef<float>() : weights.GetNonTrivialData(),
+            weightsPtr->IsTrivial() ? TConstArrayRef<float>() : weightsPtr->GetNonTrivialData(),
             queriesInfoRef,
             metrics,
             localExecutor
@@ -183,12 +188,12 @@ namespace NCB {
         dataProvider.ExtractApproxesToBackOfVector(&Approxes, localExecutor);
 
         TVector<TSharedVector<float>> labels = dataProvider.GetLabels(localExecutor);
-        auto& weights = dataProvider.GetWeights();
-        if (!weights.IsTrivial()) {
+        auto weightsPtr = dataProvider.GetWeights(localExecutor);
+        if (!weightsPtr->IsTrivial()) {
             Weights.insert(
                 Weights.end(),
-                weights.GetNonTrivialData().begin(),
-                weights.GetNonTrivialData().end()
+                weightsPtr->GetNonTrivialData().begin(),
+                weightsPtr->GetNonTrivialData().end()
             );
         }
 

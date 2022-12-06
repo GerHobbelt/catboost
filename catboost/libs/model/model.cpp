@@ -1820,6 +1820,10 @@ TFullModel SumModels(
     CB_ENSURE(modelVector.size() == weights.size());
     CB_ENSURE(modelParamsPrefixes.empty() || (modelVector.size() == modelParamsPrefixes.size()));
 
+    CB_ENSURE(
+        IsAllOblivious(modelVector) || IsAllNonSymmetric(modelVector),
+        "Summation of symmetric and non-symmetric models is not supported [for now]");
+
     const auto approxDimension = modelVector.back()->GetDimensionsCount();
     size_t maxFlatFeatureVectorSize = 0;
     TVector<TIntrusivePtr<ICtrProvider>> ctrProviders;
@@ -1830,6 +1834,10 @@ TFullModel SumModels(
         CB_ENSURE(
             model->ModelTrees->GetTextFeatures().empty(),
             "Models summation is not supported for models with text features"
+        );
+        CB_ENSURE(
+            model->ModelTrees->GetEmbeddingFeatures().empty(),
+            "Models summation is not supported for models with embedding features"
         );
         CB_ENSURE(
             model->GetDimensionsCount() == approxDimension,
@@ -1895,7 +1903,7 @@ TFullModel SumModels(
             allModelsHaveLeafWeights,
             &result);
     } else {
-        CB_ENSURE(false, "This should be unreachable");
+        CB_ENSURE_INTERNAL(false, "This should be unreachable");
     }
 
     for (const auto modelIdx : xrange(modelVector.size())) {

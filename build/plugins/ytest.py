@@ -135,7 +135,7 @@ def validate_test(unit, kw):
             errors.append("BOOSTTEST is not allowed here")
     elif valid_kw.get('SCRIPT-REL-PATH') == 'gtest':
         project_path = valid_kw.get('BUILD-FOLDER-PATH', "")
-        if not project_path.startswith(("contrib", "devtools", "mail", "mds", "taxi")):
+        if not project_path.startswith(("contrib", "devtools", "mail", "mds")):
             errors.append("GTEST_UGLY is not allowed here, use GTEST instead")
 
     size_timeout = collections.OrderedDict(sorted(consts.TestSize.DefaultTimeouts.items(), key=lambda t: t[1]))
@@ -598,7 +598,7 @@ def onadd_check(unit, *args):
             raise Exception("'{}' is not allowed in LINT(), use one of {}".format(check_level, allowed_levels.keys()))
         test_files[0] = allowed_levels[check_level]  # replace check_level with path to config file
         script_rel_path = "java.style"
-        test_timeout = '120'
+        test_timeout = '240'
         fork_mode = unit.get('TEST_FORK_MODE') or ''
         if ymake_java_test:
             extra_test_data = java_srcdirs_to_data(unit, 'ALL_SRCDIRS')

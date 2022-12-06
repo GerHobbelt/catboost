@@ -180,6 +180,9 @@
     <ProjectReference Include="$(SolutionDir)Projects\catboost\libs\data\ut\lib\data-ut-lib.vcxproj">
       <Project>9F866CA2-8F19-2A5C-6337-B8E5CDC176DC</Project>
     </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\catboost\libs\dataset_statistics\catboost-libs-dataset_statistics.vcxproj">
+      <Project>9022A0F5-20EF-0F80-3572-634A8E80D3F6</Project>
+    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\catboost\libs\eval_result\catboost-libs-eval_result.vcxproj">
       <Project>4721D1FD-2700-CA2E-7C39-1340CCD203BE</Project>
     </ProjectReference>
@@ -588,9 +591,6 @@
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\lz4\contrib-libs-lz4.vcxproj">
       <Project>3E6BC25C-7681-5FB8-F139-A03845C5F910</Project>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\lz4\generated\libs-lz4-generated.vcxproj">
-      <Project>B1939F66-2680-431C-0803-80E79529B7E9</Project>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\lzma\contrib-libs-lzma.vcxproj">
       <Project>67104716-36C7-D4F8-BC46-5B33214C649D</Project>
     </ProjectReference>
@@ -708,15 +708,6 @@
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\Jinja2\py2\pypython-Jinja2-py2.vcxproj">
       <Project>DFC9FCAD-D136-C9EC-825E-D95528E439FA</Project>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\Jinja2\py3\pypython-Jinja2-py3.global.vcxproj">
-      <Project>CAEFC93A-91F2-E134-6A1C-1B7A8A66BE95</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\Jinja2\py3\pypython-Jinja2-py3.vcxproj">
-      <Project>3D4B481E-2985-E2CB-DB77-D5D8985A9A73</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\Jinja2\py3contrib-python-Jinja2.vcxproj">
-      <Project>7B02C64E-9C71-F289-7191-EBB8E5746133</Project>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\Jinja2\pycontrib-python-Jinja2.vcxproj">
       <Project>76D57E74-99BC-2964-0D4C-D98C0A770B5F</Project>
     </ProjectReference>
@@ -725,15 +716,6 @@
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\MarkupSafe\py2\pypython-MarkupSafe-py2.vcxproj">
       <Project>1078F817-B6DF-AAEB-FA06-BC5564E96701</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\MarkupSafe\py3\pypython-MarkupSafe-py3.global.vcxproj">
-      <Project>C724FA94-187F-BD78-BA1E-CB365E7E1818</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\MarkupSafe\py3\pypython-MarkupSafe-py3.vcxproj">
-      <Project>FC9A76DB-4BF2-BCBF-BF48-AD3E3AF6EC57</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\MarkupSafe\py3contrib-python-MarkupSafe.vcxproj">
-      <Project>0AF8F6ED-AFD8-CA23-BD1D-2D750C053CF0</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\MarkupSafe\pycontrib-python-MarkupSafe.vcxproj">
       <Project>FC1C3945-FBD5-32DC-1DC6-99EC399ECD60</Project>
@@ -761,12 +743,6 @@
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\asttokens\pycontrib-python-asttokens.vcxproj">
       <Project>3DF0F14D-DE4C-A095-9D95-2FAEC4DA43A5</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\atomicwrites\py3contrib-python-atomicwrites.global.vcxproj">
-      <Project>3F261226-11A9-6451-F0B7-B02A21FAA986</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\atomicwrites\py3contrib-python-atomicwrites.vcxproj">
-      <Project>5AECC9B7-19E4-6E57-329A-7E40825C92A3</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\atomicwrites\pycontrib-python-atomicwrites.global.vcxproj">
       <Project>2056A240-BF23-7679-9796-46BECFF3F8A4</Project>
@@ -1344,6 +1320,12 @@
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\traitlets\pycontrib-python-traitlets.vcxproj">
       <Project>1DBCB73E-225F-19E4-30C7-41861F222A71</Project>
     </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\types-protobuf\pycontrib-python-types-protobuf.global.vcxproj">
+      <Project>EA6763B1-F55C-7DAE-A23C-44726828545D</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\types-protobuf\pycontrib-python-types-protobuf.vcxproj">
+      <Project>59F2486E-3672-7BEF-9064-37D4BE4541B6</Project>
+    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\typing\pycontrib-python-typing.global.vcxproj">
       <Project>4E507DA8-7440-F9EE-B41C-1180E1585413</Project>
     </ProjectReference>
@@ -1368,17 +1350,11 @@
     <ProjectReference Include="$(SolutionDir)Projects\contrib\restricted\abseil-cpp\absl\base\abseil-cpp-absl-base.vcxproj">
       <Project>D4441C16-1A60-AC3B-C46F-A602E33E2248</Project>
     </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\restricted\abseil-cpp\absl\city\abseil-cpp-absl-city.vcxproj">
-      <Project>4B9028E4-4039-F789-E741-D88BFFC9DFFD</Project>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\restricted\abseil-cpp\absl\container\abseil-cpp-absl-container.vcxproj">
       <Project>132C6772-47DC-500A-B256-2F3E6648C800</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\restricted\abseil-cpp\absl\debugging\abseil-cpp-absl-debugging.vcxproj">
       <Project>555B82DA-9717-22EB-2E6B-ABC66CD65809</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\restricted\abseil-cpp\absl\demangle\abseil-cpp-absl-demangle.vcxproj">
-      <Project>0C7FCEF6-C6D4-5453-F293-DFF90FE3B912</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\restricted\abseil-cpp\absl\flags\abseil-cpp-absl-flags.vcxproj">
       <Project>A3D6B1C1-9032-C4CC-C160-88211323873F</Project>

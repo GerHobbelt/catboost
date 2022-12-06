@@ -97,10 +97,11 @@ JOIN_SRCS(
     generic/fastqueue.cpp
     generic/flags.cpp
     generic/function.cpp
-    generic/function_ref.cpp
     generic/fwd.cpp
     generic/guid.cpp
     generic/hash.cpp
+    generic/hash_multi_map.cpp
+    generic/hash_table.cpp
     generic/hash_primes.cpp
     generic/hash_set.cpp
     generic/hide_ptr.cpp
@@ -140,6 +141,12 @@ JOIN_SRCS(
     generic/ylimits.cpp
     generic/ymath.cpp
 )
+
+IF(NOT MSVC)
+    SRCS(
+        generic/function_ref.cpp
+    )
+ENDIF()
 
 # memory
 JOIN_SRCS(
