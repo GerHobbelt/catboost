@@ -11,6 +11,7 @@ add_library(cpp-threading-mux_event)
 target_link_libraries(cpp-threading-mux_event PUBLIC
   contrib-libs-cxxsupp
   yutil
+  cpp-deprecated-atomic
 )
 target_sources(cpp-threading-mux_event PRIVATE
   ${CMAKE_SOURCE_DIR}/library/cpp/threading/mux_event/mux_event.cpp

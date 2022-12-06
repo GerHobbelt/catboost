@@ -315,17 +315,11 @@
         "saas2": {
             "description": "Run saas2 cli"
         },
-        "go_1.17": {
-            "description": "Run go tool (1.17.8)"
-        },
-        "gofmt_1.17": {
-            "description": "Run gofmt tool (1.17.8)"
-        },
         "go": {
-            "description": "Run go tool (1.18.2)"
+            "description": "Run go tool (1.18.3)"
         },
         "gofmt": {
-            "description": "Run gofmt tool (1.18.2)"
+            "description": "Run gofmt tool (1.18.3)"
         },
         "godoc": {
             "description": "Arcadia version of godoc"
@@ -538,6 +532,15 @@
         },
         "marketsre": {
             "description": "Run Market SRE Cli"
+        },
+        "metrika-core": {
+            "description": "Run metrika-core toolkit"
+        },
+        "abcd": {
+            "description": "Run abcd cli"
+        },
+        "tasklet": {
+            "description": "Run tasklet CLI"
         }
     },
     "toolchain": {
@@ -5536,53 +5539,6 @@
                 }
             ]
         },
-        "golang_1_17_8": {
-            "tools": {
-                "golang_1.17": {
-                    "bottle": "golang_1.17.8",
-                    "executable": "golang_1.17"
-                },
-                "go_1.17": {
-                    "bottle": "golang_1.17.8",
-                    "executable": "go_1.17"
-                },
-                "gofmt_1.17": {
-                    "bottle": "golang_1.17.8",
-                    "executable": "gofmt_1.17"
-                }
-            },
-            "platforms": [
-                {
-                    "host": {
-                        "os": "LINUX"
-                    },
-                    "default": true
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "default": true
-                },
-                {
-                    "host": {
-                        "os": "DARWIN",
-                        "arch": "arm64"
-                    },
-                    "default": true
-                },
-                {
-                    "host": {
-                        "os": "WIN"
-                    },
-                    "default": true
-                }
-            ],
-            "params": {
-                "type": "golang",
-                "version": "1.17.8"
-            }
-        },
         "golang_1.18": {
             "tools": {
                 "golang": {
@@ -5627,7 +5583,7 @@
             ],
             "params": {
                 "type": "golang",
-                "version": "1.18.2"
+                "version": "1.18.3"
             }
         },
         "godoc": {
@@ -6527,6 +6483,66 @@
                 "objcopy": "$(RISCV)/bin/riscv32-elf-objcopy",
                 "gcc_version": "7.4.0"
             }
+        },
+        "metrika-core": {
+            "tools": {
+                "metrika-core": {
+                    "bottle": "metrika-core",
+                    "executable": "metrika-core"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "abcd": {
+            "tools": {
+                "abcd": {
+                    "bottle": "abcd",
+                    "executable": "abcd"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "darwin"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "tasklet": {
+            "tools": {
+                "tasklet": {
+                    "bottle": "tasklet",
+                    "executable": "tasklet"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
         }
     },
     "bottles": {
@@ -6547,7 +6563,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1332093905
+                    1359572912
                 ],
                 "match": "ymake"
             },
@@ -6560,7 +6576,7 @@
         "yexport": {
             "formula": {
                 "sandbox_id": [
-                    1327400889
+                    1369322208
                 ],
                 "match": "yexport"
             },
@@ -6617,7 +6633,7 @@
         "arc": {
             "formula": {
                 "sandbox_id": [
-                    1327291879
+                    1366412641
                 ],
                 "match": "arc"
             },
@@ -7598,8 +7614,8 @@
         "gdbnew": {
             "formula": {
                 "sandbox_id": [
-                    1294905624,
-                    1322364102
+                    1351234419,
+                    1351262215
                 ],
                 "match": "GDB"
             },
@@ -7698,7 +7714,7 @@
         "yp-util": {
             "formula": {
                 "sandbox_id": [
-                    1331188297
+                    1344544071
                 ],
                 "match": "yp-util"
             },
@@ -7711,7 +7727,7 @@
         "yp": {
             "formula": {
                 "sandbox_id": [
-                    1331195990
+                    1344577556
                 ],
                 "match": "YP"
             },
@@ -7749,7 +7765,7 @@
         },
         "infractl": {
             "formula": {
-                "sandbox_id": 1337173889,
+                "sandbox_id": 1369418661,
                 "match": "infractl"
             },
             "executable": {
@@ -8080,7 +8096,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1337939925,
+                "sandbox_id": 1368765509,
                 "match": "horadric"
             },
             "executable": {
@@ -8091,7 +8107,7 @@
         },
         "logbroker": {
             "formula": {
-                "sandbox_id": 1061549819,
+                "sandbox_id": 1367097887,
                 "match": "logbroker"
             },
             "executable": {
@@ -8223,7 +8239,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1337938675,
+                "sandbox_id": 1368765477,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8249,8 +8265,8 @@
         "appteka": {
             "formula": {
                 "sandbox_id": [
-                    1245145483,
-                    1247481035
+                    1351396288,
+                    1351404983
                 ],
                 "match": "appteka"
             },
@@ -8282,34 +8298,13 @@
                 ]
             }
         },
-        "golang_1.17.8": {
-            "formula": {
-                "sandbox_id": [
-                    1274287574,
-                    1274292721,
-                    1272507071,
-                    1274297831
-                ],
-                "match": "GOLANG"
-            },
-            "executable": {
-                "go_1.17": [
-                    "bin",
-                    "go"
-                ],
-                "gofmt_1.17": [
-                    "bin",
-                    "gofmt"
-                ]
-            }
-        },
         "golang_1.18": {
             "formula": {
                 "sandbox_id": [
-                    1312106822,
-                    1312106821,
-                    1312106819,
-                    1312106817
+                    1368413934,
+                    1345711700,
+                    1345711703,
+                    1368410914
                 ],
                 "match": "GOLANG"
             },
@@ -8631,7 +8626,7 @@
         },
         "yfm-docs": {
             "formula": {
-                "sandbox_id": 1285319405,
+                "sandbox_id": 1351149216,
                 "match": "yfm-docs"
             },
             "executable": {
@@ -8656,8 +8651,8 @@
         "sedem": {
             "formula": {
                 "sandbox_id": [
-                    1319416201,
-                    1319416204
+                    1360073384,
+                    1360073383
                 ],
                 "match": "bin/sedem"
             },
@@ -8729,7 +8724,7 @@
         "black": {
             "formula": {
                 "sandbox_id": [
-                    1282614229
+                    1361568667
                 ],
                 "match": "black"
             },
@@ -8787,7 +8782,7 @@
         },
         "iceflame": {
             "formula": {
-                "sandbox_id": 1253872260,
+                "sandbox_id": 1366770596,
                 "match": "iceflame"
             },
             "executable": {
@@ -8820,7 +8815,7 @@
         },
         "skotty": {
             "formula": {
-                "sandbox_id": 1314138261,
+                "sandbox_id": 1365587624,
                 "match": "launcher"
             },
             "executable": {
@@ -8880,7 +8875,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1337939932,
+                "sandbox_id": 1368765181,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8891,7 +8886,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1337937131,
+                "sandbox_id": 1368766167,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8913,7 +8908,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1337939662,
+                "sandbox_id": 1368765479,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8959,7 +8954,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1337939902,
+                "sandbox_id": 1368764937,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8970,7 +8965,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1337939742,
+                "sandbox_id": 1368765168,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8981,7 +8976,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1337939674,
+                "sandbox_id": 1368765147,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8992,7 +8987,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1337334612,
+                "sandbox_id": 1347607407,
                 "match": "lama"
             },
             "executable": {
@@ -9014,7 +9009,7 @@
         },
         "marketsre": {
             "formula": {
-                "sandbox_id": 1317842822,
+                "sandbox_id": 1366865975,
                 "match": "marketsre"
             },
             "executable": {
@@ -9025,7 +9020,7 @@
         },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1337939728,
+                "sandbox_id": 1368765029,
                 "match": "profile_size_analyzer"
             },
             "executable": {
@@ -9047,6 +9042,40 @@
                 "cc": [
                     "bin",
                     "riscv32-elf-gcc"
+                ]
+            }
+        },
+        "metrika-core": {
+            "formula": {
+                "sandbox_id": 1342201764,
+                "match": "metrika-core"
+            },
+            "executable": {
+                "metrika-core": [
+                    "metrika-core"
+                ]
+            }
+        },
+        "abcd": {
+            "formula": {
+                "sandbox_id": 1357392225,
+                "match": "quota_mover"
+            },
+            "executable": {
+                "abcd": [
+                    "bin",
+                    "quota_mover"
+                ]
+            }
+        },
+        "tasklet": {
+            "formula": {
+                "sandbox_id": 1362243510,
+                "match": "tasklet-tool"
+            },
+            "executable": {
+                "tasklet": [
+                    "tasklet-tool"
                 ]
             }
         }

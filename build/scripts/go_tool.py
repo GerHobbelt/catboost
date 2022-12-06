@@ -18,7 +18,7 @@ import process_command_files as pcf
 import process_whole_archive_option as pwa
 
 arc_project_prefix = 'a.yandex-team.ru/'
-std_lib_prefix = 'contrib/go/_std/src/'
+std_lib_prefix = 'contrib/go/_std_1.18/src/'
 vendor_prefix = 'vendor/'
 vet_info_ext = '.vet.out'
 vet_report_ext = '.vet.txt'
@@ -354,6 +354,8 @@ def _do_compile_go(args):
         '-goversion',
         'go{}'.format(args.goversion)
     ]
+    if args.lang:
+        cmd.append('-lang=go{}'.format(args.lang))
     cmd.extend(get_trimpath_args(args))
     compiling_runtime = False
     if is_std_module:
@@ -817,6 +819,7 @@ if __name__ == '__main__':
     parser.add_argument('++extld', nargs='?', default=None)
     parser.add_argument('++extldflags', nargs='+', default=None)
     parser.add_argument('++goversion', required=True)
+    parser.add_argument('++lang', nargs='?', default=None)
     parser.add_argument('++asm-flags', nargs='*')
     parser.add_argument('++compile-flags', nargs='*')
     parser.add_argument('++link-flags', nargs='*')

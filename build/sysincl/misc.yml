@@ -469,7 +469,6 @@
 
 - source_filter: "^contrib/restricted/noc/frr"
   includes:
-    - assert.h: contrib/restricted/noc/frr/lib/assert/assert.h
     - bfd.h: contrib/restricted/noc/frr/lib/bfd.h
     - getopt.h: contrib/restricted/noc/frr/lib/getopt.h
     - filter.h: contrib/restricted/noc/frr/lib/filter.h
@@ -479,3 +478,7 @@
 - source_filter: "^contrib/libs/cxxsupp/libcxxrt"
   includes:
     - atomic.h: contrib/libs/cxxsupp/libcxxrt/atomic.h
+
+- source_filter: "^contrib/libs/util-linux"
+  includes:
+    - procfs.h: contrib/libs/util-linux/include/procfs.h
