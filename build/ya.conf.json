@@ -528,6 +528,9 @@
         },
         "lama": {
             "description": "Analytics tool for safe reactor calculation"
+        },
+        "vh3": {
+            "description": "Run VH3 CLI"
         }
     },
     "toolchain": {
@@ -734,6 +737,28 @@
                 "lama": {
                     "bottle": "lama",
                     "executable": "lama"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "vh3": {
+            "tools": {
+                "vh3": {
+                    "bottle": "vh3",
+                    "executable": "vh3"
                 }
             },
             "platforms": [
@@ -2143,194 +2168,7 @@
                 "type": "xcode",
                 "local": true,
                 "werror_mode": "all",
-                "gcc_version": "13.1"
-            }
-        },
-        "xcode_11_1": {
-            "tools": {
-                "c++": {
-                    "bottle": "xcode_11_1",
-                    "executable": "c++"
-                },
-                "cc": {
-                    "bottle": "xcode_11_1",
-                    "executable": "cc"
-                },
-                "llvm-cov": {
-                    "bottle": "xcode_11_1",
-                    "executable": "llvm-cov"
-                },
-                "llvm-profdata": {
-                    "bottle": "xcode_11_1",
-                    "executable": "llvm-profdata"
-                },
-                "nm": {
-                    "bottle": "xcode_11_1",
-                    "executable": "llvm-nm"
-                },
-                "strip": {
-                    "bottle": "xcode_11_1",
-                    "executable": "strip"
-                }
-            },
-            "platforms": [
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "DARWIN",
-                        "arch": "x86_64"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "i386"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "x86_64"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "armv7"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "arm64"
-                    },
-                    "default": false
-                }
-            ],
-            "params": {
-                "type": "xcode",
-                "match_root": "CLANG",
-                "werror_mode": "all",
-                "c_compiler": "$(CLANG)/usr/bin/clang",
-                "cxx_compiler": "$(CLANG)/usr/bin/clang++",
-                "ar": "$(CLANG)/usr/bin/libtool",
-                "inplace_tools": true,
-                "gcc_version": "8.0",
-                "dwarf_tool": {
-                    "DARWIN": "$(CLANG)/usr/bin/dsymutil -flat"
-                }
-            }
-        },
-        "xcode_12_1": {
-            "tools": {
-                "c++": {
-                    "bottle": "xcode_12_1",
-                    "executable": "c++"
-                },
-                "cc": {
-                    "bottle": "xcode_12_1",
-                    "executable": "cc"
-                },
-                "llvm-cov": {
-                    "bottle": "xcode_12_1",
-                    "executable": "llvm-cov"
-                },
-                "llvm-profdata": {
-                    "bottle": "xcode_12_1",
-                    "executable": "llvm-profdata"
-                },
-                "nm": {
-                    "bottle": "xcode_12_1",
-                    "executable": "llvm-nm"
-                },
-                "strip": {
-                    "bottle": "xcode_12_1",
-                    "executable": "strip"
-                }
-            },
-            "platforms": [
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "DARWIN",
-                        "arch": "x86_64"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "i386"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "x86_64"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "armv7"
-                    },
-                    "default": false
-                },
-                {
-                    "host": {
-                        "os": "DARWIN"
-                    },
-                    "target": {
-                        "os": "IOS",
-                        "arch": "arm64"
-                    },
-                    "default": false
-                }
-            ],
-            "params": {
-                "type": "xcode",
-                "match_root": "CLANG",
-                "werror_mode": "all",
-                "c_compiler": "$(CLANG)/usr/bin/clang",
-                "cxx_compiler": "$(CLANG)/usr/bin/clang++",
-                "cxx_std": "c++17",
-                "ar": "$(CLANG)/usr/bin/libtool",
-                "inplace_tools": true,
-                "gcc_version": "8.0",
-                "dwarf_tool": {
-                    "DARWIN": "$(CLANG)/usr/bin/dsymutil -flat"
-                }
+                "gcc_version": "13.2.1"
             }
         },
         "xcode_12_5": {
@@ -2428,7 +2266,6 @@
                 "werror_mode": "all",
                 "c_compiler": "$(CLANG)/usr/bin/clang",
                 "cxx_compiler": "$(CLANG)/usr/bin/clang++",
-                "cxx_std": "c++17",
                 "ar": "$(CLANG)/usr/bin/libtool",
                 "inplace_tools": true,
                 "gcc_version": "8.0",
@@ -6140,7 +5977,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1257062795
+                    1276126724
                 ],
                 "match": "ymake"
             },
@@ -6197,7 +6034,7 @@
         "arc": {
             "formula": {
                 "sandbox_id": [
-                    1240002985
+                    1267570188
                 ],
                 "match": "arc"
             },
@@ -6334,7 +6171,7 @@
         },
         "python": {
             "formula": {
-                "sandbox_id": 981577320,
+                "sandbox_id": 1277485811,
                 "match": "Python"
             },
             "executable": {
@@ -6533,86 +6370,6 @@
                 "llvm-objcopy": [
                     "bin",
                     "llvm-objcopy"
-                ]
-            }
-        },
-        "xcode_11_1": {
-            "formula": {
-                "sandbox_id": [
-                    542909976
-                ],
-                "match": "toolchain"
-            },
-            "executable": {
-                "c++": [
-                    "usr",
-                    "bin",
-                    "clang++"
-                ],
-                "cc": [
-                    "usr",
-                    "bin",
-                    "clang"
-                ],
-                "llvm-cov": [
-                    "usr",
-                    "bin",
-                    "llvm-cov"
-                ],
-                "llvm-profdata": [
-                    "usr",
-                    "bin",
-                    "llvm-profdata"
-                ],
-                "llvm-nm": [
-                    "usr",
-                    "bin",
-                    "llvm-nm"
-                ],
-                "strip": [
-                    "usr",
-                    "bin",
-                    "strip"
-                ]
-            }
-        },
-        "xcode_12_1": {
-            "formula": {
-                "sandbox_id": [
-                    816448826
-                ],
-                "match": "toolchain"
-            },
-            "executable": {
-                "c++": [
-                    "usr",
-                    "bin",
-                    "clang++"
-                ],
-                "cc": [
-                    "usr",
-                    "bin",
-                    "clang"
-                ],
-                "llvm-cov": [
-                    "usr",
-                    "bin",
-                    "llvm-cov"
-                ],
-                "llvm-profdata": [
-                    "usr",
-                    "bin",
-                    "llvm-profdata"
-                ],
-                "llvm-nm": [
-                    "usr",
-                    "bin",
-                    "llvm-nm"
-                ],
-                "strip": [
-                    "usr",
-                    "bin",
-                    "strip"
                 ]
             }
         },
@@ -6977,7 +6734,7 @@
         "yt": {
             "formula": {
                 "sandbox_id": [
-                    1217446344
+                    1277508845
                 ],
                 "match": "YT"
             },
@@ -7231,7 +6988,7 @@
         },
         "ytexec": {
             "formula": {
-                "sandbox_id": 1101655914,
+                "sandbox_id": 1275324165,
                 "match": "ytexec"
             },
             "executable": {
@@ -7351,9 +7108,7 @@
         },
         "infractl": {
             "formula": {
-                "sandbox_id": [
-                    1262119440
-                ],
+                "sandbox_id": 1271253228,
                 "match": "infractl"
             },
             "executable": {
@@ -7684,7 +7439,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1263077163,
+                "sandbox_id": 1279645264,
                 "match": "horadric"
             },
             "executable": {
@@ -7827,7 +7582,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1263077676,
+                "sandbox_id": 1279642763,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -7877,7 +7632,7 @@
         },
         "saas2": {
             "formula": {
-                "sandbox_id": 1229425647,
+                "sandbox_id": 1267928485,
                 "match": "saas2"
             },
             "executable": {
@@ -7889,10 +7644,10 @@
         "golang_1.17.8": {
             "formula": {
                 "sandbox_id": [
-                    1245612889,
-                    1245613360,
-                    1245613918,
-                    1245614433
+                    1274287574,
+                    1274292721,
+                    1272507071,
+                    1274297831
                 ],
                 "match": "GOLANG"
             },
@@ -7910,10 +7665,10 @@
         "golang_1.18rc1": {
             "formula": {
                 "sandbox_id": [
-                    1225225209,
-                    1225225645,
-                    1225225909,
-                    1225226383
+                    1274398277,
+                    1274384403,
+                    1274353053,
+                    1274373626
                 ],
                 "match": "GOLANG"
             },
@@ -8259,7 +8014,7 @@
         },
         "sedem": {
             "formula": {
-                "sandbox_id": 1261548618,
+                "sandbox_id": 1269048032,
                 "match": "SEDEM archive"
             },
             "executable": {
@@ -8470,7 +8225,7 @@
         },
         "eductl": {
             "formula": {
-                "sandbox_id": 1262494761,
+                "sandbox_id": 1267274359,
                 "match": "eductl"
             },
             "executable": {
@@ -8481,7 +8236,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1263073099,
+                "sandbox_id": 1279641720,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8492,7 +8247,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1263077454,
+                "sandbox_id": 1279646261,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8514,7 +8269,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1263074582,
+                "sandbox_id": 1279642386,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8536,7 +8291,7 @@
         },
         "bigb_ab": {
             "formula": {
-                "sandbox_id": 1263078212,
+                "sandbox_id": 1268293135,
                 "match": "ab"
             },
             "executable": {
@@ -8560,7 +8315,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1263079864,
+                "sandbox_id": 1279646476,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8571,7 +8326,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1263078040,
+                "sandbox_id": 1279645011,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8582,7 +8337,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1263074988,
+                "sandbox_id": 1278442087,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8593,7 +8348,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1261784847,
+                "sandbox_id": 1277955834,
                 "match": "lama"
             },
             "executable": {
@@ -8602,9 +8357,20 @@
                 ]
             }
         },
+        "vh3": {
+            "formula": {
+                "sandbox_id": 1279179247,
+                "match": "vh3"
+            },
+            "executable": {
+                "vh3": [
+                    "vh3"
+                ]
+            }
+        },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1263077136,
+                "sandbox_id": 1279643858,
                 "match": "profile_size_analyzer"
             },
             "executable": {

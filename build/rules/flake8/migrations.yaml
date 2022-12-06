@@ -542,13 +542,11 @@ migrations:
     - robot/salmon_agent/counters
     - robot/salmon_agent/utils
     - rt-research/broadmatching/mr/IRT-1517
-    - rt-research/broadmatching/scripts/dyn-smart-banners/update_dyn_trashfilter
     - rt-research/broadmatching/scripts/pylib
     - rt-research/broadmatching/scripts/pylib/bm
     - rt-research/broadmatching/scripts/yt/catalogia_mapper
     - rt-research/broadmatching/scripts/yt/cdict_generator
     - rt-research/broadmatching/scripts/yt/dyn-sources/generate_dse_banners
-    - rt-research/broadmatching/scripts/yt/dyn-sources/generate_dse_banners/generate_filtered_links
     - rt-research/broadmatching/scripts/yt/dyn-sources/yt_prepare_dyn_sources
     - rt-research/multik/deploy/deploy
     - saas/tools/devops/lib
@@ -598,8 +596,6 @@ migrations:
     - sandbox/projects/TickenatorBatchProcessing
     - sandbox/projects/TickenatorBatchProcessing/YasmScreenshoter
     - sandbox/projects/Travel/tasks/tools
-    - sandbox/projects/Ufo
-    - sandbox/projects/Ufo/CI
     - sandbox/projects/UpdateConfigGeneratorDb
     - sandbox/projects/UpdateMapsWizardPpoData
     - sandbox/projects/UpdateTestenvNewsdResources
@@ -715,9 +711,6 @@ migrations:
     - talents/nlu/scripts/train/geoname
     - testenv/jobs/rtyserver
     - tools/mkdocs_builder/lib
-    - tools/mkdocs_builder/mkdocs_yandex
-    - tools/mkdocs_builder/mkdocs_yandex/mkdocs_yandex
-    - tools/mkdocs_builder/mkdocs_yandex/mkdocs_yandex/ext/markdown
     - tools/releaser/src
     - tools/ygetparam
     - travel/avia/library/python/common
@@ -1091,7 +1084,6 @@ migrations:
     - skynet/kernel
     - skynet/kernel/util/tests
     - smart_devices/tools/launcher2/tests/restarts
-    - statbox/statkey/jam/jobs
     - strm/generate/lib/generate
     - taxi/graph/packages/taxigraphd
     - testenv/core/web_server
@@ -1131,7 +1123,6 @@ migrations:
     - yabs/server/cs/pylibs/full_graph_plot
     - yabs/server/cs/pylibs/gantt_chart/lib
     - yabs/server/cs/pylibs/settings
-    - yabs/server/test/ft/BSSERVER-13708
     - yabs/vh/cms-pgaas/sport_api_importer/sport_api_importer_lib
     - yabs/vh/frontend/test/ft/HOME-43539
     - yweb/antispam/cid/analytics/pushes/crypta_lal/args
@@ -1469,7 +1460,6 @@ migrations:
     - yabs/server/cs/test/cs_import/yt_banner_with_history
     - yabs/server/infra/yt_tables_freshness/solo
     - yabs/server/libs/py_db_cluster
-    - yabs/server/test/ft/BSSERVER-13708
     - yabs/server/test/ft/BSSERVER-13878
     - yabs/server/test/ft/BSSERVER-14107
     - yabs/server/test/ft/BSSERVER-14309
@@ -1489,7 +1479,6 @@ migrations:
     - yql/library/test_framework
     - yweb/antimalware/mitb/mitb_monitor/lib
     - yweb/antiporno/cp_conv/text_classif/bin
-    - yweb/antispam/clean_web/router
     - yweb/antispam/mascot/monitorings/check_table_age
     - yweb/robot/limbo
     - yweb/robot/metrics/pmusca/graph/bin/extract_urls_from_serp
@@ -1926,7 +1915,6 @@ migrations:
     - infra/wall-e/sdk
     - infra/walle/server/tests/lib
     - infra/ya_salt/vendor/salt
-    - infra/yp/monitoring/pods_with_bad_ip
     - infra/yp/monitoring/tmp_account_monitoring
     - infra/yp_quota_distributor/app
     - intranet/audit/src
@@ -2068,7 +2056,6 @@ migrations:
     - mds/mastermind/core/foreign/opster
     - mds/mastermind/core/src
     - mds/mastermind/flowmastermind/src
-    - mds/mastermind/job_processor
     - mds/mastermind/jobs_integration_tests/src
     - mds/mastermind/minion
     - mds/mastermind/monolith
@@ -2517,7 +2504,6 @@ migrations:
     - sandbox/projects/market/logistics
     - sandbox/projects/market/mcrp/MarketMcrpAbcSync
     - sandbox/projects/market/mcrp/MarketMcrpAbcTopServicesSync
-    - sandbox/projects/market/mcrp/MarketMcrpReport
     - sandbox/projects/market/monitoring
     - sandbox/projects/market/multitesting
     - sandbox/projects/market/promocoordinator
@@ -2586,7 +2572,6 @@ migrations:
     - sandbox/projects/yf
     - sandbox/projects/younglings
     - sandbox/projects/yp/BuildYpEmergencyBreak
-    - sandbox/projects/yp/BuildYpPodEvictionMonitoring
     - sandbox/projects/yp/BuildYpUnknownPodMonitoring
     - sandbox/projects/yql
     - sandbox/proxy/flask_uwsgi_websocket
@@ -2706,7 +2691,6 @@ migrations:
     - travel/avia/library/python/common/protobuf_converting/big_wizard/proto
     - travel/avia/library/python/common/saas/proto
     - travel/hotels/devops/l2_tool
-    - travel/hotels/feeders/lib
     - travel/hotels/tools/catroom_stat
     - travel/hotels/tools/cli
     - travel/hotels/tools/expedia_property_pansions_builder
@@ -3104,7 +3088,6 @@ migrations:
     - library/cpp/deprecated/solartrie/test/tests
     - library/cpp/file_checker/test/tests
     - library/cpp/pybind/example/ut
-    - library/python/cyson/ut
     - library/python/vault_client/ut/tests
     - logbroker/push-client/ft
     - logfeller/lib/table_allocator/functional_tests/dyn_allocator_tests
@@ -3228,12 +3211,9 @@ migrations:
     - quality/relev_tools/lboost_ops/makereqbundle/tests/from_qtree
     - quality/relev_tools/lboost_ops/tm_calc/tests
     - quality/relev_tools/vpcg/bin/ut
-    - quality/relev_tools/xfactor-yt/lib/ut/build_apply_dictionaries
-    - quality/relev_tools/xfactor-yt/lib/ut/collaborative_filtering
     - quality/relev_tools/xfactor-yt/lib/ut/convert_output
     - quality/relev_tools/xfactor-yt/lib/ut/metric_export
     - quality/relev_tools/xfactor-yt/lib/ut/prepare_input
-    - quality/relev_tools/xfactor-yt/yt_operations/ut
     - quality/short_beak/sg_collector/tests
     - quality/tools/scripts/tests
     - quality/traffic/tests/iterator/tests
