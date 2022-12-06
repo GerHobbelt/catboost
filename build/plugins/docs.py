@@ -28,6 +28,8 @@ def onprocess_docs(unit, *args):
     if build_tool:
         if build_tool not in ['mkdocs', 'yfm']:
             unit.message(['error', 'Unsupported build tool {}'.format(build_tool)])
+        if build_tool == 'mkdocs' and not unit.get('MODDIR').startswith('devtools/ymake/tests'):
+            unit.message(['error', '`mkdocs` builder is prohibited to use in `DOCS` multimodule. Use `MKDOCS` multimodule instead of `DOCS`.'])
     else:
         build_tool = 'yfm'
         unit.ondocs_builder([build_tool])
@@ -42,3 +44,9 @@ def onprocess_docs(unit, *args):
             unit.set(['_DOCS_VARS_FLAG', '--vars {}'.format(json.dumps(json.dumps(variables, sort_keys=True)))])
         else:
             assert False, 'Unexpected build_tool value: [{}]'.format(build_tool)
+
+
+def onprocess_mkdocs(unit, *args):
+    orig_variables = macro_calls_to_dict(unit, extract_macro_calls(unit, '_DOCS_VARS_VALUE'))
+    variables = {k: unit.get(k) or v for k, v in orig_variables.items()}
+    unit.set(['_DOCS_VARS_FLAG', ' '.join(['--var {}={}'.format(k, v) for k, v in variables.items()])])

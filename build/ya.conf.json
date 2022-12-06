@@ -519,6 +519,9 @@
         },
         "exp_stats": {
             "description": "bsyeti tool"
+        },
+        "lama": {
+            "description": "Analytics tool for safe reactor calculation"
         }
     },
     "toolchain": {
@@ -703,6 +706,28 @@
                 "exp_stats": {
                     "bottle": "exp_stats",
                     "executable": "exp_stats"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "lama": {
+            "tools": {
+                "lama": {
+                    "bottle": "lama",
+                    "executable": "lama"
                 }
             },
             "platforms": [
@@ -5992,7 +6017,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1230411341
+                    1239511198
                 ],
                 "match": "ymake"
             },
@@ -6049,7 +6074,7 @@
         "arc": {
             "formula": {
                 "sandbox_id": [
-                    1234159318
+                    1240002985
                 ],
                 "match": "arc"
             },
@@ -7510,7 +7535,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1234471400,
+                "sandbox_id": 1244285133,
                 "match": "horadric"
             },
             "executable": {
@@ -7653,7 +7678,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1234469365,
+                "sandbox_id": 1244285750,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -7692,7 +7717,7 @@
         },
         "news": {
             "formula": {
-                "sandbox_id": 1088628929,
+                "sandbox_id": 1240664469,
                 "match": "news_launcher"
             },
             "executable": {
@@ -7960,7 +7985,7 @@
         "coronerctl": {
             "formula": {
                 "sandbox_id": [
-                    1183844682
+                    1243735992
                 ],
                 "match": "infra/rsm/coroner/build/packages/coroner/pkg.json"
             },
@@ -8072,7 +8097,9 @@
         },
         "aws": {
             "formula": {
-                "sandbox_id": 489186634,
+                "sandbox_id": [
+                    1076727104
+                ],
                 "match": "aws"
             },
             "executable": {
@@ -8083,7 +8110,7 @@
         },
         "sedem": {
             "formula": {
-                "sandbox_id": 1232901498,
+                "sandbox_id": 1243855656,
                 "match": "SEDEM archive"
             },
             "executable": {
@@ -8245,7 +8272,7 @@
         },
         "skotty": {
             "formula": {
-                "sandbox_id": 1160938937,
+                "sandbox_id": 1238742810,
                 "match": "launcher"
             },
             "executable": {
@@ -8305,7 +8332,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1234469677,
+                "sandbox_id": 1244286784,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8316,7 +8343,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1234469556,
+                "sandbox_id": 1244286569,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8338,7 +8365,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1234469475,
+                "sandbox_id": 1244287449,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8349,7 +8376,7 @@
         },
         "bigb_yt_profiles_dumper": {
             "formula": {
-                "sandbox_id": 1234469079,
+                "sandbox_id": 1244288403,
                 "match": "yt_profiles_dumper"
             },
             "executable": {
@@ -8360,7 +8387,7 @@
         },
         "bigb_ab": {
             "formula": {
-                "sandbox_id": 1234469075,
+                "sandbox_id": 1244287593,
                 "match": "ab"
             },
             "executable": {
@@ -8384,7 +8411,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1234469089,
+                "sandbox_id": 1244286930,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8395,7 +8422,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1234467836,
+                "sandbox_id": 1244287294,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8406,7 +8433,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1234467806,
+                "sandbox_id": 1244287957,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8415,9 +8442,20 @@
                 ]
             }
         },
+        "lama": {
+            "formula": {
+                "sandbox_id": 1240644569,
+                "match": "lama"
+            },
+            "executable": {
+                "lama": [
+                    "lama"
+                ]
+            }
+        },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1234467754,
+                "sandbox_id": 1244284950,
                 "match": "profile_size_analyzer"
             },
             "executable": {
