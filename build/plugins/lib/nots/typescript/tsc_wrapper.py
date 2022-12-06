@@ -21,6 +21,7 @@ class TscWrapper(object):
 
     def compile(self):
         self._prepare_dependencies()
+        self._prepare_bindir()
         config = self._build_config()
         self._exec_tsc(["--build", config.path])
 
@@ -41,13 +42,15 @@ class TscWrapper(object):
             with tarfile.open(nm_bundle_path) as tf:
                 tf.extractall(os.path.join(self.build_path, "node_modules"))
 
+    def _prepare_bindir(self):
+        os.symlink(
+            os.path.join(self.sources_path, "src"),
+            os.path.join(self.build_path, "src")
+        )
+
     def _build_config(self):
         config = TsConfig.load(self.config_path)
         config.validate()
-        config.transform_paths(
-            build_path=self.build_path,
-            sources_path=self.sources_path,
-        )
 
         config.path = os.path.join(self.build_path, self._TSCONFIG_FILENAME)
         config.write()

@@ -23,6 +23,9 @@ IF (NOT OS_WINDOWS)
     )
 ENDIF()
 
+DISABLE(PROVIDE_GETRANDOM_GETENTROPY)
+DISABLE(PROVIDE_REALLOCARRAY)
+
 # Android libc function appearance is documented here:
 # https://android.googlesource.com/platform/bionic/+/master/docs/status.md
 #
@@ -35,8 +38,8 @@ IF (OS_ANDROID)
     IF (ANDROID_API < 28)
         SRCS(
             glob.c
-            reallocarray.c
         )
+        ENABLE(PROVIDE_REALLOCARRAY)
     ENDIF()
     IF (ANDROID_API < 24)
         SRCS(
@@ -62,8 +65,8 @@ ENDIF()
 IF (OS_DARWIN)
     SRCS(
         explicit_bzero.c
-        reallocarray.c
     )
+    ENABLE(PROVIDE_REALLOCARRAY)
 ENDIF()
 
 IF (OS_WINDOWS)
@@ -72,7 +75,6 @@ IF (OS_WINDOWS)
     )
     SRCS(
         explicit_bzero.c
-        reallocarray.c
         stpcpy.c
         strlcat.c
         strlcpy.c
@@ -80,6 +82,7 @@ IF (OS_WINDOWS)
         strsep.c
         src/windows/sys/uio.c
     )
+    ENABLE(PROVIDE_REALLOCARRAY)
 ENDIF()
 
 IF (OS_LINUX)
@@ -99,28 +102,43 @@ IF (OS_LINUX AND NOT MUSL)
         )
     ENDIF()
     IF (OS_SDK == "ubuntu-12" OR OS_SDK == "ubuntu-14" OR OS_SDK == "ubuntu-16")
-        ADDINCL(
-            GLOBAL contrib/libs/libc_compat/include/random
-        )
+        # getrandom and getentropy were added in glibc=2.25
+        ENABLE(PROVIDE_GETRANDOM_GETENTROPY)
+
         SRCS(
             # explicit_bzero was added in glibc=2.25
             explicit_bzero.c
-            # getrandom was added in glibc=2.25
-            getrandom.c
             # memfd_create was added in glibc=2.27
             memfd_create.c
         )
     ENDIF()
     IF (OS_SDK != "ubuntu-20")
-        SRCS(
-            # reallocarray was added in glibc=2.29
-            reallocarray.c
-        )
+        # reallocarray was added in glibc=2.29
+        ENABLE(PROVIDE_REALLOCARRAY)
     ENDIF()
     SRCS(
         # glibc does not offer strlcat / strlcpy yet
         strlcat.c
         strlcpy.c
+    )
+ENDIF()
+
+IF (PROVIDE_REALLOCARRAY)
+    SRCS(
+        reallocarray/reallocarray.c
+    )
+    ADDINCL(
+        ONE_LEVEL contrib/libs/libc_compat/reallocarray
+    )
+ENDIF()
+
+IF (PROVIDE_GETRANDOM_GETENTROPY)
+    SRCS(
+        random/getrandom.c
+        random/getentropy.c
+    )
+    ADDINCL(
+        ONE_LEVEL contrib/libs/libc_compat/random
     )
 ENDIF()
 

@@ -141,13 +141,13 @@
             "description": "Run javac 15"
         },
         "jar17": {
-            "description": "Run jar from jdk15"
+            "description": "Run jar from jdk17"
         },
         "java17": {
-            "description": "Run java 15"
+            "description": "Run java 17"
         },
         "javac17": {
-            "description": "Run javac 15"
+            "description": "Run javac 17"
         },
         "jq": {
             "description": "Run jq"
@@ -337,7 +337,7 @@
             "description": "Debugger for the Go programming language"
         },
         "node-search": {
-            "description": "Autocheck data inspector tool",
+            "description": "Autocheck data inspection tool",
             "visible": false
         },
         "releaser": {
@@ -526,6 +526,9 @@
         },
         "lama": {
             "description": "Analytics tool for safe reactor calculation"
+        },
+        "mfkit": {
+            "description": "Toolkit for maps frontend"
         },
         "vh3": {
             "description": "Run VH3 CLI"
@@ -747,6 +750,28 @@
                 "lama": {
                     "bottle": "lama",
                     "executable": "lama"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "mfkit": {
+            "tools": {
+                "mfkit": {
+                    "bottle": "mfkit",
+                    "executable": "mfkit"
                 }
             },
             "platforms": [
@@ -2162,6 +2187,104 @@
                 "profiles": "$(XCODE_TOOLS_ROOT-sbr:799017771)/Xcode/Contents/Developer/Platforms/iPhoneOS.platform/Developer/Library/CoreSimulator/Profiles",
                 "strip": "$(CLANG)/bin/llvm-strip",
                 "gcc_version": "12.0"
+            }
+        },
+        "clang14-windows": {
+            "name": "clang14",
+            "tools": {
+                "c++": {
+                    "bottle": "clang14",
+                    "executable": "c++"
+                },
+                "c++filt": {
+                    "bottle": "clang14",
+                    "executable": "c++filt"
+                },
+                "cc": {
+                    "bottle": "clang14",
+                    "executable": "cc"
+                },
+                "gcov": {
+                    "bottle": "clang14",
+                    "executable": "llvm-gcov"
+                },
+                "llvm-cov": {
+                    "bottle": "clang14",
+                    "executable": "llvm-cov"
+                },
+                "llvm-profdata": {
+                    "bottle": "clang14",
+                    "executable": "llvm-profdata"
+                },
+                "llvm-symbolizer": {
+                    "bottle": "clang14",
+                    "executable": "llvm-symbolizer"
+                },
+                "nm": {
+                    "bottle": "clang14",
+                    "executable": "llvm-nm"
+                },
+                "strip": {
+                    "bottle": "clang14",
+                    "executable": "llvm-strip"
+                },
+                "objcopy": {
+                    "bottle": "clang14",
+                    "executable": "llvm-objcopy"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "target": {
+                        "os": "WIN",
+                        "arch": "x86_64"
+                    },
+                    "default": false
+                },
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "target": {
+                        "os": "WIN",
+                        "arch": "i686"
+                    },
+                    "default": false
+                },
+                {
+                    "host": {
+                        "os": "WIN"
+                    },
+                    "target": {
+                        "os": "WIN",
+                        "arch": "x86_64"
+                    },
+                    "default": false
+                },
+                {
+                    "host": {
+                        "os": "WIN"
+                    },
+                    "target": {
+                        "os": "WIN",
+                        "arch": "i686"
+                    },
+                    "default": false
+                }
+            ],
+            "params": {
+                "type": "msvc",
+                "use_clang": true,
+                "match_root": "CLANG",
+                "werror_mode": "all",
+                "c_compiler": "$(CLANG)/bin/clang-cl",
+                "cxx_compiler": "$(CLANG)/bin/clang-cl",
+                "llvm-symbolizer": "$(CLANG)/bin/llvm-symbolizer",
+                "wine": "yes",
+                "version": "2019"
             }
         },
         "clang14": {
@@ -4508,46 +4631,6 @@
                 }
             ]
         },
-        "kiwi": {
-            "tools": {
-                "kwmktorrent": {
-                    "bottle": "kwmktorrent",
-                    "executable": "kwmktorrent"
-                },
-                "kwmqbuild": {
-                    "bottle": "kwmqbuild",
-                    "executable": "kwmqbuild"
-                },
-                "kwfeed": {
-                    "bottle": "kwfeed",
-                    "executable": "kwfeed"
-                },
-                "metaquery.sh": {
-                    "bottle": "kwfeed",
-                    "executable": "metaquery.sh"
-                },
-                "protobin_diff": {
-                    "bottle": "protobin_diff",
-                    "executable": "protobin_diff"
-                },
-                "multipb_convert": {
-                    "bottle": "multipb_convert",
-                    "executable": "multipb_convert"
-                },
-                "kwworm": {
-                    "bottle": "kwworm",
-                    "executable": "kwworm"
-                }
-            },
-            "platforms": [
-                {
-                    "host": {
-                        "os": "LINUX"
-                    },
-                    "default": true
-                }
-            ]
-        },
         "optrace": {
             "tools": {
                 "optrace": {
@@ -5004,21 +5087,6 @@
                     "host": {
                         "os": "DARWIN",
                         "arch": "arm64"
-                    },
-                    "default": true
-                }
-            ]
-        },
-        "kiwi_protos": {
-            "tools": {
-                "kiwi_protos": {
-                    "bottle": "kiwi_protos"
-                }
-            },
-            "platforms": [
-                {
-                    "host": {
-                        "os": "LINUX"
                     },
                     "default": true
                 }
@@ -6516,7 +6584,14 @@
                 },
                 {
                     "host": {
-                        "os": "darwin"
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN",
+                        "arch": "arm64"
                     },
                     "default": true
                 }
@@ -6563,7 +6638,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1359572912
+                    1394752823
                 ],
                 "match": "ymake"
             },
@@ -6576,8 +6651,9 @@
         "yexport": {
             "formula": {
                 "sandbox_id": [
-                    1369322208
+                    1387911561
                 ],
+                "platform_replacements": {},
                 "match": "yexport"
             },
             "executable": {
@@ -6632,10 +6708,17 @@
         },
         "arc": {
             "formula": {
-                "sandbox_id": [
-                    1366412641
-                ],
-                "match": "arc"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "ARC_CLIENT",
+                        "attributes": {
+                            "released": "stable"
+                        },
+                        "owner": "ARC"
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
             },
             "executable": {
                 "arc": [
@@ -6656,7 +6739,7 @@
         },
         "yo": {
             "formula": {
-                "sandbox_id": 1315684874,
+                "sandbox_id": 1374890501,
                 "match": "yo"
             },
             "executable": {
@@ -6698,6 +6781,7 @@
                 "sandbox_id": [
                     1313179369
                 ],
+                "platform_replacements": {},
                 "match": "delve"
             },
             "executable": {
@@ -6976,7 +7060,8 @@
         "clang14": {
             "formula": {
                 "sandbox_id": [
-                    1299367207
+                    1393091052,
+                    1375826129
                 ],
                 "match": "CLANG"
             },
@@ -7617,6 +7702,7 @@
                     1351234419,
                     1351262215
                 ],
+                "platform_replacements": {},
                 "match": "GDB"
             },
             "executable": {
@@ -7714,7 +7800,7 @@
         "yp-util": {
             "formula": {
                 "sandbox_id": [
-                    1344544071
+                    1369881728
                 ],
                 "match": "yp-util"
             },
@@ -7727,7 +7813,7 @@
         "yp": {
             "formula": {
                 "sandbox_id": [
-                    1344577556
+                    1369882204
                 ],
                 "match": "YP"
             },
@@ -7765,7 +7851,7 @@
         },
         "infractl": {
             "formula": {
-                "sandbox_id": 1369418661,
+                "sandbox_id": 1391299720,
                 "match": "infractl"
             },
             "executable": {
@@ -7849,10 +7935,17 @@
         },
         "node-search": {
             "formula": {
-                "sandbox_id": [
-                    1293225955
-                ],
-                "match": "node_search"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "NODE_SEARCH_BIN",
+                        "attributes": {
+                            "released": "stable"
+                        },
+                        "owner": "YATOOL"
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
             },
             "executable": {
                 "node-search": [
@@ -7935,75 +8028,6 @@
             },
             "executable": "ninja"
         },
-        "kwfeed": {
-            "formula": {
-                "sandbox_id": 36077631,
-                "match": "KWFeed"
-            },
-            "executable": {
-                "kwfeed": [
-                    "kwfeed"
-                ],
-                "metaquery.sh": [
-                    "metaquery.sh"
-                ]
-            }
-        },
-        "protobin_diff": {
-            "formula": {
-                "sandbox_id": 28621470,
-                "match": "protobin_diff"
-            },
-            "executable": {
-                "protobin_diff": [
-                    "protobin_diff"
-                ]
-            }
-        },
-        "multipb_convert": {
-            "formula": {
-                "sandbox_id": 31061929,
-                "match": "Multipb_convert"
-            },
-            "executable": {
-                "multipb_convert": [
-                    "multipb_convert"
-                ]
-            }
-        },
-        "kwworm": {
-            "formula": {
-                "sandbox_id": 18521490,
-                "match": "Kwworm"
-            },
-            "executable": {
-                "kwworm": [
-                    "kwworm"
-                ]
-            }
-        },
-        "kwmktorrent": {
-            "formula": {
-                "sandbox_id": 451506451,
-                "match": "KWMKTorrent"
-            },
-            "executable": {
-                "kwmktorrent": [
-                    "kwmktorrent"
-                ]
-            }
-        },
-        "kwmqbuild": {
-            "formula": {
-                "sandbox_id": 41067877,
-                "match": "KWMQBuild"
-            },
-            "executable": {
-                "kwmqbuild": [
-                    "kwmqbuild"
-                ]
-            }
-        },
         "gpt": {
             "formula": {
                 "sandbox_id": 21836503,
@@ -8039,12 +8063,6 @@
             "formula": {
                 "sandbox_id": 42519064,
                 "match": "fast_diff"
-            }
-        },
-        "kiwi_protos": {
-            "formula": {
-                "sandbox_id": 32521995,
-                "match": "KiWi python protos"
             }
         },
         "allure_commandline": {
@@ -8096,7 +8114,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1368765509,
+                "sandbox_id": 1396373868,
                 "match": "horadric"
             },
             "executable": {
@@ -8239,7 +8257,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1368765477,
+                "sandbox_id": 1396374565,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8250,11 +8268,14 @@
         },
         "renderer": {
             "formula": {
-                "sandbox_id": [
-                    1217317559,
-                    1219860570
-                ],
-                "match": ""
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "REPORT_RENDERER_BUNDLE",
+                        "attributes": {
+                            "released": "stable"
+                        }
+                    }
+                }
             },
             "executable": {
                 "renderer": [
@@ -8264,11 +8285,14 @@
         },
         "appteka": {
             "formula": {
-                "sandbox_id": [
-                    1351396288,
-                    1351404983
-                ],
-                "match": "appteka"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "APPTEKA_BUNDLE",
+                        "attributes": {
+                            "released": "stable"
+                        }
+                    }
+                }
             },
             "executable": {
                 "appteka": [
@@ -8651,8 +8675,8 @@
         "sedem": {
             "formula": {
                 "sandbox_id": [
-                    1360073384,
-                    1360073383
+                    1393815750,
+                    1393815749
                 ],
                 "match": "bin/sedem"
             },
@@ -8804,7 +8828,7 @@
         },
         "wall-e": {
             "formula": {
-                "sandbox_id": 1207601598,
+                "sandbox_id": 1372136456,
                 "match": "wall-e"
             },
             "executable": {
@@ -8875,7 +8899,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1368765181,
+                "sandbox_id": 1396374474,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8886,7 +8910,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1368766167,
+                "sandbox_id": 1396374269,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8908,7 +8932,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1368765479,
+                "sandbox_id": 1396374568,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8954,7 +8978,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1368764937,
+                "sandbox_id": 1396374566,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8965,7 +8989,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1368765168,
+                "sandbox_id": 1396374287,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8976,7 +9000,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1368765147,
+                "sandbox_id": 1396373637,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8987,7 +9011,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1347607407,
+                "sandbox_id": 1382573554,
                 "match": "lama"
             },
             "executable": {
@@ -8996,9 +9020,28 @@
                 ]
             }
         },
+        "mfkit": {
+            "formula": {
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "MAPS_FRONT_TOOLKIT",
+                        "owner": "MAPS_FRONT"
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
+            },
+            "executable": {
+                "mfkit": [
+                    "mfkit"
+                ]
+            }
+        },
         "vh3": {
             "formula": {
-                "sandbox_id": 1279179247,
+                "sandbox_id": [
+                    1389153629
+                ],
                 "match": "vh3"
             },
             "executable": {
@@ -9009,7 +9052,7 @@
         },
         "marketsre": {
             "formula": {
-                "sandbox_id": 1366865975,
+                "sandbox_id": 1388185218,
                 "match": "marketsre"
             },
             "executable": {
@@ -9020,7 +9063,7 @@
         },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1368765029,
+                "sandbox_id": 1396373923,
                 "match": "profile_size_analyzer"
             },
             "executable": {
@@ -9058,7 +9101,7 @@
         },
         "abcd": {
             "formula": {
-                "sandbox_id": 1357392225,
+                "sandbox_id": 1391496425,
                 "match": "quota_mover"
             },
             "executable": {
@@ -9070,7 +9113,7 @@
         },
         "tasklet": {
             "formula": {
-                "sandbox_id": 1362243510,
+                "sandbox_id": 1380302431,
                 "match": "tasklet-tool"
             },
             "executable": {

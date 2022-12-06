@@ -7596,6 +7596,76 @@ def test_shap_exact():
     return [local_canonical_file(output_values_path)]
 
 
+def test_sage_basic():
+    output_model_path = yatest.common.test_output_path('model.bin')
+    output_values_path = yatest.common.test_output_path('sageval')
+    cmd_fit = [
+        CATBOOST_PATH,
+        'fit',
+        '--loss-function', 'Logloss',
+        '--learning-rate', '0.5',
+        '-f', data_file('adult', 'train_small'),
+        '--column-description', data_file('adult', 'train.cd'),
+        '-i', '250',
+        '-T', '4',
+        '-m', output_model_path,
+    ]
+    yatest.common.execute(cmd_fit)
+    cmd_sage = [
+        CATBOOST_PATH,
+        'fstr',
+        '-o', output_values_path,
+        '--input-path', data_file('adult', 'train_small'),
+        '--column-description', data_file('adult', 'train.cd'),
+        '--verbose', '0',
+        '--fstr-type', 'SageValues',
+        '-T', '4',
+        '-m', output_model_path,
+    ]
+    yatest.common.execute(cmd_sage)
+
+    return [local_canonical_file(output_values_path)]
+
+
+def test_sage_verbose():
+    output_model_path = yatest.common.test_output_path('model.bin')
+    output_values_path = yatest.common.test_output_path('sageval')
+    output_log = yatest.common.test_output_path('log')
+    cmd_fit = [
+        CATBOOST_PATH,
+        'fit',
+        '--loss-function', 'Logloss',
+        '--learning-rate', '0.5',
+        '-f', data_file('adult', 'train_small'),
+        '--column-description', data_file('adult', 'train.cd'),
+        '-i', '250',
+        '-T', '4',
+        '-m', output_model_path,
+    ]
+    yatest.common.execute(cmd_fit)
+    cmd_sage = [
+        CATBOOST_PATH,
+        'fstr',
+        '-o', output_values_path,
+        '--input-path', data_file('adult', 'train_small'),
+        '--column-description', data_file('adult', 'train.cd'),
+        '--verbose', '1',
+        '--fstr-type', 'SageValues',
+        '-T', '4',
+        '-m', output_model_path,
+    ]
+    with open(output_log, 'w') as log:
+        yatest.common.execute(cmd_sage, stdout=log)
+    with open(output_log, 'r') as log:
+        line_count = 0
+        last_line = None
+        for line in log:
+            line_count += 1
+            last_line = line
+        assert line_count >= 10
+        assert last_line == 'Sage Values Have Converged\n'
+
+
 @pytest.mark.parametrize('bagging_temperature', ['0', '1'])
 @pytest.mark.parametrize('sampling_unit', SAMPLING_UNIT_TYPES)
 @pytest.mark.parametrize(
@@ -10242,3 +10312,36 @@ def test_hashed_categ():
 
     assert filecmp.cmp(learn_error_path_with_hashed_categ, learn_error_path)
     assert filecmp.cmp(test_error_path_with_hashed_categ, test_error_path)
+
+
+@pytest.mark.parametrize('leaf_estimation_method', ['Gradient', 'Exact'])
+def test_multi_quantile(leaf_estimation_method):
+    def run_cmd(eval_path, additional_params):
+        cmd = (
+            '--use-best-model', 'false',
+            '--learn-set', data_file('querywise', 'train'),
+            '--column-description', data_file('querywise', 'train.cd'),
+            '--boosting-type', 'Plain',
+            '--leaf-estimation-method', leaf_estimation_method,
+            '-i', '10',
+            '-w', '0.03',
+            '-T', '4',
+            '--eval-file', eval_path,
+            '--random-strength', '0',
+            '--bootstrap-type', 'No'
+        ) + additional_params
+        execute_catboost_fit('CPU', cmd)
+
+    quantile_path = yatest.common.test_output_path('quantile')
+    run_cmd(
+        quantile_path,
+        ('--loss-function', 'Quantile:alpha=0.375')
+    )
+
+    multi_quantile_path = yatest.common.test_output_path('multi_quantile')
+    run_cmd(
+        multi_quantile_path,
+        ('--loss-function', 'MultiQuantile:alpha=0.375,0.375')
+    )
+
+    assert filecmp.cmp(quantile_path, multi_quantile_path)

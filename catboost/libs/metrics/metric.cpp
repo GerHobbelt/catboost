@@ -2565,6 +2565,7 @@ namespace {
         static constexpr int DefaultTopSize = -1;
         static constexpr ENdcgMetricType DefaultMetricType = ENdcgMetricType::Base;
         static constexpr ENdcgDenominatorType DefaultDenominatorType = ENdcgDenominatorType::LogPosition;
+        static constexpr size_t LargeGroupSize = 10 * 1000;
     };
 }
 
@@ -2651,6 +2652,9 @@ TMetricHolder TDcgMetric::EvalSingleThread(
 
     TMetricHolder error(2);
     TVector<NMetrics::TSample> samples;
+    TVector<double> decay;
+    decay.yresize(LargeGroupSize);
+    FillDcgDecay(DenominatorType, Nothing(), decay);
     for (int queryIndex = queryStartIndex; queryIndex < queryEndIndex; ++queryIndex) {
         const auto queryBegin = queriesInfo[queryIndex].Begin;
         const auto queryEnd = queriesInfo[queryIndex].End;
@@ -2660,10 +2664,14 @@ TMetricHolder TDcgMetric::EvalSingleThread(
             MakeArrayRef(target.data() + queryBegin, querySize),
             MakeArrayRef(approxesRef.data() + queryBegin, querySize),
             &samples);
+        if (decay.size() < querySize) {
+            decay.resize(2 * querySize);
+            FillDcgDecay(DenominatorType, Nothing(), decay);
+        }
         if (Normalized) {
-            error.Stats[0] += queryWeight * CalcNdcg(samples, MetricType, TopSize, DenominatorType);
+            error.Stats[0] += queryWeight * CalcNdcg(samples, decay, MetricType, TopSize);
         } else {
-            error.Stats[0] += queryWeight * CalcDcg(samples, MetricType, Nothing(), TopSize, DenominatorType);
+            error.Stats[0] += queryWeight * CalcDcg(samples, decay, MetricType, TopSize);
         }
         error.Stats[1] += queryWeight;
     }
@@ -4719,6 +4727,7 @@ namespace {
 
         static constexpr ENdcgMetricType DefaultMetricType = ENdcgMetricType::Base;
         static constexpr ENdcgDenominatorType DefaultDenominatorType= ENdcgDenominatorType::Position;
+        static constexpr size_t LargeGroupSize = 10 * 1000;
     };
 }
 
@@ -4761,6 +4770,9 @@ TMetricHolder TFilteredDcgMetric::EvalSingleThread(
     TVector<double> filteredApprox;
     TVector<double> filteredTarget;
     TVector<NMetrics::TSample> samples;
+    TVector<double> decay;
+    decay.yresize(LargeGroupSize);
+    FillDcgDecay(DenominatorType, Nothing(), decay);
 
     for(int queryIndex = queryBegin; queryIndex < queryEnd; ++queryIndex) {
         const int begin = queriesInfo[queryIndex].Begin;
@@ -4779,18 +4791,22 @@ TMetricHolder TFilteredDcgMetric::EvalSingleThread(
         if (filteredApprox.empty()) {
             continue;
         }
+        if (begin + decay.size() < (size_t)end) {
+            decay.resize(2 * (end - begin));
+            FillDcgDecay(DenominatorType, Nothing(), decay);
+        }
         switch (SortType) {
             case ENdcgSortType::None:
-                metric.Stats[0] += CalcDcgSorted(filteredTarget, MetricType, Nothing(), DenominatorType);
+                metric.Stats[0] += CalcDcgSorted(filteredTarget, decay, MetricType);
                 break;
             case ENdcgSortType::ByPrediction: {
                 NMetrics::TSample::FromVectors(filteredTarget, filteredApprox, &samples);
-                metric.Stats[0] += CalcDcg(samples, MetricType, Nothing(), Max<ui32>(), DenominatorType);
+                metric.Stats[0] += CalcDcg(samples, decay, MetricType, Max<ui32>());
                 break;
             }
             case ENdcgSortType::ByTarget: {
                 NMetrics::TSample::FromVectors(filteredTarget, filteredApprox, &samples);
-                metric.Stats[0] += CalcIDcg(samples, MetricType, Nothing(), Max<ui32>(), DenominatorType);
+                metric.Stats[0] += CalcIDcg(samples, decay, MetricType, Max<ui32>());
                 break;
             }
         }
@@ -6291,30 +6307,6 @@ TVector<bool> GetSkipMetricOnTest(bool testHasTarget, const TVector<const IMetri
 
 
 TMetricHolder EvalErrors(
-    const TVector<TVector<double>>& approx,
-    TConstArrayRef<float> target,
-    TConstArrayRef<float> weight,
-    TConstArrayRef<TQueryInfo> queriesInfo,
-    const IMetric& error,
-    NPar::ILocalExecutor* localExecutor
-) {
-    if (error.GetErrorType() == EErrorType::PerObjectError) {
-        int begin = 0, end = target.size();
-        CB_ENSURE(
-            approx[0].ysize() == end - begin,
-            "Prediction and label size do not match");
-        return dynamic_cast<const ISingleTargetEval&>(error).Eval(approx, target, weight, queriesInfo, begin, end, *localExecutor);
-    } else {
-        CB_ENSURE(
-            error.GetErrorType() == EErrorType::QuerywiseError || error.GetErrorType() == EErrorType::PairwiseError,
-            "Expected querywise or pairwise metric");
-        int queryStartIndex = 0, queryEndIndex = queriesInfo.size();
-        return dynamic_cast<const ISingleTargetEval&>(error).Eval(approx, target, weight, queriesInfo, queryStartIndex, queryEndIndex, *localExecutor);
-    }
-}
-
-
-TMetricHolder EvalErrors(
     TConstArrayRef<TConstArrayRef<double>> approx,
     TConstArrayRef<TConstArrayRef<double>> approxDelta,
     bool isExpApprox,
@@ -6341,8 +6333,8 @@ TMetricHolder EvalErrors(
 
 
 TMetricHolder EvalErrors(
-    const TVector<TVector<double>>& approx,
-    const TVector<TVector<double>>& approxDelta,
+    TConstArrayRef<TConstArrayRef<double>> approx,
+    TConstArrayRef<TConstArrayRef<double>> approxDelta,
     bool isExpApprox,
     TConstArrayRef<TConstArrayRef<float>> target,
     TConstArrayRef<float> weight,

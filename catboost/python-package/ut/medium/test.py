@@ -2648,6 +2648,7 @@ def test_generated_regression_losses_with_specified_params():
             'Huber:delta=1.0': metrics.Huber(delta=1.0), 'Huber:delta=0.5': metrics.Huber(delta=0.5),
             'Huber:delta=2.0': metrics.Huber(delta=2.0),
             'Expectile:alpha=0.2': metrics.Expectile(alpha=0.2), 'Expectile:alpha=0.8': metrics.Expectile(alpha=0.8),
+            'MultiQuantile:alpha=0.2,0.4': metrics.MultiQuantile(alpha="0.2,0.4"),
             'Tweedie:variance_power=1.2': metrics.Tweedie(variance_power=1.2),
             'Tweedie:variance_power=1.5': metrics.Tweedie(variance_power=1.5),
             'Tweedie:variance_power=1.8': metrics.Tweedie(variance_power=1.8)
@@ -4405,6 +4406,55 @@ def test_shap_feature_rmse(task_type):
     predictions = model.predict(test_pool)
     for doc_idx in range(len(shap_values)):
         assert abs(sum(shap_values[doc_idx]) - rmse(float(label[doc_idx]), float(predictions[doc_idx]))) < 1e-6
+
+
+def test_feature_importance_sage_basic():
+    pool = Pool(TRAIN_FILE, column_description=CD_FILE)
+    model = CatBoostClassifier(iterations=5, learning_rate=0.03, devices='0')
+    model.fit(pool)
+
+    feature_importances = model.get_feature_importance(pool, type=EFstrType.SageValues, sage_n_samples=32,
+                                                       sage_batch_size=512)
+    fimp_npy_path = test_output_path(FIMP_NPY_PATH)
+    np.save(fimp_npy_path, np.around(np.array(feature_importances), 2))
+    return local_canonical_file(fimp_npy_path)
+
+
+def test_feature_importance_sage_querywise():
+    pool_querywise = Pool(QUERYWISE_TRAIN_FILE, column_description=QUERYWISE_CD_FILE)
+    fimp_npy_path = test_output_path(FIMP_NPY_PATH)
+
+    params = {
+        "iterations": 5,
+        "learning_rate": 0.03,
+        "devices": "0",
+        "loss_function": "QueryRMSE"
+    }
+    model = CatBoostRanker(**params)
+    model.fit(pool_querywise)
+
+    feature_importances = model.get_feature_importance(pool_querywise, type=EFstrType.SageValues)
+    fimp_npy_path = test_output_path(FIMP_NPY_PATH)
+    np.save(fimp_npy_path, np.around(np.array(feature_importances), 2))
+    return local_canonical_file(fimp_npy_path)
+
+
+def test_feature_importance_sage_all_feature_types():
+    pool = Pool(ROTTEN_TOMATOES_TRAIN_FILE, column_description=ROTTEN_TOMATOES_CD_BINCLASS_FILE)
+    fimp_npy_path = test_output_path(FIMP_NPY_PATH)
+
+    params = {
+        "iterations": 5,
+        "learning_rate": 0.03,
+        "devices": "0"
+    }
+    model = CatBoostClassifier(**params)
+    model.fit(pool)
+
+    feature_importances = model.get_feature_importance(pool, type=EFstrType.SageValues)
+    fimp_npy_path = test_output_path(FIMP_NPY_PATH)
+    np.save(fimp_npy_path, np.around(np.array(feature_importances), 2))
+    return local_canonical_file(fimp_npy_path)
 
 
 def test_prediction_diff_feature_importance(task_type):
