@@ -6942,10 +6942,7 @@
             }
         },
         "python": {
-            "formula": {
-                "sandbox_id": 1277485811,
-                "match": "Python"
-            },
+            "formula": "build/platform/python/ymake_python2/resources.json",
             "executable": {
                 "python": [
                     "python"
@@ -7147,16 +7144,7 @@
             }
         },
         "clang14": {
-            "formula": {
-                "sandbox_id": [
-                    1441176665,
-                    1432506119,
-                    1445478860,
-                    1445454611,
-                    1445513330
-                ],
-                "match": "CLANG"
-            },
+            "formula": "build/platform/clang/clang14.json",
             "executable": {
                 "c++": [
                     "bin",
@@ -7535,7 +7523,7 @@
         },
         "ytyndexer": {
             "formula": {
-                "sandbox_id": 1522153657,
+                "sandbox_id": 1528873774,
                 "match": "YTYNDEXER"
             },
             "executable": {
@@ -8329,10 +8317,7 @@
             }
         },
         "ya-tc": {
-            "formula": {
-                "sandbox_id": 1437768899,
-                "match": "ya-tc"
-            },
+            "formula": "build/external_resources/ya-tc/resources.json",
             "executable": {
                 "ya-tc": [
                     "ya-tc"
@@ -8382,7 +8367,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1522655718,
+                "sandbox_id": 1529765349,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -9160,7 +9145,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1504710740,
+                "sandbox_id": 1527296954,
                 "match": "lama"
             },
             "executable": {
