@@ -10,19 +10,10 @@ LICENSE_TEXTS(.yandex_meta/licenses.list.txt)
 
 PEERDIR(
     contrib/restricted/abseil-cpp/absl/base
-    contrib/restricted/abseil-cpp/absl/base/internal/raw_logging
-    contrib/restricted/abseil-cpp/absl/base/internal/spinlock_wait
-    contrib/restricted/abseil-cpp/absl/base/internal/throw_delegate
-    contrib/restricted/abseil-cpp/absl/base/log_severity
     contrib/restricted/abseil-cpp/absl/city
-    contrib/restricted/abseil-cpp/absl/hash/internal
     contrib/restricted/abseil-cpp/absl/numeric
     contrib/restricted/abseil-cpp/absl/strings
-    contrib/restricted/abseil-cpp/absl/strings/internal/absl_strings_internal
     contrib/restricted/abseil-cpp/absl/types
-    contrib/restricted/abseil-cpp/absl/types/bad_optional_access
-    contrib/restricted/abseil-cpp/absl/types/bad_variant_access
-    contrib/restricted/abseil-cpp/absl/types/internal
 )
 
 ADDINCL(
@@ -39,6 +30,7 @@ CFLAGS(
 
 SRCS(
     internal/hash.cc
+    internal/low_level_hash.cc
 )
 
 END()

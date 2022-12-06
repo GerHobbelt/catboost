@@ -316,10 +316,10 @@
             "description": "Run saas2 cli"
         },
         "go": {
-            "description": "Run go tool (1.18.3)"
+            "description": "Run go tool (1.18.4)"
         },
         "gofmt": {
-            "description": "Run gofmt tool (1.18.3)"
+            "description": "Run gofmt tool (1.18.4)"
         },
         "godoc": {
             "description": "Arcadia version of godoc"
@@ -536,6 +536,12 @@
         "marketsre": {
             "description": "Run Market SRE Cli"
         },
+        "dns-client": {
+            "description": "Run dns-client(tools for change RRs)"
+        },
+        "puncher": {
+            "description": "Run Puncher CLI"
+        },
         "metrika-core": {
             "description": "Run metrika-core toolkit"
         },
@@ -544,6 +550,9 @@
         },
         "tasklet": {
             "description": "Run tasklet CLI"
+        },
+        "rm": {
+            "description": "ReleaseMachine cmd tool"
         }
     },
     "toolchain": {
@@ -828,6 +837,64 @@
                 {
                     "host": {
                         "os": "WIN"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN",
+                        "arch": "arm64"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "dns-client": {
+            "tools": {
+                "dns-client": {
+                    "bottle": "dns-client",
+                    "executable": "dns-client"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN",
+                        "arch": "arm64"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
+        "puncher": {
+            "tools": {
+                "puncher": {
+                    "bottle": "puncher",
+                    "executable": "puncher"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
                     },
                     "default": true
                 },
@@ -5651,7 +5718,7 @@
             ],
             "params": {
                 "type": "golang",
-                "version": "1.18.3"
+                "version": "1.18.4"
             }
         },
         "godoc": {
@@ -6618,6 +6685,28 @@
                     "default": true
                 }
             ]
+        },
+        "rm": {
+            "tools": {
+                "rm": {
+                    "bottle": "rm",
+                    "executable": "rm_tool"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
         }
     },
     "bottles": {
@@ -6638,7 +6727,7 @@
         "ymake": {
             "formula": {
                 "sandbox_id": [
-                    1394752823
+                    1419775644
                 ],
                 "match": "ymake"
             },
@@ -6649,13 +6738,7 @@
             }
         },
         "yexport": {
-            "formula": {
-                "sandbox_id": [
-                    1387911561
-                ],
-                "platform_replacements": {},
-                "match": "yexport"
-            },
+            "formula": "build/external_resources/yexport/resources.json",
             "executable": {
                 "yexport": [
                     "yexport"
@@ -6739,7 +6822,7 @@
         },
         "yo": {
             "formula": {
-                "sandbox_id": 1374890501,
+                "sandbox_id": 1411776426,
                 "match": "yo"
             },
             "executable": {
@@ -7060,7 +7143,7 @@
         "clang14": {
             "formula": {
                 "sandbox_id": [
-                    1393091052,
+                    1407778338,
                     1375826129
                 ],
                 "match": "CLANG"
@@ -7799,10 +7882,14 @@
         },
         "yp-util": {
             "formula": {
-                "sandbox_id": [
-                    1369881728
-                ],
-                "match": "yp-util"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "YP_UTIL_CLI",
+                        "owner": "YP"
+                    }
+                },
+                "update_interval": 604800,
+                "ignore_platform": false
             },
             "executable": {
                 "yp-util": [
@@ -7812,10 +7899,14 @@
         },
         "yp": {
             "formula": {
-                "sandbox_id": [
-                    1369882204
-                ],
-                "match": "YP"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "YP_CLIENT_CLI",
+                        "owner": "YP"
+                    }
+                },
+                "update_interval": 604800,
+                "ignore_platform": false
             },
             "executable": {
                 "yp": [
@@ -7851,7 +7942,7 @@
         },
         "infractl": {
             "formula": {
-                "sandbox_id": 1391299720,
+                "sandbox_id": 1423114746,
                 "match": "infractl"
             },
             "executable": {
@@ -8114,8 +8205,17 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1396373868,
-                "match": "horadric"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "HORADRIC_CLI",
+                        "attributes": {
+                            "released": "stable"
+                        },
+                        "owner": "STABILITY"
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
             },
             "executable": {
                 "horadric": [
@@ -8169,7 +8269,7 @@
         },
         "python3": {
             "formula": {
-                "sandbox_id": 1281554182,
+                "sandbox_id": 1410891863,
                 "match": "python3"
             },
             "executable": {
@@ -8257,7 +8357,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1396374565,
+                "sandbox_id": 1423576935,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8313,22 +8413,30 @@
         },
         "saas2": {
             "formula": {
-                "sandbox_id": 1267928485,
-                "match": "saas2"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "SAAS_2_CLI_YA_TOOL",
+                        "attributes": {
+                            "released": "stable"
+                        },
+                        "owner": "SAAS2"
+                    },
+                    "update_interval": 86400
+                }
             },
             "executable": {
                 "saas2": [
-                    "saas2"
+                    "cli/saas2"
                 ]
             }
         },
         "golang_1.18": {
             "formula": {
                 "sandbox_id": [
-                    1368413934,
-                    1345711700,
-                    1345711703,
-                    1368410914
+                    1395387837,
+                    1395387835,
+                    1395387834,
+                    1397763416
                 ],
                 "match": "GOLANG"
             },
@@ -8376,7 +8484,7 @@
         "qyp": {
             "formula": {
                 "sandbox_id": [
-                    1253668008
+                    1411809641
                 ],
                 "match": "infra/qyp/vmctl/bin/vmctl"
             },
@@ -8549,7 +8657,7 @@
         "coronerctl": {
             "formula": {
                 "sandbox_id": [
-                    1243735992
+                    1403602183
                 ],
                 "match": "infra/rsm/coroner/build/packages/coroner/pkg.json"
             },
@@ -8674,11 +8782,17 @@
         },
         "sedem": {
             "formula": {
-                "sandbox_id": [
-                    1393815750,
-                    1393815749
-                ],
-                "match": "bin/sedem"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "SEDEM_CLI",
+                        "owner": "MAPS-CI",
+                        "attributes": {
+                            "released": "stable"
+                        }
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
             },
             "executable": {
                 "sedem": [
@@ -8721,8 +8835,8 @@
         "devtools_license_analyzer_bundle": {
             "formula": {
                 "sandbox_id": [
-                    1291677795,
-                    1291680132
+                    1407601176,
+                    1407636833
                 ],
                 "match": "license_analyzer"
             },
@@ -8773,7 +8887,7 @@
         },
         "yadi": {
             "formula": {
-                "sandbox_id": 1155032720,
+                "sandbox_id": 1423151849,
                 "match": "yadi-arc"
             },
             "executable": {
@@ -8806,7 +8920,7 @@
         },
         "iceflame": {
             "formula": {
-                "sandbox_id": 1366770596,
+                "sandbox_id": 1400486114,
                 "match": "iceflame"
             },
             "executable": {
@@ -8817,7 +8931,7 @@
         },
         "cs": {
             "formula": {
-                "sandbox_id": 1224967338,
+                "sandbox_id": 1414486917,
                 "match": "cs"
             },
             "executable": {
@@ -8828,7 +8942,7 @@
         },
         "wall-e": {
             "formula": {
-                "sandbox_id": 1372136456,
+                "sandbox_id": 1422846339,
                 "match": "wall-e"
             },
             "executable": {
@@ -8839,7 +8953,7 @@
         },
         "skotty": {
             "formula": {
-                "sandbox_id": 1365587624,
+                "sandbox_id": 1405509931,
                 "match": "launcher"
             },
             "executable": {
@@ -8899,7 +9013,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1396374474,
+                "sandbox_id": 1423581607,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8910,7 +9024,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1396374269,
+                "sandbox_id": 1423581585,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8932,7 +9046,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1396374568,
+                "sandbox_id": 1423576089,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8978,7 +9092,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1396374566,
+                "sandbox_id": 1423581537,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8989,7 +9103,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1396374287,
+                "sandbox_id": 1423578052,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -9000,7 +9114,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1396373637,
+                "sandbox_id": 1423582041,
                 "match": "exp_stats"
             },
             "executable": {
@@ -9011,7 +9125,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1382573554,
+                "sandbox_id": 1421371541,
                 "match": "lama"
             },
             "executable": {
@@ -9052,7 +9166,7 @@
         },
         "marketsre": {
             "formula": {
-                "sandbox_id": 1388185218,
+                "sandbox_id": 1413362862,
                 "match": "marketsre"
             },
             "executable": {
@@ -9061,9 +9175,43 @@
                 ]
             }
         },
+        "dns-client": {
+            "formula": {
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "DNS_CLIENT2_BINARY",
+                        "owner": "MNT_TRAF"
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
+            },
+            "executable": {
+                "dns-client": [
+                    "dns-client2"
+                ]
+            }
+        },
+        "puncher": {
+            "formula": {
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "PUNCHER_CLI",
+                        "owner": "NOCDEV"
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
+            },
+            "executable": {
+                "puncher": [
+                    "puncher/puncher"
+                ]
+            }
+        },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1396373923,
+                "sandbox_id": 1423581927,
                 "match": "profile_size_analyzer"
             },
             "executable": {
@@ -9113,12 +9261,23 @@
         },
         "tasklet": {
             "formula": {
-                "sandbox_id": 1380302431,
+                "sandbox_id": 1417351261,
                 "match": "tasklet-tool"
             },
             "executable": {
                 "tasklet": [
                     "tasklet-tool"
+                ]
+            }
+        },
+        "rm": {
+            "formula": {
+                "sandbox_id": 1411851575,
+                "match": "rm_tool"
+            },
+            "executable": {
+                "rm_tool": [
+                    "rm_tool"
                 ]
             }
         }

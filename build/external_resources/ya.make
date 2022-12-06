@@ -25,6 +25,7 @@ ENDIF()
 IF (OS_LINUX)
     RECURSE(
     codenavigation
+    squashfs_tools
 )
 ENDIF()
 
@@ -36,6 +37,7 @@ IF (OS_DARWIN OR OS_LINUX OR OS_WINDOWS)
     go_tools
     goyndexer
     hermione
+    jest
     pnpm
     typescript
     webpack

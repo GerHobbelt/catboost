@@ -106,10 +106,8 @@ class Platform(object):
 
         self.is_android = self.os == 'android'
         if self.is_android:
-            # This is default Android API level unless `ANDROID_API` is specified
-            # 18 is the smallest level with OpenGL support
-            # 21 is the smallest level for 64-bit platforms
-            default_android_api = 21 if self.is_64_bit else 18
+            # This is default Android API level unless `-DANDROID_API` is specified in cmdline
+            default_android_api = 21
             self.android_api = int(preset('ANDROID_API', default_android_api))
 
         self.is_cygwin = self.os == 'cygwin'
@@ -794,23 +792,6 @@ class System(object):
         emit('REALPRJNAME')
         emit('SONAME')
 
-    @staticmethod
-    def print_nix_host_const():
-        emit('WRITE_COMMAND', '/bin/echo', '-e')
-
-        print('''
-when ($USE_PYTHON) {
-    C_DEFINES+= -DUSE_PYTHON
-}''')
-
-    @staticmethod
-    def print_linux_const():
-        print('''
-when (($USEMPROF == "yes") || ($USE_MPROF == "yes")) {
-    C_SYSTEM_LIBRARIES_INTERCEPT+=-ldmalloc
-}
-''')
-
     def print_target_settings(self):
         emit('TARGET_PLATFORM', self.platform.os_compat)
         emit('CANONIZED_TARGET_PLATFORM', self.platform.canonized_platform)
@@ -831,16 +812,12 @@ when (($USEMPROF == "yes") || ($USE_MPROF == "yes")) {
 
         if self.platform.is_posix:
             self.print_nix_target_const()
-            if self.platform.is_linux:
-                self.print_linux_const()
         elif self.platform.is_windows:
             self.print_windows_target_const()
 
     def print_host_settings(self):
         emit('HOST_PLATFORM', self.platform.os_compat)
         emit('CANONIZED_HOST_PLATFORM', self.platform.canonized_platform)
-        if not self.platform.is_windows:
-            self.print_nix_host_const()
 
         for variable in itertools.chain(self.platform.os_variables, self.platform.arch_variables):
             emit('HOST_{var}'.format(var=variable), 'yes')
@@ -1176,16 +1153,9 @@ class GnuToolchain(Toolchain):
         macos_version_min = '10.12'
         macos_arm64_version_min = '11.0'
         ios_version_min = '11.0'
-        # min ios simulator version for Metal App is 13.0
-        # https://developer.apple.com/documentation/metal/supporting_simulator_in_a_metal_app
-        # Mapkit (MAPSMOBI_BUILD_TARGET) uses Metal Framework
-        if preset('MAPSMOBI_BUILD_TARGET') and target.is_iossim and target.is_armv8:
+        if preset('MAPSMOBI_BUILD_TARGET'):
             macos_version_min = '10.14'
             ios_version_min = '13.0'
-        # Mapkit uses SecTrustEvaluateWithError function and these are min versions for it
-        elif preset('MAPSMOBI_BUILD_TARGET'):
-            macos_version_min = '10.14'
-            ios_version_min = '12.0'
 
         swift_target = select(default=None, selectors=[
             (target.is_iossim and target.is_x86_64, 'x86_64-apple-ios{}-simulator'.format(ios_version_min)),
