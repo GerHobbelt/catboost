@@ -2,7 +2,6 @@
 
 #include <catboost/libs/helpers/exception.h>
 #include <catboost/libs/helpers/json_helpers.h>
-#include <catboost/private/libs/options/enums.h>
 
 #include <library/cpp/binsaver/bin_saver.h>
 
@@ -158,16 +157,10 @@ struct THistograms {
 public:
     THistograms() = default;
 
-    THistograms(const TVector<TBorders>& floatFeatureBorders, ERawTargetType targetType, const TVector<TBorders>& targetBorders) {
+    THistograms(const TVector<TBorders>& floatFeatureBorders) {
         FloatFeatureHistogram.reserve(floatFeatureBorders.size());
         for (const auto& borders: floatFeatureBorders) {
             FloatFeatureHistogram.emplace_back(TFloatFeatureHistogram(borders));
-        }
-        if (targetType == ERawTargetType::Float) {
-            TargetHistogram = TVector<TFloatFeatureHistogram>();
-            for (const auto& borders: targetBorders) {
-                TargetHistogram->emplace_back(TFloatFeatureHistogram(borders));
-            }
         }
     }
 
@@ -180,20 +173,12 @@ public:
         TVector<float>* features
     );
 
-    void AddTargetHistogram(
-        ui32 featureId,
-        TVector<float>* features
-    );
-
-
     Y_SAVELOAD_DEFINE(
-        FloatFeatureHistogram,
-        TargetHistogram
+        FloatFeatureHistogram
     );
 
     SAVELOAD(
-        FloatFeatureHistogram,
-        TargetHistogram
+        FloatFeatureHistogram
     );
 
     ui64 GetObjectCount() const {
@@ -209,6 +194,5 @@ public:
 
 public:
     TVector<TFloatFeatureHistogram> FloatFeatureHistogram;
-    TMaybe<TVector<TFloatFeatureHistogram>> TargetHistogram;
 };
 }
