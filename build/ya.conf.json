@@ -7523,7 +7523,7 @@
         },
         "ytyndexer": {
             "formula": {
-                "sandbox_id": 1538761429,
+                "sandbox_id": 1541575300,
                 "match": "YTYNDEXER"
             },
             "executable": {
@@ -7726,8 +7726,8 @@
         "gdbnew": {
             "formula": {
                 "sandbox_id": [
-                    1494385453,
-                    1494387618
+                    1539936704,
+                    1539939628
                 ],
                 "platform_replacements": {},
                 "match": "GDB"
@@ -8367,7 +8367,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1539616091,
+                "sandbox_id": 1542316066,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8964,7 +8964,7 @@
         },
         "skotty": {
             "formula": {
-                "sandbox_id": 1433668519,
+                "sandbox_id": 1540880007,
                 "match": "launcher"
             },
             "executable": {
@@ -9145,7 +9145,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1531617094,
+                "sandbox_id": 1542081358,
                 "match": "lama"
             },
             "executable": {
