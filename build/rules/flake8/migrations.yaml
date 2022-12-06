@@ -75,7 +75,6 @@ migrations:
     - aurora/aurora/core/toloka
     - aurora/xpath/api/utils
     - aurora/xpath/applier
-    - balancer/test/functional/regexp_host
     - balancer/test/util
     - balancer/test/util/dnsfake
     - billing/apikeys/apikeys
@@ -764,7 +763,6 @@ migrations:
     - yabs/qa/b2b_utils/bsserver_b2b/engine/validate_scripts
     - yabs/qa/yabs_b2b_tank/qabs/b2b
     - yabs/sbyt/testing/core
-    - yabs/server/cs/pylibs/partner_interface_monitor
     - yabs/server/cs/pylibs/settings
     - yabs/server/infra/bstrbufbuf/plugin
     - yabs/server/infra/trivial_cron
@@ -800,7 +798,6 @@ migrations:
     - yaphone/localization_admin/src/models
     - yaphone/localization_admin/src/models/details
     - yaphone/localization_admin/src/models/support_info
-    - yp/scheduler_simulator/simtool
     - yql/tools/docs/custom_mkdocs
     - yql/tools/docs/wiki2markdown
     - yql/tools/mrjob/test
@@ -846,8 +843,6 @@ migrations:
     - yweb/structhtml/richsnippets/scripts/build_foto_recipes/prepare_to_deploy
     - yweb/verticals/scripts/sport_chats
     - yweb/verticals/scripts/sport_zen_updater/add_parsed_zen_urls
-    - yweb/video/vparsrobot/v2/tests
-    - yweb/video/vparsrobot/v2/tests-large
     - yweb/webdaemons/clickdaemon/tools/create_ammo_from_tcpdump
     - yweb/yasap/answers_nirvana/make_ammos
     - yweb/yasap/answers_quality/plagiarism/prepare_scraper_queries
@@ -904,8 +899,6 @@ migrations:
     - april/web/bas/ca/forms
     - april/web/bas/collector
     - aurora/scripts/parsers/zoon_ru
-    - balancer/test/functional/regexp_host
-    - balancer/test/functional/regexp_path
     - billing/apikeys/apikeys
     - billing/apikeys/apikeys/mapper
     - billing/bcl/bcl
@@ -1476,7 +1469,6 @@ migrations:
     - yabs/qa/oneshots/sergtaim/BSSERVER-14259/AddKeywordToYT-Via-Simple-IudYtOneshot
     - yabs/qa/oneshots/serval/BSSERVER-14292/first_json_option_new
     - yabs/sbyt/ytstatcollector/advmachine/tests
-    - yabs/server/cs/pylibs/advmachine_export
     - yabs/server/cs/test/cs_import/yt_banner_with_history
     - yabs/server/infra/yt_tables_freshness/solo
     - yabs/server/libs/py_db_cluster
@@ -1497,7 +1489,6 @@ migrations:
     - ydo/payments/balance_notifications_processor/lib
     - ydo/server/apphost_source/lib/endpoints
     - ydo/tools/direct/make_ya_clients_export
-    - yp/scheduler_simulator/analysis/library
     - yql/library/test_framework
     - yweb/antimalware/mitb/mitb_monitor/lib
     - yweb/antiporno/cp_conv/text_classif/bin
@@ -2561,7 +2552,6 @@ migrations:
     - sandbox/projects/sandbox
     - sandbox/projects/sandbox_ci
     - sandbox/projects/security/CodeQLArcadia
-    - sandbox/projects/security/logfeller_quarantine
     - sandbox/projects/setrace
     - sandbox/projects/shiny_discovery
     - sandbox/projects/skynet
@@ -3274,9 +3264,7 @@ migrations:
     - rtmapreduce/mrtasks/images_freon_sample/tests
     - rtmapreduce/mrtasks/keyslist/tests
     - rtmapreduce/mrtasks/parselib_errors/tests
-    - rtmapreduce/mrtasks/postprocess_sessions/tests
     - rtmapreduce/mrtasks/rtmr/pqout/tests
-    - rtmapreduce/mrtasks/rtmr/rtmr_kpi/tests
     - rtmapreduce/mrtasks/rtmr/splitter/tests
     - rtmapreduce/mrtasks/sample/tests
     - rtmapreduce/mrtasks/sbapi_split/tests
@@ -3384,7 +3372,6 @@ migrations:
     - yql/tests/multi_process
     - yt/admin/drive_monitor/tests/unit
     - yt/admin/perf_scraper/tests
-    - yt/admin/shiva/tests/unit
     - yt/odin/tests/suites
     - yweb/antimalware/libs/yttools/py/tests
     - yweb/antiporno/pyutil/draft/simple_yt/tests
@@ -3554,8 +3541,6 @@ migrations:
     - ads/factor_check/features/tests
     - quality/user_sessions/createlib/qb3/parser/local_yt_test_example_proto_v2
     - billing/agency_rewards/tests_platform
-    - balancer/test/functional/instance
-    - balancer/test/functional/aab_cookie_verify
     - dict/mystem/tests
     - infra/walle/server/tests
     - market/forecaster/lite
@@ -3583,13 +3568,6 @@ migrations:
     - ads/libs/py_autobudget/ft/test_scale_by_column_preprocessor
     - ads/libs/py_mapreduce/yabs-mapreduce-modules/t
     - ads/libs/py_mapreduce/yabs-mapreduce-modules/test_pt
-    - balancer/test/functional/rfc_http
-    - balancer/test/functional/dynamic
-    - balancer/test/functional/h100
-    - balancer/test/functional/errordocument
-    - balancer/test/functional/consistent_hashing
-    - balancer/test/functional/pingerprocess
-    - balancer/test/functional/unistat
     - ads/sandbox_scripts/visibility_stats/fat
     - ads/pytorch/lib/preprocess/medium_ut
     - ads/pytorch/lib/online_learning/production/model_folder/medium_ut

@@ -6,6 +6,9 @@
 # scale_ipp filter for ffmpeg use Intel IPP hence it is nonfree
 ALLOW strm/cv/ffmpeg_adcv/toshik_filters -> contrib/restricted/ffmpeg-3-scale-ipp
 
+# libzvbi is GPL
+ALLOW strm/cv/ffmpeg_adcv/libavcodec -> contrib/restricted/libzvbi
+
 # CityHash-1.0.2 is a specific version hardwired into ClickHouse public interface
 ALLOW clickhouse -> contrib/restricted/cityhash-1.0.2
 ALLOW library/cpp/clickhouse -> contrib/restricted/cityhash-1.0.2
@@ -43,6 +46,9 @@ ALLOW mds -> contrib/restricted/uriparser
 
 # https://st.yandex-team.ru/CONTRIB-2020
 ALLOW weather -> contrib/restricted/range-v3
+
+# https://st.yandex-team.ru/CONTRIB-2492
+ALLOW weather -> contrib/restricted/aviso-fes
 
 # ALSA library is LGPL
 ALLOW yandex_io -> contrib/restricted/alsa-lib

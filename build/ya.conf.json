@@ -27,6 +27,9 @@
         "dctl": {
             "description": "Run Yandex.Deploy CLI"
         },
+        "infractl": {
+            "description": "Run InfraCtl CLI"
+        },
         "llvm-profdata": {
             "description": "Run llvm-profdata Clang utility"
         },
@@ -306,10 +309,10 @@
             "description": "Run saas2 cli"
         },
         "go": {
-            "description": "Run go tool (1.17.7)"
+            "description": "Run go tool (1.17.8)"
         },
         "gofmt": {
-            "description": "Run gofmt tool (1.17.7)"
+            "description": "Run gofmt tool (1.17.8)"
         },
         "go_1.18rc1": {
             "description": "Run go tool (1.18rc1)"
@@ -1971,6 +1974,16 @@
                     },
                     "target": {
                         "os": "LINUX",
+                        "arch": "armv7a"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "target": {
+                        "os": "LINUX",
                         "arch": "armv7a_cortex_a9"
                     },
                     "default": true
@@ -1992,6 +2005,16 @@
                     "target": {
                         "os": "LINUX",
                         "arch": "armv7ahf_cortex_a53"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "target": {
+                        "os": "LINUX",
+                        "arch": "armv7ahf"
                     },
                     "default": true
                 },
@@ -3897,6 +3920,34 @@
                 }
             ]
         },
+        "infractl": {
+            "tools": {
+                "infractl": {
+                    "bottle": "infractl",
+                    "executable": "infractl"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "WIN"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN"
+                    },
+                    "default": true
+                }
+            ]
+        },
         "jq": {
             "tools": {
                 "jq": {
@@ -5047,18 +5098,18 @@
                 }
             ]
         },
-        "golang_1_17_7": {
+        "golang_1_17_8": {
             "tools": {
                 "golang": {
-                    "bottle": "golang_1.17.7",
+                    "bottle": "golang_1.17.8",
                     "executable": "golang"
                 },
                 "go": {
-                    "bottle": "golang_1.17.7",
+                    "bottle": "golang_1.17.8",
                     "executable": "go"
                 },
                 "gofmt": {
-                    "bottle": "golang_1.17.7",
+                    "bottle": "golang_1.17.8",
                     "executable": "gofmt"
                 }
             },
@@ -5091,7 +5142,7 @@
             ],
             "params": {
                 "type": "golang",
-                "version": "1.17.7"
+                "version": "1.17.8"
             }
         },
         "golang_1_18rc1": {
@@ -5556,6 +5607,13 @@
                 {
                     "host": {
                         "os": "DARWIN"
+                    },
+                    "default": true
+                },
+                {
+                    "host": {
+                        "os": "DARWIN",
+                        "arch": "arm64"
                     },
                     "default": true
                 }
@@ -6097,7 +6155,7 @@
         },
         "yo": {
             "formula": {
-                "sandbox_id": 1218962455,
+                "sandbox_id": 1247381004,
                 "match": "yo"
             },
             "executable": {
@@ -6187,7 +6245,7 @@
         },
         "tvmknife": {
             "formula": {
-                "sandbox_id": 1231443941,
+                "sandbox_id": 1251052820,
                 "match": "tvmknife"
             },
             "executable": {
@@ -7177,7 +7235,7 @@
         "yp-util": {
             "formula": {
                 "sandbox_id": [
-                    1230597266
+                    1251284406
                 ],
                 "match": "yp_util"
             },
@@ -7190,7 +7248,7 @@
         "yp": {
             "formula": {
                 "sandbox_id": [
-                    1223505951
+                    1251285389
                 ],
                 "match": "YP"
             },
@@ -7223,6 +7281,19 @@
             "executable": {
                 "dctl": [
                     "dctl"
+                ]
+            }
+        },
+        "infractl": {
+            "formula": {
+                "sandbox_id": [
+                    1248526454
+                ],
+                "match": "infractl"
+            },
+            "executable": {
+                "infractl": [
+                    "infractl"
                 ]
             }
         },
@@ -7535,7 +7606,7 @@
         },
         "horadric": {
             "formula": {
-                "sandbox_id": 1244285133,
+                "sandbox_id": 1251998312,
                 "match": "horadric"
             },
             "executable": {
@@ -7678,7 +7749,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1244285750,
+                "sandbox_id": 1250810523,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -7704,8 +7775,8 @@
         "appteka": {
             "formula": {
                 "sandbox_id": [
-                    1215148707,
-                    1215281222
+                    1245145483,
+                    1247481035
                 ],
                 "match": "appteka"
             },
@@ -7737,13 +7808,13 @@
                 ]
             }
         },
-        "golang_1.17.7": {
+        "golang_1.17.8": {
             "formula": {
                 "sandbox_id": [
-                    1217046835,
-                    1217047391,
-                    1217047830,
-                    1217048395
+                    1245612889,
+                    1245613360,
+                    1245613918,
+                    1245614433
                 ],
                 "match": "GOLANG"
             },
@@ -8086,7 +8157,7 @@
         },
         "yfm-docs": {
             "formula": {
-                "sandbox_id": 1150530779,
+                "sandbox_id": 1248368653,
                 "match": "yfm-docs"
             },
             "executable": {
@@ -8098,7 +8169,7 @@
         "aws": {
             "formula": {
                 "sandbox_id": [
-                    1076727104
+                    1247746539
                 ],
                 "match": "aws"
             },
@@ -8110,7 +8181,7 @@
         },
         "sedem": {
             "formula": {
-                "sandbox_id": 1243855656,
+                "sandbox_id": 1248571726,
                 "match": "SEDEM archive"
             },
             "executable": {
@@ -8154,8 +8225,8 @@
         "devtools_license_analyzer_bundle": {
             "formula": {
                 "sandbox_id": [
-                    1207941042,
-                    1207941794
+                    1245895776,
+                    1245895981
                 ],
                 "match": "license_analyzer"
             },
@@ -8332,7 +8403,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1244286784,
+                "sandbox_id": 1252000870,
                 "match": "bb_requester"
             },
             "executable": {
@@ -8343,7 +8414,7 @@
         },
         "bigb_hitlog_analyser": {
             "formula": {
-                "sandbox_id": 1244286569,
+                "sandbox_id": 1250810218,
                 "match": "hitlog_analyser"
             },
             "executable": {
@@ -8365,7 +8436,7 @@
         },
         "bigb_bb_cluster_analyzer": {
             "formula": {
-                "sandbox_id": 1244287449,
+                "sandbox_id": 1250807973,
                 "match": "bb_cluster_analyzer"
             },
             "executable": {
@@ -8387,7 +8458,7 @@
         },
         "bigb_ab": {
             "formula": {
-                "sandbox_id": 1244287593,
+                "sandbox_id": 1250810169,
                 "match": "ab"
             },
             "executable": {
@@ -8411,7 +8482,7 @@
         },
         "caesar_yt_sync": {
             "formula": {
-                "sandbox_id": 1244286930,
+                "sandbox_id": 1250810211,
                 "match": "yt_sync"
             },
             "executable": {
@@ -8422,7 +8493,7 @@
         },
         "caesar_lookup_profile": {
             "formula": {
-                "sandbox_id": 1244287294,
+                "sandbox_id": 1250808766,
                 "match": "lookup_profile"
             },
             "executable": {
@@ -8433,7 +8504,7 @@
         },
         "exp_stats": {
             "formula": {
-                "sandbox_id": 1244287957,
+                "sandbox_id": 1251995670,
                 "match": "exp_stats"
             },
             "executable": {
@@ -8444,7 +8515,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1240644569,
+                "sandbox_id": 1247043408,
                 "match": "lama"
             },
             "executable": {
@@ -8455,7 +8526,7 @@
         },
         "caesar_profile_size_analyzer": {
             "formula": {
-                "sandbox_id": 1244284950,
+                "sandbox_id": 1250809902,
                 "match": "profile_size_analyzer"
             },
             "executable": {

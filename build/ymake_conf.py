@@ -54,13 +54,13 @@ class Platform(object):
         self.is_x86_64 = self.arch in ('x86_64', 'amd64')
         self.is_intel = self.is_x86 or self.is_x86_64
 
-        self.is_armv7 = self.arch in ('armv7', 'armv7a', 'armv7a_neon', 'arm', 'armv7a_cortex_a9', 'armv7ahf_cortex_a35', 'armv7ahf_cortex_a53')
+        self.is_armv7 = self.arch in ('armv7', 'armv7a', 'armv7ahf', 'armv7a_neon', 'arm', 'armv7a_cortex_a9', 'armv7ahf_cortex_a35', 'armv7ahf_cortex_a53')
         self.is_armv8 = self.arch in ('armv8', 'armv8a', 'arm64', 'aarch64', 'armv8a_cortex_a35', 'armv8a_cortex_a53')
         self.is_armv8m = self.arch in ('armv8m_cortex_m33',)
         self.is_arm64 = self.arch in ('arm64',)
         self.is_arm = self.is_armv7 or self.is_armv8 or self.is_armv8m
-        self.is_armv7_neon = self.arch in ('armv7a_neon', 'armv7a_cortex_a9', 'armv7ahf_cortex_a35', 'armv7ahf_cortex_a53')
-        self.is_armv7hf = self.arch in ('armv7ahf_cortex_a35', 'armv7ahf_cortex_a53')
+        self.is_armv7_neon = self.arch in ('armv7a_neon', 'armv7ahf', 'armv7a_cortex_a9', 'armv7ahf_cortex_a35', 'armv7ahf_cortex_a53')
+        self.is_armv7hf = self.arch in ('armv7ahf', 'armv7ahf_cortex_a35', 'armv7ahf_cortex_a53')
 
         self.armv7_float_abi = None
         if self.is_armv7:
@@ -1160,8 +1160,8 @@ class GnuToolchain(Toolchain):
                 target_triple = select(default=None, selectors=[
                     (target.is_linux and target.is_x86_64, 'x86_64-linux-gnu'),
                     (target.is_linux and target.is_armv8, 'aarch64-linux-gnu'),
-                    (target.is_linux and target.is_armv7 and target.armv7_float_abi == 'hard', 'arm-linux-gnueabihf'),
-                    (target.is_linux and target.is_armv7 and target.armv7_float_abi == 'softfp', 'arm-linux-gnueabi'),
+                    (target.is_linux and target.is_armv7 and target.armv7_float_abi == 'hard', 'armv7-linux-gnueabihf'),
+                    (target.is_linux and target.is_armv7 and target.armv7_float_abi == 'softfp', 'armv7-linux-gnueabi'),
                     (target.is_linux and target.is_powerpc, 'powerpc64le-linux-gnu'),
                     (target.is_iossim and target.is_arm64, 'arm64-apple-ios{}-simulator'.format(ios_version_min)),
                     (target.is_apple and target.is_x86, 'i386-apple-darwin14'),
@@ -1671,7 +1671,7 @@ class GnuCompiler(Compiler):
 
         append('EXTRA_OUTPUT')
 
-        style = ['${requirements;hide:CC_REQUIREMENTS} ${hide;kv:"p CC"} ${hide;kv:"pc green"}']
+        style = ['${hide;kv:"p CC"} ${hide;kv:"pc green"}']
         cxx_args = [
             '$CLANG_TIDY_ARGS',
             '$YNDEXER_ARGS',
@@ -2058,7 +2058,7 @@ class LD(Linker):
         else:
             srcs_globals = '--start-wa ${rootrel;ext=.a:SRCS_GLOBAL} --end-wa ${rootrel;ext=.o:SRCS_GLOBAL} ${rootrel;ext=.supp:SRCS_GLOBAL}'
 
-        ld_env_style = '${cwd:ARCADIA_BUILD_ROOT} $TOOLCHAIN_ENV ${kv;hide:"p LD"} ${requirements;hide:LD_REQUIREMENTS} ${kv;hide:"pc light-blue"} ${kv;hide:"show_out"}'
+        ld_env_style = '${cwd:ARCADIA_BUILD_ROOT} $TOOLCHAIN_ENV ${kv;hide:"p LD"} ${kv;hide:"pc light-blue"} ${kv;hide:"show_out"}'
 
         # Program
         emit(
@@ -2151,7 +2151,7 @@ class LD(Linker):
         emit('LINK_EXEC_DYN_LIB', '$GENERATE_MF && $GENERATE_VCS_C_INFO_NODEP && $REAL_LINK_EXEC_DYN_LIB && $DWARF_COMMAND && $LINK_ADDITIONAL_SECTIONS_COMMAND')
         emit('SWIG_DLL_JAR_CMD', '$GENERATE_MF && $GENERATE_VCS_C_INFO_NODEP && $REAL_SWIG_DLL_JAR_CMD && $DWARF_COMMAND')
 
-        tail_link_lib = '$AUTO_INPUT ${requirements;hide:LIB_REQUIREMENTS} ${kv;hide:"p AR"} $TOOLCHAIN_ENV ${kv;hide:"pc light-red"} ${kv;hide:"show_out"}'
+        tail_link_lib = '$AUTO_INPUT ${kv;hide:"p AR"} $TOOLCHAIN_ENV ${kv;hide:"pc light-red"} ${kv;hide:"show_out"}'
         if is_positive("TIDY"):
             archiver = '$YMAKE_PYTHON ${input:"build/scripts/clang_tidy_arch.py"} --source-root $ARCADIA_ROOT --build-root $ARCADIA_BUILD_ROOT --output-file'
             emit('LINK_LIB', archiver, "$TARGET", tail_link_lib)
@@ -2169,7 +2169,7 @@ class LD(Linker):
             suffix = [arch_flag,
                       '-Ya,input $AUTO_INPUT $VCS_C_OBJ -Ya,global_srcs', globals_libs, '-Ya,peers $PEERS',
                       '-Ya,linker $CXX_COMPILER $LDFLAGS_GLOBAL $C_FLAGS_PLATFORM', self.ld_sdk, '-Ya,archiver', archiver,
-                      '$TOOLCHAIN_ENV ${kv;hide:"p LD"} ${requirements;hide:LD_REQUIREMENTS} ${kv;hide:"pc light-blue"} ${kv;hide:"show_out"}']
+                      '$TOOLCHAIN_ENV ${kv;hide:"p LD"} ${kv;hide:"pc light-blue"} ${kv;hide:"show_out"}']
             emit(cmd_name, *(prefix + list(extended_flags) + suffix))
 
         # TODO(somov): Проверить, не нужны ли здесь все остальные флаги компоновки (LDFLAGS и т. д.).
@@ -2386,15 +2386,28 @@ class MSVCCompiler(MSVC, Compiler):
             '/DWIN32',
             '/D_WIN32',
             '/D_WINDOWS',
+            # Define _CRT_*_NO_WARNINGS macros to prevent ucrt from issuing a warning whenever
+            # a POSIX-style function is used instead of the alternative Microsoft suggests as a secure / standard replacement
+            # (e. g. `strncpy()` instead of `strncpy_s()`, `access()` instead of `_access()`)
+            # For details see:
+            # https://docs.microsoft.com/en-us/cpp/c-runtime-library/security-features-in-the-crt
             '/D_CRT_SECURE_NO_WARNINGS',
             '/D_CRT_NONSTDC_NO_WARNINGS',
+            # Math constants (such as M_PI, M_E, M_SQRT2) are not defined in standard C / C++
+            # In order to get them defined by Windows ucrt library,
+            # you must first define _USE_MATH_DEFINES before #including <cmath> or math.h>.
+            # (NB: glibc defines these macros whenever _XOPEN_SOURCE is defined)
             '/D_USE_MATH_DEFINES',
             '/D__STDC_CONSTANT_MACROS',
             '/D__STDC_FORMAT_MACROS',
             '/D_USING_V110_SDK71_',
             '/D_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES',
-            '/DNOMINMAX',
+            # Below defines are covered at
+            # https://docs.microsoft.com/en-us/windows/win32/winprog/using-the-windows-headers#faster-builds-with-smaller-header-files
+            # Exclude APIs such as Cryptography, DDE, RPC, Shell, and Windows Sockets (while including <windows.h>)
             '/DWIN32_LEAN_AND_MEAN',
+            # Define NOMINMAX to avoid min() and max() macros definition (while including <windows.h>)
+            '/DNOMINMAX',
         ]
 
         cxx_defines = [
@@ -2459,7 +2472,6 @@ class MSVCCompiler(MSVC, Compiler):
                 '-Wno-logical-op-parentheses',
                 '-Wno-macro-redefined',
                 '-Wno-parentheses',
-                '-Wno-pragma-pack',
                 '-Wno-unknown-warning-option',
             ))
 
@@ -2614,22 +2626,22 @@ class MSVCCompiler(MSVC, Compiler):
 
         emit('_SRC_C_NODEPS_CMD',
              '${TOOLCHAIN_ENV} ${CL_WRAPPER} ${C_COMPILER} /c /Fo${OUTFILE} ${SRC} ${EXTRA_C_FLAGS} ${pre=/I :INC} '
-             '${CFLAGS} ${requirements;hide:CC_REQUIREMENTS} ${hide;kv:"soe"} ${hide;kv:"p CC"} ${hide;kv:"pc yellow"}'
+             '${CFLAGS} ${hide;kv:"soe"} ${hide;kv:"p CC"} ${hide;kv:"pc yellow"}'
              )
         emit('_SRC_CPP_CMD',
              '${TOOLCHAIN_ENV} ${CL_WRAPPER} ${CXX_COMPILER} /c /Fo$_COMPILE_OUTPUTS ${input;msvs_source:SRC} '
-             '${EXTRA_C_FLAGS} ${pre=/I :_C__INCLUDE} ${CXXFLAGS} ${SRCFLAGS} ${_LANG_CFLAGS_VALUE} ${requirements;hide:CC_REQUIREMENTS} '
+             '${EXTRA_C_FLAGS} ${pre=/I :_C__INCLUDE} ${CXXFLAGS} ${SRCFLAGS} ${_LANG_CFLAGS_VALUE} '
              '${hide;kv:"soe"} ${hide;kv:"p CC"} ${hide;kv:"pc yellow"}'
              )
         emit('_SRC_C_CMD',
              '${TOOLCHAIN_ENV} ${CL_WRAPPER} ${C_COMPILER} /c /Fo$_COMPILE_OUTPUTS ${input;msvs_source:SRC} '
-             '${EXTRA_C_FLAGS} ${pre=/I :_C__INCLUDE} ${CFLAGS} ${CONLYFLAGS} ${SRCFLAGS} ${requirements;hide:CC_REQUIREMENTS} '
+             '${EXTRA_C_FLAGS} ${pre=/I :_C__INCLUDE} ${CFLAGS} ${CONLYFLAGS} ${SRCFLAGS} '
              '${hide;kv:"soe"} ${hide;kv:"p CC"} ${hide;kv:"pc yellow"}'
              )
         emit('_SRC_M_CMD', '$_EMPTY_CMD')
         emit('_SRC_MASM_CMD',
              '${cwd:ARCADIA_BUILD_ROOT} ${TOOLCHAIN_ENV} ${ML_WRAPPER} ${MASM_COMPILER} ${MASMFLAGS} ${SRCFLAGS} ' +
-             masm_io + '${requirements;hide:CC_REQUIREMENTS} ${kv;hide:"p AS"} ${kv;hide:"pc yellow"}'
+             masm_io + '${kv;hide:"p AS"} ${kv;hide:"pc yellow"}'
              )
 
 
@@ -2785,7 +2797,7 @@ class MSVCLinker(MSVC, Linker):
 
         head_link_lib = '${TOOLCHAIN_ENV} ${cwd:ARCADIA_BUILD_ROOT} ${LIB_WRAPPER} ${LINK_LIB_CMD}'
         tail_link_lib = '--ya-start-command-file ${qe;rootrel:AUTO_INPUT} $LINK_LIB_FLAGS --ya-end-command-file \
-                        ${requirements;hide:LIB_REQUIREMENTS} ${hide;kv:"soe"} ${hide;kv:"p AR"} ${hide;kv:"pc light-red"}'
+                        ${hide;kv:"soe"} ${hide;kv:"p AR"} ${hide;kv:"pc light-red"}'
         emit('LINK_LIB', '${GENERATE_MF} &&', head_link_lib, '/OUT:${qe;rootrel:TARGET}', tail_link_lib)
         emit('GLOBAL_LINK_LIB', head_link_lib, '/OUT:${qe;rootrel:GLOBAL_TARGET}', tail_link_lib)
 
@@ -2795,10 +2807,10 @@ class MSVCLinker(MSVC, Linker):
              ${pre=--whole-archive-libs :_WHOLE_ARCHIVE_LIBS_VALUE_GLOBAL} ',
              '${LINK_EXTRA_OUTPUT}', srcs_globals, '--ya-start-command-file ${VCS_C_OBJ_RR} ${qe;rootrel:AUTO_INPUT} $LINK_EXE_FLAGS $LINK_STDLIBS $LDFLAGS $LDFLAGS_GLOBAL $OBJADDE \
              ${qe;rootrel;ext=.lib:PEERS} ${qe;rootrel;ext=.dll;noext;suf=.lib:PEERS} --ya-end-command-file \
-             ${hide;kv:"soe"} ${hide;kv:"p LD"} ${requirements;hide:LD_REQUIREMENTS} ${hide;kv:"pc blue"}')
+             ${hide;kv:"soe"} ${hide;kv:"p LD"} ${hide;kv:"pc blue"}')
         emit('LINK_EXE', '$LINK_EXE_IMPL($_WHOLE_ARCHIVE_PEERS_VALUE)')
 
-        emit('LINK_DYN_LIB', '${GENERATE_MF} && $GENERATE_VCS_C_INFO_NODEP && $REAL_LINK_DYN_LIB ${hide;kv:"soe"} ${hide;kv:"p LD"} ${requirements;hide:LD_REQUIREMENTS} ${hide;kv:"pc blue"}')
+        emit('LINK_DYN_LIB', '${GENERATE_MF} && $GENERATE_VCS_C_INFO_NODEP && $REAL_LINK_DYN_LIB ${hide;kv:"soe"} ${hide;kv:"p LD"} ${hide;kv:"pc blue"}')
 
         emit('LINK_EXEC_DYN_LIB_CMDLINE', '${GENERATE_MF} && $GENERATE_VCS_C_INFO_NODEP && ${TOOLCHAIN_ENV} ${cwd:ARCADIA_BUILD_ROOT} ${LINK_WRAPPER} ${LINK_WRAPPER_DYNLIB} ${LINK_EXE_CMD} \
              /OUT:${qe;rootrel:TARGET} ${LINK_EXTRA_OUTPUT} ${EXPORTS_VALUE} \
@@ -2806,14 +2818,14 @@ class MSVCLinker(MSVC, Linker):
              ${pre=--whole-archive-libs :_WHOLE_ARCHIVE_LIBS_VALUE_GLOBAL}', srcs_globals,
              '--ya-start-command-file ${VCS_C_OBJ_RR} ${qe;rootrel:AUTO_INPUT} ${qe;rootrel;ext=.lib:PEERS} ${qe;rootrel;ext=.dll;noext;suf=.lib:PEERS} \
              $LINK_EXE_FLAGS $LINK_STDLIBS $LDFLAGS $LDFLAGS_GLOBAL $OBJADDE --ya-end-command-file \
-             ${hide;kv:"soe"} ${hide;kv:"p LD"} ${requirements;hide:LD_REQUIREMENTS} ${hide;kv:"pc blue"}')
+             ${hide;kv:"soe"} ${hide;kv:"p LD"} ${hide;kv:"pc blue"}')
         emit('LINK_EXEC_DYN_LIB', '$LINK_EXEC_DYN_LIB_IMPL($_WHOLE_ARCHIVE_PEERS_VALUE)')
 
         emit('LINK_GLOBAL_FAT_OBJECT', '${TOOLCHAIN_ENV} ${cwd:ARCADIA_BUILD_ROOT} ${LIB_WRAPPER} ${LINK_LIB_CMD} /OUT:${qe;rootrel:TARGET} \
             --ya-start-command-file ${qe;rootrel;ext=.lib:SRCS_GLOBAL} ${qe;rootrel;ext=.obj:SRCS_GLOBAL} ${qe;rootrel:AUTO_INPUT} $LINK_LIB_FLAGS --ya-end-command-file')
         emit('LINK_PEERS_FAT_OBJECT', '${TOOLCHAIN_ENV} ${cwd:ARCADIA_BUILD_ROOT} ${LIB_WRAPPER} ${LINK_LIB_CMD} /OUT:${qe;rootrel;output:REALPRJNAME.lib} \
             --ya-start-command-file ${qe;rootrel:PEERS} $LINK_LIB_FLAGS --ya-end-command-file')
-        emit('LINK_FAT_OBJECT', '${GENERATE_MF} && $GENERATE_VCS_C_INFO_NODEP && $LINK_GLOBAL_FAT_OBJECT && $LINK_PEERS_FAT_OBJECT ${kv;hide:"p LD"} ${requirements;hide:LD_REQUIREMENTS} ${kv;hide:"pc light-blue"} ${kv;hide:"show_out"}')  # noqa E501
+        emit('LINK_FAT_OBJECT', '${GENERATE_MF} && $GENERATE_VCS_C_INFO_NODEP && $LINK_GLOBAL_FAT_OBJECT && $LINK_PEERS_FAT_OBJECT ${kv;hide:"p LD"} ${kv;hide:"pc light-blue"} ${kv;hide:"show_out"}')  # noqa E501
 
 
 # TODO(somov): Rename!
@@ -3056,9 +3068,9 @@ class Cuda(object):
 
     def print_macros(self):
         if not self.cuda_use_clang.value:
-            cmd = '$YMAKE_PYTHON ${input:"build/scripts/compile_cuda.py"} ${tool:"tools/mtime0"} $NVCC $NVCC_FLAGS -c ${input:SRC} -o ${output;suf=${OBJ_SUF}${NVCC_OBJ_EXT}:SRC} ${pre=-I:_C__INCLUDE} --cflags $C_FLAGS_PLATFORM $CXXFLAGS $NVCC_STD $SRCFLAGS ${input;hide:"build/platform/cuda/cuda_runtime_include.h"} $CUDA_HOST_COMPILER_ENV ${requirements;hide:CC_REQUIREMENTS} ${kv;hide:"p CC"} ${kv;hide:"pc light-green"}'  # noqa E501
+            cmd = '$YMAKE_PYTHON ${input:"build/scripts/compile_cuda.py"} ${tool:"tools/mtime0"} $NVCC $NVCC_FLAGS -c ${input:SRC} -o ${output;suf=${OBJ_SUF}${NVCC_OBJ_EXT}:SRC} ${pre=-I:_C__INCLUDE} --cflags $C_FLAGS_PLATFORM $CXXFLAGS $NVCC_STD $SRCFLAGS ${input;hide:"build/platform/cuda/cuda_runtime_include.h"} $CUDA_HOST_COMPILER_ENV ${kv;hide:"p CC"} ${kv;hide:"pc light-green"}'  # noqa E501
         else:
-            cmd = '$CXX_COMPILER --cuda-path=$CUDA_ROOT $C_FLAGS_PLATFORM -c ${input:SRC} -o ${output;suf=${OBJ_SUF}${NVCC_OBJ_EXT}:SRC} ${pre=-I:_C__INCLUDE} $CXXFLAGS $SRCFLAGS $TOOLCHAIN_ENV ${requirements;hide:CC_REQUIREMENTS} ${kv;hide:"p CU"} ${kv;hide:"pc green"}'  # noqa E501
+            cmd = '$CXX_COMPILER --cuda-path=$CUDA_ROOT $C_FLAGS_PLATFORM -c ${input:SRC} -o ${output;suf=${OBJ_SUF}${NVCC_OBJ_EXT}:SRC} ${pre=-I:_C__INCLUDE} $CXXFLAGS $SRCFLAGS $TOOLCHAIN_ENV ${kv;hide:"p CU"} ${kv;hide:"pc green"}'  # noqa E501
 
         emit('_SRC_CU_CMD', cmd)
         emit('_SRC_CU_PEERDIR', ' '.join(sorted(self.peerdirs)))
