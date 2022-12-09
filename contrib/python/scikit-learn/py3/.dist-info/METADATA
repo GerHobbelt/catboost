@@ -30,9 +30,13 @@ Classifier: Programming Language :: Python :: 3.8
 Classifier: Programming Language :: Python :: Implementation :: CPython
 Classifier: Programming Language :: Python :: Implementation :: PyPy
 Requires-Python: >=3.5
+Provides-Extra: alldeps
 Requires-Dist: numpy (>=1.11.0)
 Requires-Dist: scipy (>=0.17.0)
 Requires-Dist: joblib (>=0.11)
+Provides-Extra: alldeps
+Requires-Dist: numpy (>=1.11.0); extra == 'alldeps'
+Requires-Dist: scipy (>=0.17.0); extra == 'alldeps'
 
 .. -*- mode: rst -*-
 
