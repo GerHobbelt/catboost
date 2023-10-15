@@ -126,7 +126,7 @@ def onjava_module(unit, *args):
         'JAVA_FORBIDDEN_LIBRARIES': extract_macro_calls(unit, 'JAVA_FORBIDDEN_LIBRARIES_VALUE', args_delim),
         'JDK_RESOURCE': 'JDK' + (unit.get('JDK_VERSION')  or unit.get('JDK_REAL_VERSION') or '_DEFAULT')
     }
-    if unit.get('ENABLE_PREVIEW_VALUE') == 'yes' and (unit.get('JDK_VERSION') or unit.get('JDK_REAL_VERSION')) in ('15', '16', '17'):
+    if unit.get('ENABLE_PREVIEW_VALUE') == 'yes' and (unit.get('JDK_VERSION') or unit.get('JDK_REAL_VERSION')) in ('15', '16', '17', '18', '19'):
         data['ENABLE_PREVIEW'] = extract_macro_calls(unit, 'ENABLE_PREVIEW_VALUE', args_delim)
 
     if unit.get('SAVE_JAVAC_GENERATED_SRCS_DIR') and unit.get('SAVE_JAVAC_GENERATED_SRCS_TAR'):
@@ -182,7 +182,9 @@ def onjava_module(unit, *args):
 
     if not data['EXTERNAL_JAR']:
         has_processor = extract_macro_calls(unit, 'GENERATE_VCS_JAVA_INFO_NODEP', args_delim)
-        data['EMBED_VCS'] = [[str(has_processor and has_processor[0] and has_processor[0][0])]]
+        # IMPORTANT before switching vcs_info.py to python3 the value was always evaluated to $YMAKE_PYTHON but no
+        # code in java dart parser extracts its value only checks this key for existance.
+        data['EMBED_VCS'] = [['yes']]
         # FORCE_VCS_INFO_UPDATE is responsible for setting special value of VCS_INFO_DISABLE_CACHE__NO_UID__
         macro_val = extract_macro_calls(unit, 'FORCE_VCS_INFO_UPDATE', args_delim)
         macro_str = macro_val[0][0] if macro_val and macro_val[0] and macro_val[0][0] else ''
@@ -388,7 +390,14 @@ def on_jdk_version_macro_check(unit, *args):
     jdk_version = args[0]
     available_versions = ('10', '11', '15', '16', '17', '18', '19',)
     if jdk_version not in available_versions:
-        unit.message(["error", "Invalid jdk version: {}. {} are available".format(jdk_version, available_versions)])
+        ymake.report_configure_error("Invalid jdk version: {}. {} are available".format(jdk_version, available_versions))
+    if int(jdk_version) >= 19 and unit.get('WITH_JDK_VALUE') != 'yes' and unit.get('MODULE_TAG') == 'JAR_RUNNABLE':
+        msg = (
+            "Missing WITH_JDK() macro for JDK version >= 19"
+            # temporary link with additional explanation
+            ". For more info see https://clubs.at.yandex-team.ru/arcadia/28543"
+        )
+        ymake.report_configure_error(msg)
 
 
 def _maven_coords_for_project(unit, project_dir):

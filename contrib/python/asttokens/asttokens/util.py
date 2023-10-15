@@ -24,8 +24,9 @@ from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Un
 
 from six import iteritems
 
+
 if TYPE_CHECKING:  # pragma: no cover
-  from astroid.node_classes import NodeNG
+  from .astroid_compat import NodeNG
 
   # Type class used to expand out the definition of AST to include fields added by this library
   # It's not actually used for anything other than type checking though!
@@ -218,6 +219,15 @@ def is_slice(node):
   )
 
 
+def is_empty_astroid_slice(node):
+  # type: (AstNode) -> bool
+  return (
+      node.__class__.__name__ == "Slice"
+      and not isinstance(node, ast.AST)
+      and node.lower is node.upper is node.step is None
+  )
+
+
 # Sentinel value used by visit_tree().
 _PREVISIT = object()
 
@@ -388,7 +398,7 @@ def last_stmt(node):
   """
   child_stmts = [
     child for child in ast.iter_child_nodes(node)
-    if isinstance(child, (ast.stmt, ast.excepthandler))
+    if isinstance(child, (ast.stmt, ast.excepthandler, getattr(ast, "match_case", ())))
   ]
   if child_stmts:
     return last_stmt(child_stmts[-1])
