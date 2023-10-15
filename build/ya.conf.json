@@ -7523,7 +7523,7 @@
         },
         "ytyndexer": {
             "formula": {
-                "sandbox_id": 1528873774,
+                "sandbox_id": 1531614470,
                 "match": "YTYNDEXER"
             },
             "executable": {
@@ -8367,7 +8367,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1529765349,
+                "sandbox_id": 1532360666,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8890,7 +8890,7 @@
         },
         "yadi": {
             "formula": {
-                "sandbox_id": 1423151849,
+                "sandbox_id": 1530501902,
                 "match": "yadi-arc"
             },
             "executable": {
@@ -9145,7 +9145,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1527296954,
+                "sandbox_id": 1531617094,
                 "match": "lama"
             },
             "executable": {
