@@ -2839,7 +2839,7 @@ cdef _set_cat_features_default_values_for_scipy_sparse(
     const TFeaturesLayout * features_layout,
     IRawObjectsOrderDataVisitor * builder_visitor
 ):
-    cdef TString default_value = "0"
+    cdef TString default_value = b"0"
     cdef TConstArrayRef[ui32] cat_features_flat_indices = features_layout[0].GetCatFeatureInternalIdxToExternalIdx()
 
     for flat_feature_idx in cat_features_flat_indices:
@@ -3243,7 +3243,7 @@ def _set_features_order_data_scipy_sparse_csc_matrix(
     cdef TVector[bool_t] is_cat_feature_mask = _get_is_feature_type_mask(features_layout, EFeatureType_Categorical)
 
     cdef np.float32_t float_default_value = 0.0
-    cdef TString cat_default_value = "0"
+    cdef TString cat_default_value = b"0"
 
     cdef ui32 src_feature_count = indptr.shape[0] - 1
     cdef ui32 src_feature_idx
@@ -4433,17 +4433,17 @@ cdef class _PoolBase:
             thread_count
         )
         self.target_type = pool.target_type
-        
+
     cpdef _train_eval_split(self, _PoolBase train_pool, _PoolBase eval_pool, has_time, is_classification, eval_fraction, save_eval_pool):
         cdef TTrainTestSplitParams split_params
         split_params.Shuffle = not has_time
         split_params.Stratified = is_classification
-        
+
         if (eval_fraction <= 0.0) or (eval_fraction >= 1.0):
-            raise CatBoostError("eval_fraction must be in (0,1) range") 
-        
+            raise CatBoostError("eval_fraction must be in (0,1) range")
+
         split_params.TrainPart = 1.0 - eval_fraction
-    
+
         TrainEvalSplit(
             self.__pool.Get()[0],
             &train_pool.__pool,
@@ -5031,7 +5031,7 @@ cdef class _CatBoost:
 
     cpdef _get_params(self):
         try:
-            params_json = to_native_str(self.__model.ModelInfo["params"])
+            params_json = to_native_str(self.__model.ModelInfo[b"params"])
             params_dict = loads(params_json)
             flat_params = params_dict["flat_params"]
             params = {str(key): value for key, value in iteritems(flat_params)}
@@ -5046,9 +5046,9 @@ cdef class _CatBoost:
         return self.__model.GetTreeCount()
 
     def _get_random_seed(self):
-        if not self.__model.ModelInfo.contains("params"):
+        if not self.__model.ModelInfo.contains(b"params"):
             return 0
-        cdef const char* c_params_json = self.__model.ModelInfo["params"].c_str()
+        cdef const char* c_params_json = self.__model.ModelInfo[b"params"].c_str()
         cdef bytes py_params_json = c_params_json
         params_json = to_native_str(py_params_json)
         if params_json:
@@ -5056,9 +5056,9 @@ cdef class _CatBoost:
         return 0
 
     def _get_learning_rate(self):
-        if not self.__model.ModelInfo.contains("params"):
+        if not self.__model.ModelInfo.contains(b"params"):
             return {}
-        cdef const char* c_params_json = self.__model.ModelInfo["params"].c_str()
+        cdef const char* c_params_json = self.__model.ModelInfo[b"params"].c_str()
         cdef bytes py_params_json = c_params_json
         params_json = to_native_str(py_params_json)
         if params_json:
