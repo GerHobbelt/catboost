@@ -6626,6 +6626,40 @@
                     "default": true
                 }
             ]
+        },
+        "gcc840-riscv32-esp-elf": {
+            "tools": {
+                "cc": {
+                    "bottle": "gcc840-riscv32-esp-elf",
+                    "executable": "cc"
+                },
+                "c++": {
+                    "bottle": "gcc840-riscv32-esp-elf",
+                    "executable": "c++"
+                }
+            },
+            "platforms": [
+                {
+                    "host": {
+                        "os": "LINUX"
+                    },
+                    "target": {
+                        "os": "NONE",
+                        "arch": "riscv32_esp"
+                    },
+                    "default": true
+                }
+            ],
+            "params": {
+                "type": "gnu",
+                "match_root": "GCC",
+                "werror_mode": "compiler_specific",
+                "c_compiler": "$(GCC)/riscv32-esp-elf/bin/riscv32-esp-elf-gcc",
+                "cxx_compiler": "$(GCC)/riscv32-esp-elf/bin/riscv32-esp-elf-g++",
+                "ar": "$(GCC)/riscv32-esp-elf/bin/riscv32-esp-elf-ar",
+                "objcopy": "$(GCC)/riscv32-esp-elf/bin/riscv32-esp-elf-objcopy",
+                "gcc_version": "8.4.0"
+            }
         }
     },
     "bottles": {
@@ -6829,8 +6863,17 @@
         },
         "tvmknife": {
             "formula": {
-                "sandbox_id": 1558752720,
-                "match": "tvmknife"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "TVMKNIFE",
+                        "owner": "PASSPORT",
+                        "attributes": {
+                            "released": "stable"
+                        }
+                    },
+                    "update_interval": 86400,
+                    "ignore_platform": false
+                }
             },
             "executable": {
                 "tvmknife": [
@@ -7448,8 +7491,15 @@
         },
         "sre": {
             "formula": {
-                "sandbox_id": "1361378773",
-                "match": "infra/rtc/sretools/sretools.tar.gz"
+                "latest_matched": {
+                    "query": {
+                        "resource_type": "ARCADIA_PROJECT_TGZ",
+                        "owner": "RTC_INFRA",
+                        "attributes": {
+                            "type": "sretools"
+                        }
+                    }
+                }
             },
             "executable": {
                 "sre": [
@@ -8185,7 +8235,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1568297239,
+                "sandbox_id": 1571421874,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8690,7 +8740,7 @@
         "black": {
             "formula": {
                 "sandbox_id": [
-                    1491465120
+                    1568433681
                 ],
                 "match": "black"
             },
@@ -8967,7 +9017,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1564760536,
+                "sandbox_id": 1570886682,
                 "match": "lama"
             },
             "executable": {
@@ -9176,6 +9226,21 @@
             "executable": {
                 "nots": [
                     "bootstrap"
+                ]
+            }
+        },
+        "gcc840-riscv32-esp-elf": {
+            "formula": "build/platform/gcc/gcc840-riscv32-esp-elf.json",
+            "executable": {
+                "c++": [
+                    "riscv32-esp-elf",
+                    "bin",
+                    "riscv32-esp-elf-g++"
+                ],
+                "cc": [
+                    "riscv32-esp-elf",
+                    "bin",
+                    "riscv32-esp-elf-gcc"
                 ]
             }
         }
