@@ -6942,10 +6942,7 @@
             }
         },
         "python": {
-            "formula": {
-                "sandbox_id": 1277485811,
-                "match": "Python"
-            },
+            "formula": "build/platform/python/ymake_python2/resources.json",
             "executable": {
                 "python": [
                     "python"
@@ -7147,16 +7144,7 @@
             }
         },
         "clang14": {
-            "formula": {
-                "sandbox_id": [
-                    1441176665,
-                    1432506119,
-                    1445478860,
-                    1445454611,
-                    1445513330
-                ],
-                "match": "CLANG"
-            },
+            "formula": "build/platform/clang/clang14.json",
             "executable": {
                 "c++": [
                     "bin",
@@ -7535,7 +7523,7 @@
         },
         "ytyndexer": {
             "formula": {
-                "sandbox_id": 1051903185,
+                "sandbox_id": 1531614470,
                 "match": "YTYNDEXER"
             },
             "executable": {
@@ -8329,10 +8317,7 @@
             }
         },
         "ya-tc": {
-            "formula": {
-                "sandbox_id": 1437768899,
-                "match": "ya-tc"
-            },
+            "formula": "build/external_resources/ya-tc/resources.json",
             "executable": {
                 "ya-tc": [
                     "ya-tc"
@@ -8382,7 +8367,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1518546820,
+                "sandbox_id": 1532360666,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8676,7 +8661,7 @@
         "coronerctl": {
             "formula": {
                 "sandbox_id": [
-                    1480926804
+                    1520884213
                 ],
                 "match": "infra/rsm/coroner/build/packages/coroner/pkg.json"
             },
@@ -8905,7 +8890,7 @@
         },
         "yadi": {
             "formula": {
-                "sandbox_id": 1423151849,
+                "sandbox_id": 1530501902,
                 "match": "yadi-arc"
             },
             "executable": {
@@ -9039,7 +9024,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1518546832,
+                "sandbox_id": 1522655739,
                 "match": "bb_requester"
             },
             "executable": {
@@ -9160,7 +9145,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1504710740,
+                "sandbox_id": 1531617094,
                 "match": "lama"
             },
             "executable": {
