@@ -357,7 +357,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">setlocal
 cd /d $(SolutionDir)$(Configuration)\contrib\python\pytest\py2
 if %errorlevel% neq 0 goto :cmEnd
-"$(SolutionDir)$(Configuration)/build/platform/python/ymake_python3/bin/python3.exe" "$(SolutionDir)../build/scripts/gen_join_srcs.py" "$(SolutionDir)$(Configuration)/contrib/python/pytest/py2/join_1c183369d5926af76486164810.cpp" "--ya-start-command-file" "contrib/python/pytest/py2/06bd1b998a9eadacd9718194c6.cpp" "contrib/python/pytest/py2/8c35853fc8adf0770ad399fb03.cpp" "contrib/python/pytest/py2/e2b8bcb4fb5968557724f84dbc.cpp" "contrib/python/pytest/py2/f53ba342e869259abee652155d.cpp" "contrib/python/pytest/py2/0edc5b79be88e3e5f9fb282980.cpp" "contrib/python/pytest/py2/1d10ebbd639a66a5ab98d84495.cpp" "--ya-end-command-file"
+"python" "$(SolutionDir)../build/scripts/gen_join_srcs.py" "$(SolutionDir)$(Configuration)/contrib/python/pytest/py2/join_1c183369d5926af76486164810.cpp" "--ya-start-command-file" "contrib/python/pytest/py2/06bd1b998a9eadacd9718194c6.cpp" "contrib/python/pytest/py2/8c35853fc8adf0770ad399fb03.cpp" "contrib/python/pytest/py2/e2b8bcb4fb5968557724f84dbc.cpp" "contrib/python/pytest/py2/f53ba342e869259abee652155d.cpp" "contrib/python/pytest/py2/0edc5b79be88e3e5f9fb282980.cpp" "contrib/python/pytest/py2/1d10ebbd639a66a5ab98d84495.cpp" "--ya-end-command-file"
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -368,7 +368,7 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">setlocal
 cd /d $(SolutionDir)$(Configuration)\contrib\python\pytest\py2
 if %errorlevel% neq 0 goto :cmEnd
-"$(SolutionDir)$(Configuration)/build/platform/python/ymake_python3/bin/python3.exe" "$(SolutionDir)../build/scripts/gen_join_srcs.py" "$(SolutionDir)$(Configuration)/contrib/python/pytest/py2/join_1c183369d5926af76486164810.cpp" "--ya-start-command-file" "contrib/python/pytest/py2/06bd1b998a9eadacd9718194c6.cpp" "contrib/python/pytest/py2/8c35853fc8adf0770ad399fb03.cpp" "contrib/python/pytest/py2/e2b8bcb4fb5968557724f84dbc.cpp" "contrib/python/pytest/py2/f53ba342e869259abee652155d.cpp" "contrib/python/pytest/py2/0edc5b79be88e3e5f9fb282980.cpp" "contrib/python/pytest/py2/1d10ebbd639a66a5ab98d84495.cpp" "--ya-end-command-file"
+"python" "$(SolutionDir)../build/scripts/gen_join_srcs.py" "$(SolutionDir)$(Configuration)/contrib/python/pytest/py2/join_1c183369d5926af76486164810.cpp" "--ya-start-command-file" "contrib/python/pytest/py2/06bd1b998a9eadacd9718194c6.cpp" "contrib/python/pytest/py2/8c35853fc8adf0770ad399fb03.cpp" "contrib/python/pytest/py2/e2b8bcb4fb5968557724f84dbc.cpp" "contrib/python/pytest/py2/f53ba342e869259abee652155d.cpp" "contrib/python/pytest/py2/0edc5b79be88e3e5f9fb282980.cpp" "contrib/python/pytest/py2/1d10ebbd639a66a5ab98d84495.cpp" "--ya-end-command-file"
 if %errorlevel% neq 0 goto :cmEnd
 :cmEnd
 endlocal &amp; call :cmErrorLevel %errorlevel% &amp; goto :cmDone
@@ -377,7 +377,7 @@ exit /b %1
 :cmDone
 if %errorlevel% neq 0 goto :VCEnd</Command>
       <Message>$B/contrib/python/pytest/py2/join_1c183369d5926af76486164810.cpp	</Message>
-      <AdditionalInputs>$(SolutionDir)..\build\scripts\gen_join_srcs.py;$(SolutionDir)..\build\scripts\process_command_files.py;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\06bd1b998a9eadacd9718194c6.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\8c35853fc8adf0770ad399fb03.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\e2b8bcb4fb5968557724f84dbc.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\f53ba342e869259abee652155d.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\0edc5b79be88e3e5f9fb282980.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\1d10ebbd639a66a5ab98d84495.cpp;$(SolutionDir)$(Configuration)\build\platform\python\ymake_python3\bin\python3.exe;</AdditionalInputs>
+      <AdditionalInputs>$(SolutionDir)..\build\scripts\gen_join_srcs.py;$(SolutionDir)..\build\scripts\process_command_files.py;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\06bd1b998a9eadacd9718194c6.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\8c35853fc8adf0770ad399fb03.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\e2b8bcb4fb5968557724f84dbc.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\f53ba342e869259abee652155d.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\0edc5b79be88e3e5f9fb282980.cpp;$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\1d10ebbd639a66a5ab98d84495.cpp;</AdditionalInputs>
       <Outputs>$(SolutionDir)$(Configuration)\contrib\python\pytest\py2\join_1c183369d5926af76486164810.cpp;</Outputs>
     </CustomBuild>
     <CustomBuild Include="$(SolutionDir)..\build\scripts\py_compile.py">
@@ -886,23 +886,11 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets"/>
   <ImportGroup Label="ExtensionTargets"/>
   <ItemGroup>
-    <ProjectReference Include="$(SolutionDir)Projects\build\platform\python\ymake_python3\bin\python3.vcxproj">
-      <Project>{CB0769D4-E253-516B-A884-73C5C087A443}</Project>
-    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\certs\certs.vcxproj">
       <Project>{C092F5EB-6E3B-CBC5-C723-B1E4327CB1A8}</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\deprecated\python\backports.functools-lru-cache\pydeprecated-python-backports.functools-lru-cache.vcxproj">
       <Project>{F3B7ADB4-0BD3-3B7A-654E-AA78113ECAB8}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\deprecated\python\configparser\pydeprecated-python-configparser.vcxproj">
-      <Project>{52A3F326-0888-51A0-F663-74EC96E2970B}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\deprecated\python\scandir\pydeprecated-python-scandir.vcxproj">
-      <Project>{944B2EE5-2BBB-4616-601E-6CE952A871A4}</Project>
-    </ProjectReference>
-    <ProjectReference Include="$(SolutionDir)Projects\contrib\deprecated\python\typing\pydeprecated-python-typing.vcxproj">
-      <Project>{EDC2245C-D90A-1ACB-5E90-63335B5E6CA2}</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\libs\cxxsupp\contrib-libs-cxxsupp.vcxproj">
       <Project>{8D7C41B0-2344-C558-29D8-570B39498A2F}</Project>
@@ -952,6 +940,9 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\attrs\pycontrib-python-attrs.vcxproj">
       <Project>{B19D597D-A363-F744-6165-C68C1835DD61}</Project>
     </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\configparser\pycontrib-python-configparser.vcxproj">
+      <Project>{6DF26701-68E9-E05A-808F-1840FF373955}</Project>
+    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\contextlib2\py2\pypython-contextlib2-py2.vcxproj">
       <Project>{C73FE68A-A501-4B46-F074-0D16416E9647}</Project>
     </ProjectReference>
@@ -997,8 +988,14 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\pyparsing\pycontrib-python-pyparsing.vcxproj">
       <Project>{CAA5C16F-0EB7-06E7-A793-BEC259BA54A0}</Project>
     </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\scandir\pycontrib-python-scandir.vcxproj">
+      <Project>{659BFF29-3F80-CC93-FD3E-1AB88F02D68C}</Project>
+    </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\six\pycontrib-python-six.vcxproj">
       <Project>{045AAA08-9E22-8E9E-4CC3-999EEA7560DE}</Project>
+    </ProjectReference>
+    <ProjectReference Include="$(SolutionDir)Projects\contrib\python\typing\pycontrib-python-typing.vcxproj">
+      <Project>{A4C550F8-D8F4-B21E-6CAB-1A3939D42D78}</Project>
     </ProjectReference>
     <ProjectReference Include="$(SolutionDir)Projects\contrib\python\wcwidth\pycontrib-python-wcwidth.vcxproj">
       <Project>{F338AB33-66DB-B461-4311-08AAD87EAE63}</Project>

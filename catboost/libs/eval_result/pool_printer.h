@@ -92,4 +92,9 @@ namespace NCB {
         TString,
         TPoolColumnsPrinterPullArgs>;
 
+    using TLineDataPoolColumnsPrinterLoaderFactory =
+    NObjectFactory::TParametrizedObjectFactory<IPoolColumnsPrinter,
+        TString,
+        TLineDataPoolColumnsPrinterPushArgs>;
+
 } // namespace NCB

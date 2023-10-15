@@ -173,7 +173,7 @@ def _format_traceback_lines(lines, Colors, has_colors: bool, lvals):
 
 def _format_filename(file, ColorFilename, ColorNormal, *, lineno=None):
     """
-    Format filename lines with custom formatting from caching compiler or `File *.py` by default
+    Format filename lines with `In [n]` if it's the nth code cell or `File *.py` if it's a module.
 
     Parameters
     ----------
@@ -184,29 +184,23 @@ def _format_filename(file, ColorFilename, ColorNormal, *, lineno=None):
         ColorScheme's normal coloring to be used.
     """
     ipinst = get_ipython()
-    if (
-        ipinst is not None
-        and (data := ipinst.compile.format_code_name(file)) is not None
-    ):
-        label, name = data
+
+    if ipinst is not None and file in ipinst.compile._filename_map:
+        file = "[%s]" % ipinst.compile._filename_map[file]
         if lineno is None:
-            tpl_link = f"{{label}} {ColorFilename}{{name}}{ColorNormal}"
+            tpl_link = f"Cell {ColorFilename}In {{file}}{ColorNormal}"
         else:
-            tpl_link = (
-                f"{{label}} {ColorFilename}{{name}}, line {{lineno}}{ColorNormal}"
-            )
+            tpl_link = f"Cell {ColorFilename}In {{file}}, line {{lineno}}{ColorNormal}"
     else:
-        label = "File"
-        name = util_path.compress_user(
+        file = util_path.compress_user(
             py3compat.cast_unicode(file, util_path.fs_encoding)
         )
         if lineno is None:
-            tpl_link = f"{{label}} {ColorFilename}{{name}}{ColorNormal}"
+            tpl_link = f"File {ColorFilename}{{file}}{ColorNormal}"
         else:
-            # can we make this the more friendly ", line {{lineno}}", or do we need to preserve the formatting with the colon?
-            tpl_link = f"{{label}} {ColorFilename}{{name}}:{{lineno}}{ColorNormal}"
+            tpl_link = f"File {ColorFilename}{{file}}:{{lineno}}{ColorNormal}"
 
-    return tpl_link.format(label=label, name=name, lineno=lineno)
+    return tpl_link.format(file=file, lineno=lineno)
 
 #---------------------------------------------------------------------------
 # Module classes

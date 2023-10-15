@@ -82,8 +82,6 @@ class ConfigMagics(Magics):
                 Current: False
             IPCompleter.disable_matchers=<list-item-1>...
                 List of matchers to disable.
-                        The list should contain matcher identifiers (see
-                :any:`completion_matcher`).
                 Current: []
             IPCompleter.greedy=<Bool>
                 Activate greedy completion

@@ -161,12 +161,7 @@ def _pygmented_with_ranges(formatter, code, ranges):
                 yield ttype, value
 
     lexer = MyLexer(stripnl=False)
-    try:
-        highlighted = pygments.highlight(code, lexer, formatter)
-    except Exception:
-        # When pygments fails, prefer code without highlighting over crashing
-        highlighted = code
-    return highlighted.splitlines()
+    return pygments.highlight(code, lexer, formatter).splitlines()
 
 
 def assert_(condition, error=""):

@@ -737,11 +737,6 @@ class YMake(object):
         else:
             print('@import "${CONF_ROOT}/conf/jbuild.ymake.conf"')
 
-        if is_positive_str(presets.get('EXPORT_GRADLE', 'no')):
-            print('@import "${CONF_ROOT}/conf/export_gradle.yes.conf"')
-        else:
-            print('@import "${CONF_ROOT}/conf/export_gradle.no.conf"')
-
         if presets:
             print('# Variables set from command line by -D options')
             for key in sorted(presets):
@@ -1396,6 +1391,7 @@ class GnuCompiler(Compiler):
         self.c_warnings += [
             '-Wno-parentheses',
             '-Wno-unused-but-set-variable',
+            '-Wno-unused-but-set-parameter',
         ]
 
         self.c_defines = ['-DFAKEID=$CPP_FAKEID']
@@ -2385,6 +2381,8 @@ class Cuda(object):
                 return False
             if not self.cuda_version.from_user:
                 return False
+            if self.cuda_version.value not in ('11.3',):
+                raise ConfigureError('Only CUDA 11.3 are available for cross compilation from linux-x86 to linux-aarch64.\nUse -DCUDA_VERSION=11.3 flag.')
 
         if self.cuda_version.value in ('8.0', '9.0', '9.1', '9.2', '10.0'):
             raise ConfigureError('CUDA versions 8.x, 9.x and 10.0 are no longer supported.\nSee DEVTOOLS-7108.')

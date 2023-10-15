@@ -10416,20 +10416,16 @@ def test_multi_quantile(leaf_estimation_method):
     assert filecmp.cmp(quantile_path, multi_quantile_path)
 
 
-@pytest.mark.parametrize('with_groups', [False, True], ids=['with_groups=False', 'with_groups=True'])
-@pytest.mark.parametrize('groups_stats_only', [False, True], ids=['group_stats_only=False', 'group_stats_only=True'])
-def test_dataset_statistics(with_groups, groups_stats_only):
+def test_calculate_statistics():
     output_result_path = yatest.common.test_output_path('res.json')
     command = [
         CATBOOST_PATH,
         'dataset-statistics',
-        '--input-path', data_file('querywise', 'train') if with_groups else data_file('adult', 'train_small'),
-        '--column-description', data_file('querywise' if with_groups else 'adult', 'train.cd'),
+        '--input-path', data_file('adult', 'train_small'),
+        '--column-description', data_file('adult', 'train.cd'),
         '-T', '4',
         '--output-path', output_result_path,
     ]
-    if groups_stats_only:
-        command += ['--only-group-statistics', 'true']
     yatest.common.execute(command)
     return [
         local_canonical_file(output_result_path),

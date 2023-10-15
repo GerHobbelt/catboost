@@ -13,11 +13,6 @@ void TCalculateStatisticsParams::BindParserOpts(NLastGetopt::TOpts& parser) {
         .DefaultValue("statistics.json");
     parser.AddLongOption('T', "thread-count", "worker thread count (default: core count)")
         .StoreResult(&ThreadCount);
-    parser.AddLongOption("only-group-statistics")
-        .OptionalValue("false", "bool")
-        .Handler1T<TString>([&](const TString& param) {
-            OnlyGroupStatistics = FromString<bool>(param);
-        });
 }
 
 void TCalculateStatisticsParams::ProcessParams(int argc, const char* argv[], NLastGetopt::TOpts* parserPtr) {
@@ -69,20 +64,16 @@ void NCB::CalculateDatasetStaticsSingleHost(const TCalculateStatisticsParams& ca
                 params.ForceUnitAutoPairWeights,
                 &localExecutor}});
 
-    if (calculateStatisticsParams.OnlyGroupStatistics) {
-        auto visitor = MakeHolder<TDatasetStatisticsOnlyGroupVisitor>(/*isLocal*/ true);
+    auto dataProviderBuilder = MakeHolder<TDatasetStatisticsProviderBuilder>(
+        NCB::TDataProviderBuilderOptions{},
+        /*isLocal*/ true,
+        &localExecutor);
 
-        datasetLoader->DoIfCompatible(dynamic_cast<IDatasetVisitor*>(visitor.Get()));
+    CB_ENSURE_INTERNAL(
+        dataProviderBuilder,
+        "Failed to create statistics data provider builder");
 
-        visitor->OutputResult(calculateStatisticsParams.OutputPath);
-    } else {
-        auto visitor = MakeHolder<TDatasetStatisticsFullVisitor>(
-            NCB::TDataProviderBuilderOptions{},
-            /*isLocal*/ true,
-            &localExecutor);
+    datasetLoader->DoIfCompatible(dynamic_cast<IDatasetVisitor*>(dataProviderBuilder.Get()));
 
-        datasetLoader->DoIfCompatible(dynamic_cast<IDatasetVisitor*>(visitor.Get()));
-
-        visitor->OutputResult(calculateStatisticsParams.OutputPath);
-    }
+    dataProviderBuilder->OutputResult(calculateStatisticsParams.OutputPath);
 }
