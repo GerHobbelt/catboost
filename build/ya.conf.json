@@ -2452,27 +2452,6 @@
                 },
                 {
                     "host": {
-                        "os": "LINUX",
-                        "arch": "aarch64"
-                    },
-                    "target": {
-                        "os": "LINUX"
-                    },
-                    "default": true
-                },
-                {
-                    "host": {
-                        "os": "LINUX",
-                        "arch": "aarch64"
-                    },
-                    "target": {
-                        "os": "LINUX",
-                        "arch": "aarch64"
-                    },
-                    "default": true
-                },
-                {
-                    "host": {
                         "os": "LINUX"
                     },
                     "target": {
@@ -6876,7 +6855,7 @@
         "swagger": {
             "formula": {
                 "sandbox_id": [
-                    1547247865
+                    1488214649
                 ],
                 "match": "swagger"
             },
@@ -6963,7 +6942,10 @@
             }
         },
         "python": {
-            "formula": "build/platform/python/ymake_python2/resources.json",
+            "formula": {
+                "sandbox_id": 1277485811,
+                "match": "Python"
+            },
             "executable": {
                 "python": [
                     "python"
@@ -7165,7 +7147,16 @@
             }
         },
         "clang14": {
-            "formula": "build/platform/clang/clang14.json",
+            "formula": {
+                "sandbox_id": [
+                    1441176665,
+                    1432506119,
+                    1445478860,
+                    1445454611,
+                    1445513330
+                ],
+                "match": "CLANG"
+            },
             "executable": {
                 "c++": [
                     "bin",
@@ -7544,7 +7535,7 @@
         },
         "ytyndexer": {
             "formula": {
-                "sandbox_id": 1549377398,
+                "sandbox_id": 1051903185,
                 "match": "YTYNDEXER"
             },
             "executable": {
@@ -7621,7 +7612,7 @@
         },
         "sre": {
             "formula": {
-                "sandbox_id": "1361378773",
+                "sandbox_id": "1281939415",
                 "match": "infra/rtc/sretools/sretools.tar.gz"
             },
             "executable": {
@@ -7747,8 +7738,8 @@
         "gdbnew": {
             "formula": {
                 "sandbox_id": [
-                    1539936704,
-                    1539939628
+                    1494385453,
+                    1494387618
                 ],
                 "platform_replacements": {},
                 "match": "GDB"
@@ -8338,7 +8329,10 @@
             }
         },
         "ya-tc": {
-            "formula": "build/external_resources/ya-tc/resources.json",
+            "formula": {
+                "sandbox_id": 1437768899,
+                "match": "ya-tc"
+            },
             "executable": {
                 "ya-tc": [
                     "ya-tc"
@@ -8388,7 +8382,7 @@
         },
         "apphost": {
             "formula": {
-                "sandbox_id": 1549667424,
+                "sandbox_id": 1518546820,
                 "match": "app_host_launcher"
             },
             "executable": {
@@ -8509,7 +8503,7 @@
         "qyp": {
             "formula": {
                 "sandbox_id": [
-                    1537123313
+                    1497641770
                 ],
                 "match": "infra/qyp/vmctl/bin/vmctl"
             },
@@ -8682,7 +8676,7 @@
         "coronerctl": {
             "formula": {
                 "sandbox_id": [
-                    1520884213
+                    1480926804
                 ],
                 "match": "infra/rsm/coroner/build/packages/coroner/pkg.json"
             },
@@ -8911,7 +8905,7 @@
         },
         "yadi": {
             "formula": {
-                "sandbox_id": 1530501902,
+                "sandbox_id": 1423151849,
                 "match": "yadi-arc"
             },
             "executable": {
@@ -8974,7 +8968,7 @@
         },
         "wall-e": {
             "formula": {
-                "sandbox_id": 1531544782,
+                "sandbox_id": 1422846339,
                 "match": "wall-e"
             },
             "executable": {
@@ -8985,7 +8979,7 @@
         },
         "skotty": {
             "formula": {
-                "sandbox_id": 1540880007,
+                "sandbox_id": 1433668519,
                 "match": "launcher"
             },
             "executable": {
@@ -9045,7 +9039,7 @@
         },
         "bigb_request": {
             "formula": {
-                "sandbox_id": 1522655739,
+                "sandbox_id": 1518546832,
                 "match": "bb_requester"
             },
             "executable": {
@@ -9166,7 +9160,7 @@
         },
         "lama": {
             "formula": {
-                "sandbox_id": 1547703403,
+                "sandbox_id": 1504710740,
                 "match": "lama"
             },
             "executable": {

@@ -6,9 +6,11 @@ RECURSE(
     attrs
     backcall
     colorama
+    configparser
     contextlib2
     dateutil
     decorator
+    enum34
     executing
     filelock
     funcsigs
@@ -42,6 +44,7 @@ RECURSE(
     pyparsing
     pytest
     pytz
+    scandir
     scikit-learn
     scipy
     setuptools
@@ -49,11 +52,11 @@ RECURSE(
     six
     stack-data
     testpath
-    threadpoolctl
     tomli
     tornado
     traitlets
     types-protobuf
+    typing
     wcwidth
 )
 

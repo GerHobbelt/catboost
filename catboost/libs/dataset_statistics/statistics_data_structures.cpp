@@ -8,10 +8,7 @@ using namespace NCB;
 
 TFloatFeatureStatistics::TFloatFeatureStatistics()
     : MinValue(std::numeric_limits<double>::max())
-    , MaxValue(std::numeric_limits<double>::lowest())
-    , CustomMin(std::numeric_limits<double>::lowest())
-    , CustomMax(std::numeric_limits<double>::max())
-    , OutOfDomainValuesCount(0)
+    , MaxValue(std::numeric_limits<double>::min())
     , Sum(0.)
     , SumSqr(0.)
     , ObjectCount(0)
@@ -19,19 +16,10 @@ TFloatFeatureStatistics::TFloatFeatureStatistics()
 }
 
 void TFloatFeatureStatistics::Update(float feature) {
+    if (std::isinf(feature) || std::isnan(feature)) {
+        return;
+    }
     with_lock(Mutex) {
-        if (std::isinf(feature) || std::isnan(feature)) {
-            OutOfDomainValuesCount++;
-            return;
-        }
-        if (feature < CustomMin) {
-            OutOfDomainValuesCount++;
-            return;
-        }
-        if (feature > CustomMax) {
-            OutOfDomainValuesCount++;
-            return;
-        }
         MinValue = Min<float>(MinValue, feature);
         MaxValue = Max<float>(MaxValue, feature);
         Sum += static_cast<long double>(feature);
@@ -43,8 +31,8 @@ void TFloatFeatureStatistics::Update(float feature) {
 
 bool TFloatFeatureStatistics::operator==(const TFloatFeatureStatistics& rhs) const {
     return (
-        std::tie(MinValue, MaxValue, CustomMin, CustomMax, OutOfDomainValuesCount, Sum, SumSqr, ObjectCount) ==
-        std::tie(rhs.MinValue, rhs.MaxValue, rhs.CustomMin, rhs.CustomMax, rhs.OutOfDomainValuesCount, rhs.Sum, SumSqr, rhs.ObjectCount)
+        std::tie(MinValue, Sum, SumSqr, ObjectCount) ==
+        std::tie(rhs.MinValue, rhs.Sum, SumSqr, rhs.ObjectCount)
     );
 }
 
@@ -65,13 +53,6 @@ NJson::TJsonValue TFloatFeatureStatistics::ToJson() const {
     result.InsertValue("Sum", ToString(Sum));
     result.InsertValue("SumSqr", ToString(SumSqr));
     result.InsertValue("ObjectCount", ObjectCount);
-    if (CustomMin != std::numeric_limits<double>::lowest()) {
-        result.InsertValue("CustomMin", CustomMin);
-    }
-    if (CustomMax != std::numeric_limits<double>::max()) {
-        result.InsertValue("CustomMax", CustomMax);
-    }
-    result.InsertValue("OutOfDomainValuesCount", OutOfDomainValuesCount);
     return result;
 }
 
@@ -79,14 +60,13 @@ void TFloatFeatureStatistics::Update(const TFloatFeatureStatistics& update) {
     with_lock(Mutex) {
         MinValue = Min<float>(MinValue, update.MinValue);
         MaxValue = Max<float>(MaxValue, update.MaxValue);
-        OutOfDomainValuesCount += update.OutOfDomainValuesCount;
         Sum += update.Sum;
         SumSqr += update.SumSqr;
         ObjectCount += update.ObjectCount;
     }
 }
 
-void TTargetsStatistics::Init(const TDataMetaInfo& metaInfo, const TVector<TMaybe<std::pair<float, float>>>& customBorders) {
+void TTargetsStatistics::Init(const TDataMetaInfo& metaInfo) {
     TargetType = metaInfo.TargetType;
     TargetCount = metaInfo.TargetCount;
     switch (TargetType) {
@@ -102,14 +82,6 @@ void TTargetsStatistics::Init(const TDataMetaInfo& metaInfo, const TVector<TMayb
             break;
         default:
             CB_ENSURE(false);
-    }
-
-    CB_ENSURE(customBorders.empty() || customBorders.size() == FloatTargetStatistics.size() + StringTargetStatistics.size());
-    for (size_t idx = 0; idx < customBorders.size(); ++idx) {
-        if (customBorders[idx].Defined()) {
-            CB_ENSURE(TargetType == ERawTargetType::Float);
-            FloatTargetStatistics[idx].SetCustomBorders(customBorders[idx].GetRef());
-        }
     }
 }
 
@@ -278,19 +250,13 @@ void TCatFeatureStatistics::Update(const TCatFeatureStatistics& update) {
     ImperfectHashSet.insert(update.ImperfectHashSet.begin(), update.ImperfectHashSet.end());
 }
 
-void TFloatFeaturePairwiseProduct::Init(ui32 featureCount, bool calculatePairwiseStatistics) {
-    IsCalculated = calculatePairwiseStatistics;
-    if (!calculatePairwiseStatistics) {
-        return;
-    }
-    Y_ASSERT(false);
+void TFloatFeaturePairwiseProduct::Init(ui32 featureCount) {
     PairwiseProduct.resize(featureCount * (featureCount - 1) / 2, 0);
     FeatureCount = featureCount;
     PairwiseProductDocsUsed = 0;
 }
 
 void TFloatFeaturePairwiseProduct::Update(TConstArrayRef<float> features) {
-    CB_ENSURE(IsCalculated);
     TVector<long double> add(Min(PairwiseProduct.size(), size_t(1000)));
     ui32 resIdx = 0;
     ui32 idx = 0;
@@ -321,10 +287,6 @@ void TFloatFeaturePairwiseProduct::Update(TConstArrayRef<float> features) {
 }
 
 void TFloatFeaturePairwiseProduct::Update(const TFloatFeaturePairwiseProduct& update) {
-    CB_ENSURE(IsCalculated == update.IsCalculated);
-    if (!IsCalculated) {
-        return;
-    }
     CB_ENSURE(FeatureCount == update.FeatureCount);
     for (ui32 idx = 0; idx < PairwiseProduct.size(); ++idx) {
         PairwiseProduct[idx] += update.PairwiseProduct[idx];
@@ -334,15 +296,12 @@ void TFloatFeaturePairwiseProduct::Update(const TFloatFeaturePairwiseProduct& up
 
 bool TFloatFeaturePairwiseProduct::operator==(const TFloatFeaturePairwiseProduct& rhs) const {
     return (
-        std::tie(PairwiseProduct, PairwiseProductDocsUsed, FeatureCount, IsCalculated) ==
-        std::tie(rhs.PairwiseProduct, rhs.PairwiseProductDocsUsed, rhs.FeatureCount, rhs.IsCalculated)
+        std::tie(PairwiseProduct, PairwiseProductDocsUsed, FeatureCount) ==
+        std::tie(rhs.PairwiseProduct, rhs.PairwiseProductDocsUsed, rhs.FeatureCount)
     );
 }
 
 NJson::TJsonValue TFloatFeaturePairwiseProduct::ToJson(const TVector<TFloatFeatureStatistics>& featureStats) const {
-    if (!IsCalculated) {
-        return NJson::TJsonValue("NotCalculated");
-    }
     CB_ENSURE(FeatureCount == featureStats.size(), "" << FeatureCount << " != " << featureStats.size());
     TVector<TVector<NJson::TJsonValue>> matrix(FeatureCount, TVector<NJson::TJsonValue>(FeatureCount));
     ui32 idx = 0;
@@ -361,32 +320,18 @@ NJson::TJsonValue TFloatFeaturePairwiseProduct::ToJson(const TVector<TFloatFeatu
     return VectorToJson(vectorOfJsons);
 }
 
-void TFeatureStatistics::Init(
-    const TDataMetaInfo& metaInfo,
-    const TVector<TMaybe<std::pair<float, float>>>& customBorders,
-    bool calculatePairwiseStatistics
-) {
+void TFeatureStatistics::Init(const TDataMetaInfo& metaInfo) {
     FloatFeatureStatistics.resize(metaInfo.FeaturesLayout->GetFloatFeatureCount());
-    FloatFeaturePairwiseProduct.Init(metaInfo.FeaturesLayout->GetFloatFeatureCount(), calculatePairwiseStatistics);
+    FloatFeaturePairwiseProduct.Init(metaInfo.FeaturesLayout->GetFloatFeatureCount());
     CatFeatureStatistics.resize(metaInfo.FeaturesLayout->GetCatFeatureCount());
     TextFeatureStatistics.resize(metaInfo.FeaturesLayout->GetTextFeatureCount());
-
-    CB_ENSURE(customBorders.empty() || customBorders.size() == FloatFeatureStatistics.size(),
-              "Not equal" << customBorders.size() << "!="  << FloatFeatureStatistics.size());
-    for (size_t idx = 0; idx < customBorders.size(); ++idx) {
-        if (customBorders[idx].Defined()) {
-            FloatFeatureStatistics[idx].SetCustomBorders(customBorders[idx].GetRef());
-        }
-    }
 }
 
 NJson::TJsonValue TFeatureStatistics::ToJson() const {
     NJson::TJsonValue result;
     result.InsertValue("FloatFeatureStatistics", AggregateStatistics(FloatFeatureStatistics));
-    if (FloatFeaturePairwiseProduct.IsCalculated) {
-        result.InsertValue("FloatFeaturePairwiseProductSum", FloatFeaturePairwiseProduct.ToJson(FloatFeatureStatistics));
-        result.InsertValue("PairwiseProductDocsUsed", FloatFeaturePairwiseProduct.PairwiseProductDocsUsed);
-    }
+    result.InsertValue("FloatFeaturePairwiseProductSum", FloatFeaturePairwiseProduct.ToJson(FloatFeatureStatistics));
+    result.InsertValue("PairwiseProductDocsUsed", FloatFeaturePairwiseProduct.PairwiseProductDocsUsed);
     result.InsertValue("CatFeaturesStatistics", AggregateStatistics(CatFeatureStatistics));
     result.InsertValue("TextFeaturesStatistics", AggregateStatistics(TextFeatureStatistics));
     //  ToDo: add statistics for Embedding features
@@ -443,9 +388,6 @@ NJson::TJsonValue TDatasetStatistics::ToJson() const {
         result.InsertValue("GroupStats", GroupwiseStats->ToJson());
     }
 
-    if (TargetHistogram.Defined()) {
-        result.InsertValue("TargetHistogram", AggregateStatistics(TargetHistogram.GetRef()));
-    }
     result.InsertValue("ObjectCount", TargetsStatistics.GetObjectCount());
 
     return result;

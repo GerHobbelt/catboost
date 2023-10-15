@@ -7,7 +7,6 @@ from libc.math cimport log, exp
 import numpy as np
 cimport numpy as np
 
-np.import_array()
 ctypedef np.float64_t DTYPE_t
 
 

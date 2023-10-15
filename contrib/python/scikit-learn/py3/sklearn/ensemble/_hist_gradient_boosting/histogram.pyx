@@ -17,8 +17,6 @@ from .common cimport hist_struct
 from .common cimport X_BINNED_DTYPE_C
 from .common cimport G_H_DTYPE_C
 
-np.import_array()
-
 # Notes:
 # - IN views are read-only, OUT views are write-only
 # - In a lot of functions here, we pass feature_idx and the whole 2d
@@ -132,8 +130,7 @@ cdef class HistogramBuilder:
             G_H_DTYPE_C [::1] gradients = self.gradients
             G_H_DTYPE_C [::1] ordered_hessians = self.ordered_hessians
             G_H_DTYPE_C [::1] hessians = self.hessians
-            # Histograms will be initialized to zero later within a prange
-            hist_struct [:, ::1] histograms = np.empty(
+            hist_struct [:, ::1] histograms = np.zeros(
                 shape=(self.n_features, self.n_bins),
                 dtype=HISTOGRAM_DTYPE
             )
@@ -178,12 +175,6 @@ cdef class HistogramBuilder:
                 self.ordered_hessians[:n_samples]
             unsigned char hessians_are_constant = \
                 self.hessians_are_constant
-            unsigned int bin_idx = 0
-        
-        for bin_idx in range(self.n_bins):
-            histograms[feature_idx, bin_idx].sum_gradients = 0.
-            histograms[feature_idx, bin_idx].sum_hessians = 0.
-            histograms[feature_idx, bin_idx].count = 0
 
         if root_node:
             if hessians_are_constant:
@@ -234,7 +225,7 @@ cdef class HistogramBuilder:
         cdef:
             int feature_idx
             int n_features = self.n_features
-            hist_struct [:, ::1] histograms = np.empty(
+            hist_struct [:, ::1] histograms = np.zeros(
                 shape=(self.n_features, self.n_bins),
                 dtype=HISTOGRAM_DTYPE
             )

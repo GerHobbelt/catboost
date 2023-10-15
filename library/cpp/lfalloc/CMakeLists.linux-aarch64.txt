@@ -10,6 +10,6 @@
 add_library(library-cpp-lfalloc INTERFACE)
 target_link_libraries(library-cpp-lfalloc INTERFACE
   contrib-libs-cxxsupp
-  cpp-malloc-jemalloc
+  contrib-libs-jemalloc
   cpp-malloc-api
 )

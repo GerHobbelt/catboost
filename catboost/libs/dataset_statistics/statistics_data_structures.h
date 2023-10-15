@@ -1,7 +1,5 @@
 #pragma once
 
-#include "histograms.h"
-
 #include <catboost/libs/data/data_provider_builders.h>
 #include <catboost/libs/data/visitor.h>
 #include <catboost/libs/helpers/json_helpers.h>
@@ -48,10 +46,7 @@ struct TFloatFeatureStatistics : public IStatistics {
     TFloatFeatureStatistics();
 
     TFloatFeatureStatistics(const TFloatFeatureStatistics& a)
-        : MinValue(a.MinValue), MaxValue(a.MaxValue)
-        , CustomMin(a.CustomMin), CustomMax(a.CustomMax), OutOfDomainValuesCount(a.OutOfDomainValuesCount)
-        ,  Sum(a.Sum), SumSqr(a.SumSqr), ObjectCount(a.ObjectCount)
-        {}
+        : MinValue(a.MinValue), MaxValue(a.MaxValue), Sum(a.Sum), SumSqr(a.SumSqr), ObjectCount(a.ObjectCount) {}
 
     void Update(float feature);
 
@@ -65,20 +60,12 @@ struct TFloatFeatureStatistics : public IStatistics {
         return ObjectCount;
     }
 
-    void SetCustomBorders(const std::pair<float, float>& customBorders) {
-        CustomMin = customBorders.first;
-        CustomMax = customBorders.second;
-    }
+    Y_SAVELOAD_DEFINE(MinValue, MaxValue, Sum, SumSqr, ObjectCount);
 
-    Y_SAVELOAD_DEFINE(MinValue, MaxValue, CustomMin, CustomMax, OutOfDomainValuesCount, Sum, SumSqr, ObjectCount);
-
-    SAVELOAD(MinValue, MaxValue, CustomMin, CustomMax, OutOfDomainValuesCount, Sum, SumSqr, ObjectCount);
+    SAVELOAD(MinValue, MaxValue, Sum, SumSqr, ObjectCount);
 
     double MinValue;
     double MaxValue;
-    double CustomMin;
-    double CustomMax;
-    ui64 OutOfDomainValuesCount;
     long double Sum;
     long double SumSqr;
     ui64 ObjectCount;
@@ -94,10 +81,9 @@ struct TFloatFeaturePairwiseProduct {
         : PairwiseProduct(a.PairwiseProduct)
         , PairwiseProductDocsUsed(a.PairwiseProductDocsUsed)
         , FeatureCount(a.FeatureCount)
-        , IsCalculated(a.IsCalculated)
     {}
 
-    void Init(ui32 featureCount, bool calculatePairwiseStatistics);
+    void Init(ui32 featureCount);
 
     void Update(TConstArrayRef<float> features);
     void Update(const TFloatFeaturePairwiseProduct& update);
@@ -109,11 +95,10 @@ struct TFloatFeaturePairwiseProduct {
     TVector<long double> PairwiseProduct;
     ui64 PairwiseProductDocsUsed;
     ui32 FeatureCount;
-    bool IsCalculated = false;
 
-    Y_SAVELOAD_DEFINE(PairwiseProduct, PairwiseProductDocsUsed, FeatureCount, IsCalculated);
+    Y_SAVELOAD_DEFINE(PairwiseProduct, PairwiseProductDocsUsed, FeatureCount);
 
-    SAVELOAD(PairwiseProduct, PairwiseProductDocsUsed, FeatureCount, IsCalculated);
+    SAVELOAD(PairwiseProduct, PairwiseProductDocsUsed, FeatureCount);
 private:
     TMutex Mutex;
 };
@@ -265,7 +250,7 @@ struct TTargetsStatistics : public IStatistics {
 public:
     TTargetsStatistics() {};
 
-    void Init(const TDataMetaInfo& metaInfo, const TVector<TMaybe<std::pair<float, float>>>& customBorders);
+    void Init(const TDataMetaInfo& metaInfo);
 
     NJson::TJsonValue ToJson() const override;
 
@@ -344,10 +329,7 @@ public:
     TVector<TTextFeatureStatistics> TextFeatureStatistics;
     TFloatFeaturePairwiseProduct FloatFeaturePairwiseProduct;
 
-    void Init(
-        const TDataMetaInfo& metaInfo,
-        const TVector<TMaybe<std::pair<float, float>>>& customBorders,
-        bool calculatePairwiseStatistics=false);
+    void Init(const TDataMetaInfo& metaInfo);
 
     NJson::TJsonValue ToJson() const override;
 
@@ -375,10 +357,6 @@ struct TGroupwiseStats {
         GroupsCount
     );
 
-    bool operator==(const TGroupwiseStats& a) const {
-        return std::tie(GroupsTotalSize, GroupsCount) == std::tie(a.GroupsTotalSize, a.GroupsCount);
-    }
-
     ui64 GroupsTotalSize = 0;
     ui64 GroupsCount = 0;
 };
@@ -389,21 +367,19 @@ public:
         FeatureStatistics,
         TargetsStatistics,
         SampleIdStatistics,
-        GroupwiseStats,
-        TargetHistogram
+        GroupwiseStats
     );
 
     SAVELOAD(
         FeatureStatistics,
         TargetsStatistics,
         SampleIdStatistics,
-        GroupwiseStats,
-        TargetHistogram
+        GroupwiseStats
     );
 
     bool operator==(const TDatasetStatistics& a) const {
-        return std::tie(FeatureStatistics, TargetsStatistics, SampleIdStatistics, GroupwiseStats, TargetHistogram) ==
-               std::tie(a.FeatureStatistics, a.TargetsStatistics, a.SampleIdStatistics, a.GroupwiseStats, a.TargetHistogram);
+        return std::tie(FeatureStatistics, TargetsStatistics, SampleIdStatistics) ==
+               std::tie(a.FeatureStatistics, a.TargetsStatistics, a.SampleIdStatistics);
     }
 
     TFeatureStatistics FeatureStatistics;
@@ -411,19 +387,9 @@ public:
     TSampleIdStatistics SampleIdStatistics;
     TMaybe<TGroupwiseStats> GroupwiseStats;
 
-    TMaybe<TVector<TFloatFeatureHistogram>> TargetHistogram;
-
-    void Init(const TDataMetaInfo& metaInfo,
-              const TVector<TMaybe<std::pair<float, float>>>& customBorders,
-              const TVector<TMaybe<std::pair<float, float>>>& targetCustomBorders,
-              bool calculatePairwiseStatistics=false
-    ) {
-        FeatureStatistics.Init(metaInfo, customBorders, calculatePairwiseStatistics);
-        TargetsStatistics.Init(metaInfo, targetCustomBorders);
-    }
-
-    void SetTargetHistogram(const TVector<TFloatFeatureHistogram>& targetHistogram) {
-        TargetHistogram = targetHistogram;
+    void Init(const TDataMetaInfo& metaInfo) {
+        FeatureStatistics.Init(metaInfo);
+        TargetsStatistics.Init(metaInfo);
     }
 
     NJson::TJsonValue ToJson() const;

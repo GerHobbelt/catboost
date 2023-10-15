@@ -16,7 +16,6 @@ enum class EHistogramType {
     Exact,
     Borders
 };
-
 constexpr ui32 MAX_EXACT_HIST_SIZE = 1 << 8;
 
 struct TBorders {
@@ -29,12 +28,11 @@ public:
     TVector<float> GetBins() const;
     TVector<ui64> GetExactHistogram() const;
 
-    bool operator==(const TBorders& rhs) const;
+    bool operator==(const TBorders& rhs);
 
     TBorders(const TVector<float>& borders)
         : HistogramType(EHistogramType::Borders)
         , Borders(borders)
-        , OutOfDomainValuesCount(0)
     {}
 
     TBorders(ui32 maxBorderCount, float minValue, float maxValue)
@@ -42,7 +40,6 @@ public:
         , MaxBorderCount(maxBorderCount)
         , MinValue(minValue)
         , MaxValue(maxValue)
-        , OutOfDomainValuesCount(0)
     {}
 
     ui32 Size() const;
@@ -53,8 +50,7 @@ public:
         MaxBorderCount,
         MinValue,
         MaxValue,
-        BitHistogram,
-        OutOfDomainValuesCount
+        BitHistogram
     );
 
     SAVELOAD(
@@ -63,8 +59,7 @@ public:
         MaxBorderCount,
         MinValue,
         MaxValue,
-        BitHistogram,
-        OutOfDomainValuesCount
+        BitHistogram
     );
 
     NJson::TJsonValue ToJson() const;
@@ -77,7 +72,7 @@ public:
     }
 
 private:
-    bool EqualBorders(const TVector<float>& borders) const {
+    bool EqualBorders(const TVector<float>& borders) {
         CB_ENSURE(HistogramType == EHistogramType::Borders, "Inconsistent type");
         if (Borders.size() != borders.size()) {
             return false;
@@ -102,7 +97,6 @@ public:
     float MinValue;
     float MaxValue;
     TMap<float, ui64> BitHistogram;
-    ui64 OutOfDomainValuesCount;
 };
 
 struct TFloatFeatureHistogram {
@@ -125,11 +119,6 @@ public:
     void CalcHistogramWithBorders(TVector<float>* featureColumnPtr);
 
     TVector<ui64> GetHistogram() const;
-
-    bool operator==(const TFloatFeatureHistogram& a) const {
-        return std::tie(Histogram, Borders, Nans, MinusInf, PlusInf) ==
-               std::tie(a.Histogram, a.Borders, a.Nans, a.MinusInf, a.PlusInf);
-    }
 
     Y_SAVELOAD_DEFINE(
         Histogram,
@@ -169,10 +158,16 @@ struct THistograms {
 public:
     THistograms() = default;
 
-    THistograms(const TVector<TBorders>& floatFeatureBorders) {
+    THistograms(const TVector<TBorders>& floatFeatureBorders, ERawTargetType targetType, const TVector<TBorders>& targetBorders) {
         FloatFeatureHistogram.reserve(floatFeatureBorders.size());
         for (const auto& borders: floatFeatureBorders) {
             FloatFeatureHistogram.emplace_back(TFloatFeatureHistogram(borders));
+        }
+        if (targetType == ERawTargetType::Float) {
+            TargetHistogram = TVector<TFloatFeatureHistogram>();
+            for (const auto& borders: targetBorders) {
+                TargetHistogram->emplace_back(TFloatFeatureHistogram(borders));
+            }
         }
     }
 
@@ -185,12 +180,20 @@ public:
         TVector<float>* features
     );
 
+    void AddTargetHistogram(
+        ui32 featureId,
+        TVector<float>* features
+    );
+
+
     Y_SAVELOAD_DEFINE(
-        FloatFeatureHistogram
+        FloatFeatureHistogram,
+        TargetHistogram
     );
 
     SAVELOAD(
-        FloatFeatureHistogram
+        FloatFeatureHistogram,
+        TargetHistogram
     );
 
     ui64 GetObjectCount() const {
@@ -206,5 +209,6 @@ public:
 
 public:
     TVector<TFloatFeatureHistogram> FloatFeatureHistogram;
+    TMaybe<TVector<TFloatFeatureHistogram>> TargetHistogram;
 };
 }

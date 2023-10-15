@@ -12,6 +12,7 @@ import numpy as np
 from scipy import linalg
 
 from ..base import BaseEstimator, TransformerMixin
+from ..utils import check_array
 from ..utils.validation import check_is_fitted
 from abc import ABCMeta, abstractmethod
 
@@ -77,7 +78,7 @@ class _BasePCA(TransformerMixin, BaseEstimator, metaclass=ABCMeta):
         return precision
 
     @abstractmethod
-    def fit(self, X, y=None):
+    def fit(X, y=None):
         """Placeholder for fit. Subclasses should implement this method!
 
         Fit the model with X.
@@ -109,10 +110,21 @@ class _BasePCA(TransformerMixin, BaseEstimator, metaclass=ABCMeta):
         Returns
         -------
         X_new : array-like, shape (n_samples, n_components)
+
+        Examples
+        --------
+
+        >>> import numpy as np
+        >>> from sklearn.decomposition import IncrementalPCA
+        >>> X = np.array([[-1, -1], [-2, -1], [-3, -2], [1, 1], [2, 1], [3, 2]])
+        >>> ipca = IncrementalPCA(n_components=2, batch_size=3)
+        >>> ipca.fit(X)
+        IncrementalPCA(batch_size=3, n_components=2)
+        >>> ipca.transform(X) # doctest: +SKIP
         """
         check_is_fitted(self)
 
-        X = self._validate_data(X, dtype=[np.float64, np.float32], reset=False)
+        X = check_array(X)
         if self.mean_ is not None:
             X = X - self.mean_
         X_transformed = np.dot(X, self.components_.T)
