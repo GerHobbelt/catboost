@@ -10,7 +10,7 @@
 void compute_root_from_lambda(double, double *, double *);
 
 #ifndef M_PI
-#define M_PI           3.14159265358979323846  /* pi */    
+#define M_PI 3.1415926535897932384626433832795028841971693993751058209749445923078164
 #endif
 
 #define CONJ(a) ((a))

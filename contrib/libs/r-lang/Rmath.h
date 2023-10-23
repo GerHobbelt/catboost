@@ -121,7 +121,7 @@ double  Rlog1p(double);
 #endif
 
 #ifndef M_PI
-#define M_PI		3.141592653589793238462643383280	/* pi */
+#define M_PI        3.1415926535897932384626433832795028841971693993751058209749445923078164   /* pi */
 #endif
 
 #ifndef M_2PI
