@@ -7,7 +7,7 @@ SRCS(
 )
 
 PEERDIR(
-    library/cpp/testing/benchmark
+    library/testing/benchmark
 )
 
 END()

@@ -4,7 +4,6 @@ LIBRARY()
 
 
 SRCS(
-    GLOBAL cuda_trainer_env.cpp
     GLOBAL train.cpp
     GLOBAL query_cross_entropy.cpp
     GLOBAL pointwise.cpp
@@ -44,7 +43,7 @@ PEERDIR(
     catboost/private/libs/quantization
     catboost/libs/train_lib
     library/cpp/json
-    library/cpp/object_factory
+    library/object_factory
     library/cpp/threading/local_executor
 )
 

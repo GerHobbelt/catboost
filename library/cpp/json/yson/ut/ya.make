@@ -7,9 +7,9 @@ ALLOCATOR(LF)
 DATA(sbr://363537653)
 
 PEERDIR(
-    library/cpp/blockcodecs
+    library/blockcodecs
     library/cpp/histogram/simple
-    library/cpp/testing/unittest
+    library/cpp/unittest
 )
 
 SIZE(LARGE)

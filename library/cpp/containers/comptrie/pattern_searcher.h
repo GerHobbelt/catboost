@@ -3,7 +3,7 @@
 #include "comptrie_builder.h"
 #include "comptrie_trie.h"
 #include "comptrie_impl.h"
-#include <library/cpp/packers/packers.h>
+#include <library/packers/packers.h>
 
 #include <util/system/yassert.h>
 #include <util/generic/vector.h>
@@ -42,7 +42,7 @@ public:
 
 public:
     TCompactPatternSearcherBuilder() {
-        TBase::Impl = MakeHolder<TCompactPatternSearcherBuilderImpl>();
+        TBase::Impl = new TCompactPatternSearcherBuilderImpl();
     }
 
     bool Add(const TSymbol* key, size_t keyLength, const TData& value) {

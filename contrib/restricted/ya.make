@@ -1,11 +1,10 @@
 
 
 RECURSE(
-    abseil-cpp
     libffi
 )
 
-IF(OS_ANDROID)
+IF(OS_LINUX OR OS_DARWIN)
     RECURSE(
     
 )

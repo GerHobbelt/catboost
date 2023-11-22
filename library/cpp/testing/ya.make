@@ -1,7 +1,6 @@
 RECURSE(
-    common
     benchmark
-    hook
-    unittest
-    unittest_main
+    benchmark/examples
+    benchmark/examples/metrics
+    benchmark/main
 )

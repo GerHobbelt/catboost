@@ -104,7 +104,7 @@
 #include <util/system/pipe.h>
 #include <util/system/dynlib.h>
 #include <util/system/condvar.h>
-#include <library/cpp/deprecated/atomic/atomic_ops.h>
+#include <util/system/atomic_ops.h>
 #include <util/system/guard.h>
 #include <util/system/execpath.h>
 #include <util/system/spinlock.h>
@@ -121,6 +121,7 @@
 #include <util/system/getpid.h>
 #include <util/system/file_lock.h>
 #include <util/system/nice.h>
+#include <util/system/tempfile.h>
 //#include <util/system/context_aarch64.h>
 #include <util/system/src_root.h>
 #include <util/system/daemon.h>
@@ -135,8 +136,8 @@
 #include <util/system/shmat.h>
 #include <util/system/rusage.h>
 #include <util/system/yassert.h>
-#include <util/system/tempfile.h>
-#include <library/cpp/deprecated/atomic/atomic.h>
+#include <util/system/mktemp.h>
+#include <util/system/atomic.h>
 #include <util/system/yield.h>
 #include <util/system/filemap.h>
 #include <library/cpp/deprecated/mapped_file/mapped_file.h>
@@ -157,19 +158,19 @@
 #include <util/system/unaligned_mem.h>
 #include <util/system/src_location.h>
 #include <util/system/fasttime.h>
-#include <library/cpp/deprecated/atomic/atomic_gcc.h>
+#include <util/system/atomic_gcc.h>
 #include <util/system/user.h>
 #include <util/system/mem_info.h>
 #include <util/system/datetime.h>
 #include <util/system/utime.h>
 #include <util/system/mlock.h>
-#include <util/system/type_name.h>
+#include <util/system/demangle.h>
 #include <util/system/file.h>
 #include <util/system/atexit.h>
 #include <util/system/context_x86.h>
 #include <util/system/backtrace.h>
 #include <util/system/platform.h>
-//#include <library/cpp/deprecated/atomic/atomic_win.h>
+//#include <util/system/atomic_win.h>
 #include <util/system/context.h>
 #include <util/memory/segpool_alloc.h>
 #include <util/memory/tempbuf.h>
@@ -190,6 +191,7 @@
 #include <util/generic/object_counter.h>
 #include <util/draft/datetime.h>
 #include <library/cpp/deprecated/estimators/estimators.h>
+#include <util/network/netloss.h>
 #include <library/cpp/deprecated/enum_codegen/enum_codegen.h>
 #include <util/generic/array_size.h>
 #include <util/generic/bitmap.h>
@@ -199,6 +201,7 @@
 #include <util/generic/yexception_ut.h>
 #include <util/generic/singleton.h>
 #include <util/generic/set.h>
+#include <util/generic/variant_impl.h>
 #include <util/generic/iterator.h>
 #include <util/generic/ptr.h>
 #include <util/generic/mapfindptr.h>
@@ -223,6 +226,8 @@
 #include <util/generic/utility.h>
 #include <util/generic/bitops.h>
 #include <util/generic/typetraits.h>
+#include <util/generic/variant_traits.h>
+#include <util/generic/type_name.h>
 #include <util/generic/algorithm.h>
 #include <util/generic/hash_set.h>
 #include <util/generic/cast.h>
@@ -236,6 +241,7 @@
 #include <util/generic/function.h>
 #include <util/generic/flags.h>
 #include <util/generic/strfcpy.h>
+#include <util/generic/chartraits.h>
 #include <util/generic/string.h>
 #include <util/generic/fastqueue.h>
 #include <util/generic/explicit_type.h>

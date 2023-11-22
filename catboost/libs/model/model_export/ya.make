@@ -19,7 +19,6 @@ SRCS(
 
 
 PEERDIR(
-    catboost/libs/helpers
     catboost/libs/model
 
     catboost/private/libs/ctr_description

@@ -2,99 +2,91 @@
 
 RECURSE(
     accurate_accumulate
+    accurate_accumulate/benchmark
+    accurate_accumulate/benchmark/metrics
+    archive/ut
     binsaver
-    blockcodecs
+    binsaver/ut_util
+    binsaver/ut
     build_info
-    cache
-    case_insensitive_string
     cgiparam
-    charset
-    chromium_trace
+    cgiparam/fuzz
+    cgiparam/ut
     colorizer
+    colorizer/ut
     containers
     coroutine
     cppparser
     cpuid_check
     dbg_output
+    dbg_output/ut
     deprecated
     diff
+    diff/ut
     digest
     dns
+    dns/ut
     dot_product
     dot_product/bench
     dot_product/ut
-    enumbitset
-    fast_exp
-    fast_exp/benchmark
-    fast_exp/ut
     fast_log
     float16
     float16/ut
     getopt
+    getopt/last_getopt_demo
+    getopt/small
+    getopt/ut
     grid_creator
     grid_creator/fuzz
     grid_creator/ut
-    hnsw
     http
-    iterator
     json
     json/fast_sax
     json/flex_buffers
     json/flex_buffers/ut
-    l1_distance
-    l1_distance/bench
-    l1_distance/ut
-    l2_distance
-    l2_distance/bench
-    l2_distance/ut
-    langmask
-    langmask/proto
-    langmask/serialization
-    langmask/ut
-    langs
-    langs/ut
-    lcs
+    json/fuzzy_test
+    json/ut
+    json/writer/ut
+    json/yson
+    json/yson/ut
+    logger
+    logger/global
+    logger/global/ut
+    logger/ut
+    malloc
     lfalloc
     lfalloc/dbg
     lfalloc/dbg_info
     lfalloc/yt
-    linear_regression
-    logger
-    malloc
-    neh
-    neh/asio/ut
-    neh/ut
-    netliba
-    object_factory
     on_disk
-    online_hnsw
     openssl
-    packers
-    par
     pop_count
+    pop_count/benchmark
+    pop_count/ut
     resource
+    resource/ut
     sse
-    statistics
-    statistics/ut
     streams
     string_utils
-    svnversion
     terminate_handler
+    terminate_handler/sample
     testing
     text_processing
     threading
     token
-    token/lite
     token/serialization
     token/serialization/ut
     token/ut
     tokenizer
     tokenizer/ut
+    unicode
+    unittest
+    unittest/fat
+    unittest/main
+    unittest/ut
     yson
-    yson/fuzz
-    yson/json
     yson/node
-    yt
+    yson/node/pybind
 )
 
 IF (OS_LINUX)
@@ -110,11 +102,5 @@ IF (OS_WINDOWS)
 ELSE()
     RECURSE(
     sse/ut
-)
-ENDIF()
-
-IF (HAVE_CUDA)
-    RECURSE(
-    cuda
 )
 ENDIF()

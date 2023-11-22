@@ -11,7 +11,6 @@
 #include <util/generic/fwd.h>
 #include <util/generic/vector.h>
 
-namespace NCB {
 
 TVector<TVector<double>> PrepareEvalForInternalApprox(
     const EPredictionType prediction_type,
@@ -23,7 +22,7 @@ TVector<TVector<double>> PrepareEvalForInternalApprox(
     const EPredictionType prediction_type,
     const TFullModel& model,
     const TVector<TVector<double>>& approx,
-    NPar::ILocalExecutor* executor = nullptr);
+    NPar::TLocalExecutor* executor = nullptr);
 
 bool IsMulticlass(const TVector<TVector<double>>& approx);
 
@@ -38,32 +37,19 @@ TVector<TVector<double>> MakeExternalApprox(
 
 void PrepareEval(
     const EPredictionType predictionType,
-    size_t ensemblesCount,
     const TString& lossFunctionName,
     const TVector<TVector<double>>& approx,
-    NPar::ILocalExecutor* executor,
-    TVector<TVector<double>>* result,
-    double binClassLogitThreshold = DEFAULT_BINCLASS_LOGIT_THRESHOLD);
+    NPar::TLocalExecutor* executor,
+    TVector<TVector<double>>* result);
 
 TVector<TVector<double>> PrepareEval(
     const EPredictionType predictionType,
-    size_t ensemblesCount,
     const TString& lossFunctionName,
     const TVector<TVector<double>>& approx,
-    NPar::ILocalExecutor* executor = nullptr,
-    double binClassLogitThreshold = DEFAULT_BINCLASS_LOGIT_THRESHOLD);
+    NPar::TLocalExecutor* executor = nullptr);
 
 TVector<TVector<double>> PrepareEval(
     const EPredictionType predictionType,
-    size_t ensemblesCount,
     const TString& lossFunctionName,
     const TVector<TVector<double>>& approx,
-    int threadCount,
-    double binClassLogitThreshold = DEFAULT_BINCLASS_LOGIT_THRESHOLD);
-using TColumnPrinterOuputType = std::variant<i64, ui64, double, float, TString>;
-
-}
-
-TVector<TVector<double>> CalcSoftmax(
-    const TVector<TVector<double>>& approx,
-    NPar::ILocalExecutor* executor);
+    int threadCount);

@@ -6,6 +6,10 @@ PEERDIR(
     library/cpp/logger
 )
 
+IF (OS_WINDOWS)
+    NO_WERROR()
+ENDIF()
+
 SRCS(
     common.cpp
     global.cpp
@@ -13,7 +17,3 @@ SRCS(
 )
 
 END()
-
-RECURSE_FOR_TESTS(
-    ut
-)

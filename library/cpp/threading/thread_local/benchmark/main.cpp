@@ -1,6 +1,6 @@
 #include <library/cpp/colorizer/colors.h>
-#include <library/cpp/statistics/statistics.h>
-#include <library/cpp/testing/benchmark/bench.h>
+#include <library/statistics/statistics.h>
+#include <library/testing/benchmark/bench.h>
 #include <library/cpp/threading/thread_local/thread_local.h>
 
 #include <util/datetime/base.h>
@@ -129,6 +129,6 @@ int main() {
         TDuration mean = TDuration::Seconds(stats.Mean());
         TDuration stddev = TDuration::Seconds(stats.StandardDeviation());
         Cerr << fmt.LightRedColor() << bench->Name() << " [threads = " << bench->Threads() << ", reps = " << bench->Reps() << "]" << fmt.OldColor() << ": ";
-        Cerr << fmt.LightCyanColor() << HumanReadable(mean) << " ± " << HumanReadable(stddev) << fmt.OldColor() << Endl;
+        Cerr << fmt.LightCyanColor() << HumanReadable(mean) << u8" ± " << HumanReadable(stddev) << fmt.OldColor() << Endl;
     }
 }

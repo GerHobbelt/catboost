@@ -81,8 +81,8 @@ namespace NCudaLib {
             }
 
             ~TComputationStream() noexcept(false) {
-                CB_ENSURE(RunningTask.IsEmpty(), "Some tasks are not completed");
-                CB_ENSURE(WaitingTasks.size() == 0, "Some tasks are waiting for processing");
+                Y_VERIFY(RunningTask.IsEmpty());
+                Y_VERIFY(WaitingTasks.size() == 0);
             }
 
             void AddTask(THolder<IGpuKernelTask>&& task,
@@ -249,7 +249,7 @@ namespace NCudaLib {
                     return false;
                 }
                 default: {
-                    CB_ENSURE(false, "Unknown pointer type");
+                    Y_VERIFY(false);
                 }
             }
         }
@@ -288,7 +288,7 @@ namespace NCudaLib {
         }
 
         void CreateNewComputationStream() {
-            Streams.push_back(MakeHolder<TComputationStream>());
+            Streams.push_back(new TComputationStream());
         }
 
         inline ui32 RequestStreamImpl() {
@@ -340,7 +340,7 @@ namespace NCudaLib {
         }
 
         ~TGpuOneDeviceWorker() noexcept(false) {
-            CB_ENSURE(AtomicGet(Stopped), "Worker is not stopped");
+            Y_VERIFY(AtomicGet(Stopped));
         }
 
         TTaskQueue& GetTaskQueue() {

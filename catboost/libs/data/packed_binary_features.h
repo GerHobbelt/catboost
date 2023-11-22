@@ -111,13 +111,13 @@ namespace NCB {
         TConstArrayRef<TSrcElement> srcFeature,
         ui8 bitIdx,
         bool needToClearDstBits,
-        NPar::ILocalExecutor* localExecutor,
+        NPar::TLocalExecutor* localExecutor,
         TArrayRef<TBinaryFeaturesPack>* dstFeaturePacks) {
 
         CheckBitIdxForPackedBinaryIndex(bitIdx);
 
         int objectCount = SafeIntegerCast<int>(srcFeature.size());
-        NPar::ILocalExecutor::TExecRangeParams rangeParams(0, objectCount);
+        NPar::TLocalExecutor::TExecRangeParams rangeParams(0, objectCount);
         rangeParams.SetBlockCount(localExecutor->GetThreadCount() + 1);
 
         localExecutor->ExecRangeWithThrow(

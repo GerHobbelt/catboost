@@ -14,7 +14,7 @@ SRCS(
 )
 
 PEERDIR(
-    library/cpp/testing/unittest
+    library/cpp/unittest
     catboost/cuda/cuda_lib
     catboost/cuda/cuda_util
 )

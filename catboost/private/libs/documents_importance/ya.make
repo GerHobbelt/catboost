@@ -17,7 +17,7 @@ PEERDIR(
     catboost/private/libs/options
     catboost/libs/helpers
     catboost/private/libs/target
-    library/cpp/fast_exp
+    library/fast_exp
     library/cpp/threading/local_executor
 )
 

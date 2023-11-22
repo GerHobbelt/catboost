@@ -26,15 +26,10 @@ SRCS(
 )
 
 PEERDIR(
-    library/cpp/packers
+    library/packers
     library/cpp/containers/compact_vector
     library/cpp/on_disk/chunks
     util/draft
 )
 
 END()
-
-RECURSE(
-    benchmark
-    ut
-)

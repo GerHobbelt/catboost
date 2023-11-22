@@ -1,25 +1,11 @@
 #include "global.h"
 
-static void DoInitGlobalLog(THolder<TGlobalLog> logger, THolder<ILoggerFormatter> formatter) {
-    TLoggerOperator<TGlobalLog>::Set(logger.Release());
-    if (!formatter) {
-        formatter.Reset(CreateRtyLoggerFormatter());
-    }
-    TLoggerFormatterOperator::Set(formatter.Release());
+void DoInitGlobalLog(const TString& logType, const int logLevel, const bool rotation, const bool startAsDaemon) {
+    NLoggingImpl::InitLogImpl<TGlobalLog>(logType, logLevel, rotation, startAsDaemon);
 }
 
-void DoInitGlobalLog(const TString& logType, const int logLevel, const bool rotation, const bool startAsDaemon, THolder<ILoggerFormatter> formatter, bool threaded) {
-    DoInitGlobalLog(
-        MakeHolder<TGlobalLog>(
-            CreateLogBackend(
-                NLoggingImpl::PrepareToOpenLog(logType, logLevel, rotation, startAsDaemon),
-                (ELogPriority)logLevel,
-                threaded)),
-        std::move(formatter));
-}
-
-void DoInitGlobalLog(THolder<TLogBackend> backend, THolder<ILoggerFormatter> formatter) {
-    DoInitGlobalLog(THolder(new TGlobalLog(std::move(backend))), std::move(formatter));
+void DoInitGlobalLog(THolder<TLogBackend> backend) {
+    TLoggerOperator<TGlobalLog>::Set(new TGlobalLog(std::move(backend)));
 }
 
 bool GlobalLogInitialized() {

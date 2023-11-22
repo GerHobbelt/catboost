@@ -1,0 +1,4 @@
+RECURSE(
+    benchmark
+    benchmark/main
+)

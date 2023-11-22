@@ -3,8 +3,8 @@ LIBRARY()
 
 
 PEERDIR(
-    library/cpp/blockcodecs/core
-    library/cpp/blockcodecs/codecs/zstd
+    library/blockcodecs/core
+    library/blockcodecs/codecs/zstd
 )
 
 SRCS(
@@ -13,7 +13,3 @@ SRCS(
 )
 
 END()
-
-RECURSE_FOR_TESTS(
-    ut
-)

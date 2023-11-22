@@ -3,7 +3,7 @@
 #include "metric_holder.h"
 
 #include <catboost/private/libs/options/enum_helpers.h>
-#include <catboost/libs/helpers/maybe.h>
+#include <catboost/libs/helpers/maybe_data.h>
 #include <catboost/private/libs/data_types/query.h>
 
 #include <library/cpp/threading/local_executor/local_executor.h>
@@ -13,10 +13,8 @@
 
 struct IMetric;
 struct TMetricConfig;
-struct TParamSet;
 
 TVector<THolder<IMetric>> CreateCachingMetrics(const TMetricConfig& config);
-TVector<TParamSet> CachingMetricValidParamSets(ELossFunction metric);
 
 TVector<TMetricHolder> EvalErrorsWithCaching(
     const TVector<TVector<double>>& approx,
@@ -26,7 +24,7 @@ TVector<TMetricHolder> EvalErrorsWithCaching(
     TConstArrayRef<float> weight,
     TConstArrayRef<TQueryInfo> queriesInfo,
     TConstArrayRef<const IMetric *> metrics,
-    NPar::ILocalExecutor *localExecutor
+    NPar::TLocalExecutor *localExecutor
 );
 
 inline static TVector<TMetricHolder> EvalErrorsWithCaching(
@@ -37,7 +35,7 @@ inline static TVector<TMetricHolder> EvalErrorsWithCaching(
     TConstArrayRef<float> weight,
     TConstArrayRef<TQueryInfo> queriesInfo,
     TConstArrayRef<const IMetric*> metrics,
-    NPar::ILocalExecutor *localExecutor
+    NPar::TLocalExecutor *localExecutor
 ) {
     return EvalErrorsWithCaching(
         approx,

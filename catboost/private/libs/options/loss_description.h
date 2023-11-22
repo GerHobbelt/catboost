@@ -10,7 +10,6 @@
 #include <util/string/cast.h>
 #include <util/system/types.h>
 
-#include <utility>
 
 namespace NJson {
     class TJsonValue;
@@ -110,15 +109,8 @@ namespace NCatboostOptions {
     double GetAlpha(const TMap<TString, TString>& lossParams);
     double GetAlpha(const TLossDescription& lossFunctionConfig);
 
-    TVector<double> GetAlphaMultiQuantile(const TMap<TString, TString>& lossParams);
-
     double GetAlphaQueryCrossEntropy(const TMap<TString, TString>& lossParams);
     double GetAlphaQueryCrossEntropy(const TLossDescription& lossFunctionConfig);
-    void GetApproxScaleQueryCrossEntropy(
-        const TLossDescription& lossFunctionConfig,
-        TVector<float>* approxScale,
-        ui32* approxScaleSize,
-        float* defaultScale);
 
     int GetYetiRankPermutations(const TLossDescription& lossFunctionConfig);
 
@@ -129,11 +121,6 @@ namespace NCatboostOptions {
     double GetHuberParam(const TLossDescription& lossFunctionConfig);
 
     double GetQuerySoftMaxLambdaReg(const TLossDescription& lossFunctionConfig);
-
-    double GetQuerySoftMaxBeta(const TMap<TString, TString>& lossParams);
-    double GetQuerySoftMaxBeta(const TLossDescription& lossFunctionConfig);
-
-    EAucType GetAucType(const TMap<TString, TString>& lossParams);
 
     ui32 GetMaxPairCount(const TLossDescription& lossFunctionConfig);
 

@@ -5,7 +5,7 @@ PROGRAM()
 IF(OS_LINUX)
 
 PEERDIR(
-    library/cpp/testing/unittest
+    library/cpp/unittest
     catboost/cuda/ctrs
     catboost/cuda/data
 )

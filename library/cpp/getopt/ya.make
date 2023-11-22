@@ -4,7 +4,7 @@ LIBRARY()
 
 PEERDIR(
     library/cpp/getopt/small
-    library/cpp/svnversion
+    library/svnversion
     library/cpp/build_info
 )
 
@@ -13,9 +13,3 @@ SRCS(
 )
 
 END()
-
-RECURSE(
-    last_getopt_demo
-    small
-    ut
-)

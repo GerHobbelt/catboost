@@ -3,7 +3,7 @@ PROGRAM(skiplist-perf)
 
 
 PEERDIR(
-    library/cpp/charset
+    library/charset
     library/cpp/getopt/small
     library/cpp/threading/skip_list
 )

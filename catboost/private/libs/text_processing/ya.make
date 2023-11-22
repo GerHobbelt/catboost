@@ -5,6 +5,8 @@ LIBRARY()
 
 SRCS(
     dictionary.cpp
+    embedding.cpp
+    embedding_loader.cpp
     text_column_builder.cpp
     text_dataset.cpp
     text_digitizers.cpp

@@ -11,10 +11,11 @@
 TMetricHolder EvalErrorsWithLeaves(
     const TConstArrayRef<TConstArrayRef<double>> approx,
     const TConstArrayRef<TConstArrayRef<double>> leafDeltas,
-    TConstArrayRef<TIndexType> indices, // not used if leaf count == 1
+    TConstArrayRef<TIndexType> indices,
     bool isExpApprox,
-    const TVector<TConstArrayRef<float>>& target,
+    TConstArrayRef<float> target,
     TConstArrayRef<float> weight,
-    TConstArrayRef<TQueryInfo> queriesInfo, // not used if leaf count == 1
+    TConstArrayRef<TQueryInfo> queriesInfo,
     const IMetric& error,
-    NPar::ILocalExecutor* localExecutor);
+    NPar::TLocalExecutor* localExecutor
+);

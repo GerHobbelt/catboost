@@ -1,6 +1,6 @@
 #include "registry.h"
 
-#include <library/cpp/blockcodecs/core/codecs.h>
+#include <library/blockcodecs/codecs.h>
 
 #include <util/system/yassert.h>
 #include <util/generic/hash.h>
@@ -12,7 +12,7 @@ using namespace NResource;
 using namespace NBlockCodecs;
 
 namespace {
-    inline const ICodec* GetCodec() noexcept {
+    static inline const ICodec* GetCodec() noexcept {
         static const ICodec* ret = Codec("zstd08_5");
 
         return ret;
@@ -36,8 +36,8 @@ namespace {
                                  Decompress(data).Quote().c_str());
                     } else {
                         Y_VERIFY(false, "Redefinition of key %s,"
-                                 " old size: %zu,"
-                                 " new size: %zu.",
+                                 " old size: %lu,"
+                                 " new size: %lu.",
                                  TString{key}.Quote().c_str(), vsize, dsize);
                     }
                 }

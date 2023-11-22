@@ -19,10 +19,6 @@ ENABLE(PYBUILD_NO_PYC)
 PY_SRCS(
     entry_points.py
     TOP_LEVEL
-
-    CYTHON_DIRECTIVE
-    language_level=3
-
     __res.pyx
     sitecustomize.pyx
 )
@@ -37,6 +33,8 @@ ELSE()
         sitecustomize.pyx
     )
 ENDIF()
+
+NO_LINT()
 
 END()
 

@@ -7,7 +7,7 @@
 #include <util/generic/typetraits.h>
 #include <util/memory/pool.h>
 #include <util/random/random.h>
-#include <library/cpp/deprecated/atomic/atomic.h>
+#include <util/system/atomic.h>
 
 namespace NThreading {
     ////////////////////////////////////////////////////////////////////////////////

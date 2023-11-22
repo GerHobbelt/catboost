@@ -30,9 +30,6 @@ namespace {
         void Reopen(bool flush) {
             TGuard<TMutex> g(Mutex);
             for (auto& b : Backends) {
-                if (typeid(*b) == typeid(TLogBackend)) {
-                    continue;
-                }
                 if (flush) {
                     b->ReopenLog();
                 } else {

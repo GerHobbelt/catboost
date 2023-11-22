@@ -36,7 +36,7 @@ TMetricsPlotCalcer::TMetricsPlotCalcer(
     ui32 last,
     ui32 step,
     ui32 processIterationStep,
-    NPar::ILocalExecutor* executor)
+    NPar::TLocalExecutor* executor)
     : Model(model)
     , Executor(*executor)
     , First(first)
@@ -466,7 +466,7 @@ TMetricsPlotCalcer CreateMetricCalcer(
     int processedIterationsStep,
     const TString& tmpDir,
     const TVector<THolder<IMetric>>& metrics,
-    NPar::ILocalExecutor* executor
+    NPar::TLocalExecutor* executor
 ) {
     if (model.ModelInfo.contains("params") &&
         ReadTJsonValue(model.ModelInfo.at("params")).Has("loss_function"))

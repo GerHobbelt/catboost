@@ -12,13 +12,8 @@ PEERDIR(
     library/cpp/colorizer
     library/cpp/getopt/small
     library/cpp/json
-    library/cpp/linear_regression
+    library/linear_regression
     library/cpp/threading/poor_man_openmp
 )
 
 END()
-
-RECURSE(
-    examples
-    main
-)

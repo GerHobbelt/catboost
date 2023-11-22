@@ -20,7 +20,7 @@
 
 
 namespace NPar {
-    class ILocalExecutor;
+    class TLocalExecutor;
 }
 
 
@@ -143,7 +143,7 @@ namespace NCB {
         const TFeaturesLayout& featuresLayout,
         const TQuantizedFeaturesInfo& quantizedFeaturesInfo,
         const TExclusiveFeaturesBundlingOptions& options,
-        NPar::ILocalExecutor* localExecutor
+        NPar::TLocalExecutor* localExecutor
     );
 }
 

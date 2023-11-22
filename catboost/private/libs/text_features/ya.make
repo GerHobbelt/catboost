@@ -8,6 +8,7 @@ SRCS(
     flatbuffers/text_processing_collection.fbs
     GLOBAL bm25.cpp
     GLOBAL bow.cpp
+    embedding_online_features.cpp
     feature_calcer.cpp
     GLOBAL naive_bayesian.cpp
     text_feature_calcers.cpp

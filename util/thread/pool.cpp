@@ -1,9 +1,7 @@
-#include <atomic>
-
 #include <util/system/defaults.h>
 
 #if defined(_unix_)
-    #include <pthread.h>
+#include <pthread.h>
 #endif
 
 #include <util/generic/vector.h>
@@ -18,6 +16,7 @@
 
 #include <util/system/event.h>
 #include <util/system/mutex.h>
+#include <util/system/atomic.h>
 #include <util/system/condvar.h>
 #include <util/system/thread.h>
 
@@ -35,7 +34,7 @@ namespace {
         {
         }
 
-        explicit operator bool() const {
+        explicit operator bool () const {
             return !ThreadName.empty();
         }
 
@@ -75,7 +74,7 @@ public:
         , Blocking(params.Blocking_)
         , Catching(params.Catching_)
         , Namer(params)
-        , ShouldTerminate(true)
+        , ShouldTerminate(1)
         , MaxQueueSize(0)
         , ThreadCountExpected(0)
         , ThreadCountReal(0)
@@ -97,7 +96,7 @@ public:
     }
 
     inline bool Add(IObjectInQueue* obj) {
-        if (ShouldTerminate.load()) {
+        if (AtomicGet(ShouldTerminate)) {
             return false;
         }
 
@@ -109,14 +108,14 @@ public:
         }
 
         with_lock (QueueMutex) {
-            while (MaxQueueSize > 0 && Queue.Size() >= MaxQueueSize && !ShouldTerminate.load()) {
+            while (MaxQueueSize > 0 && Queue.Size() >= MaxQueueSize && !AtomicGet(ShouldTerminate)) {
                 if (!Blocking) {
                     return false;
                 }
                 QueuePopCond.Wait(QueueMutex);
             }
 
-            if (ShouldTerminate.load()) {
+            if (AtomicGet(ShouldTerminate)) {
                 return false;
             }
 
@@ -146,7 +145,7 @@ public:
         return ThreadCountReal;
     }
 
-    inline void AtforkAction() noexcept Y_NO_SANITIZE("thread") {
+    inline void AtforkAction() noexcept {
         Forked = true;
     }
 
@@ -156,7 +155,7 @@ public:
 
 private:
     inline void Start(size_t num, size_t maxque) {
-        ShouldTerminate.store(false);
+        AtomicSet(ShouldTerminate, 0);
         MaxQueueSize = maxque;
         ThreadCountExpected = num;
 
@@ -173,7 +172,7 @@ private:
     }
 
     inline void Stop() {
-        ShouldTerminate.store(true);
+        AtomicSet(ShouldTerminate, 1);
 
         with_lock (QueueMutex) {
             QueuePopCond.BroadCast();
@@ -211,11 +210,11 @@ private:
             IObjectInQueue* job = nullptr;
 
             with_lock (QueueMutex) {
-                while (Queue.Empty() && !ShouldTerminate.load()) {
+                while (Queue.Empty() && !AtomicGet(ShouldTerminate)) {
                     QueuePushCond.Wait(QueueMutex);
                 }
 
-                if (ShouldTerminate.load() && Queue.Empty()) {
+                if (AtomicGet(ShouldTerminate) && Queue.Empty()) {
                     tsr.Destroy();
 
                     break;
@@ -263,7 +262,7 @@ private:
     TCondVar StopCond;
     TJobQueue Queue;
     TVector<TThreadRef> Tharr;
-    std::atomic<bool> ShouldTerminate;
+    TAtomic ShouldTerminate;
     size_t MaxQueueSize;
     size_t ThreadCountExpected;
     size_t ThreadCountReal;
@@ -289,14 +288,10 @@ private:
 
     private:
         void ChildAction() {
-            TTryGuard guard{ActionMutex};
-            // If you get an error here, it means you've used fork(2) in multi-threaded environment and probably created thread pools often.
-            // Don't use fork(2) in multi-threaded programs, don't create thread pools often.
-            // The mutex is locked after fork iff the fork(2) call was concurrent with RegisterObject / UnregisterObject in another thread.
-            Y_VERIFY(guard.WasAcquired(), "Failed to acquire ActionMutex after fork");
-
-            for (auto it = RegisteredObjects.Begin(); it != RegisteredObjects.End(); ++it) {
-                it->AtforkAction();
+            with_lock (ActionMutex) {
+                for (auto it = RegisteredObjects.Begin(); it != RegisteredObjects.End(); ++it) {
+                    it->AtforkAction();
+                }
             }
         }
 
@@ -353,7 +348,7 @@ size_t TThreadPool::GetMaxQueueSize() const noexcept {
 }
 
 bool TThreadPool::Add(IObjectInQueue* obj) {
-    Y_ENSURE_EX(Impl_.Get(), TThreadPoolException() << TStringBuf("mtp queue not started"));
+    Y_ENSURE_EX(Impl_.Get(), TThreadPoolException() << AsStringBuf("mtp queue not started"));
 
     if (Impl_->NeedRestart()) {
         Start(Impl_->GetThreadCountExpected(), Impl_->GetMaxQueueSize());
@@ -370,7 +365,7 @@ void TThreadPool::Stop() noexcept {
     Impl_.Destroy();
 }
 
-static std::atomic<long> MtpQueueCounter = 0;
+static TAtomic mtp_queue_counter = 0;
 
 class TAdaptiveThreadPool::TImpl {
 public:
@@ -431,7 +426,7 @@ public:
         , Free_(0)
         , IdleTime_(TDuration::Max())
     {
-        sprintf(Name_, "[mtp queue %ld]", ++MtpQueueCounter);
+        sprintf(Name_, "[mtp queue %ld]", (long)AtomicAdd(mtp_queue_counter, 1));
     }
 
     inline ~TImpl() {
@@ -458,7 +453,7 @@ public:
 
             Obj_ = obj;
 
-            Y_ENSURE_EX(!AllDone_, TThreadPoolException() << TStringBuf("adding to a stopped queue"));
+            Y_ENSURE_EX(!AllDone_, TThreadPoolException() << AsStringBuf("adding to a stopped queue"));
         }
 
         CondReady_.Signal();
@@ -475,16 +470,16 @@ public:
     }
 
     inline size_t Size() const noexcept {
-        return ThrCount_.load();
+        return (size_t)ThrCount_;
     }
 
 private:
     inline void IncThreadCount() noexcept {
-        ++ThrCount_;
+        AtomicAdd(ThrCount_, 1);
     }
 
     inline void DecThreadCount() noexcept {
-        --ThrCount_;
+        AtomicAdd(ThrCount_, -1);
     }
 
     inline void AddThreadNoLock() {
@@ -504,7 +499,7 @@ private:
 
         AllDone_ = true;
 
-        while (ThrCount_.load()) {
+        while (AtomicGet(ThrCount_)) {
             Mutex_.Release();
             CondReady_.Signal();
             Mutex_.Acquire();
@@ -539,7 +534,7 @@ private:
     TAdaptiveThreadPool* Parent_;
     const bool Catching;
     TThreadNamer Namer;
-    std::atomic<size_t> ThrCount_;
+    TAtomic ThrCount_;
     TMutex Mutex_;
     TCondVar CondReady_;
     TCondVar CondFree_;
@@ -557,10 +552,10 @@ TThreadPoolBase::TThreadPoolBase(const TParams& params)
 }
 
 #define DEFINE_THREAD_POOL_CTORS(type) \
-    type::type(const TParams& params)  \
-        : TThreadPoolBase(params)      \
-    {                                  \
-    }
+    type::type(const TParams& params) \
+        : TThreadPoolBase(params) \
+    { \
+    } \
 
 DEFINE_THREAD_POOL_CTORS(TThreadPool)
 DEFINE_THREAD_POOL_CTORS(TAdaptiveThreadPool)
@@ -569,7 +564,7 @@ DEFINE_THREAD_POOL_CTORS(TSimpleThreadPool)
 TAdaptiveThreadPool::~TAdaptiveThreadPool() = default;
 
 bool TAdaptiveThreadPool::Add(IObjectInQueue* obj) {
-    Y_ENSURE_EX(Impl_.Get(), TThreadPoolException() << TStringBuf("mtp queue not started"));
+    Y_ENSURE_EX(Impl_.Get(), TThreadPoolException() << AsStringBuf("mtp queue not started"));
 
     Impl_->Add(obj);
 
@@ -593,7 +588,7 @@ size_t TAdaptiveThreadPool::Size() const noexcept {
 }
 
 void TAdaptiveThreadPool::SetMaxIdleTime(TDuration interval) {
-    Y_ENSURE_EX(Impl_.Get(), TThreadPoolException() << TStringBuf("mtp queue not started"));
+    Y_ENSURE_EX(Impl_.Get(), TThreadPoolException() << AsStringBuf("mtp queue not started"));
 
     Impl_->SetMaxIdleTime(interval);
 }
@@ -607,7 +602,7 @@ TSimpleThreadPool::~TSimpleThreadPool() {
 }
 
 bool TSimpleThreadPool::Add(IObjectInQueue* obj) {
-    Y_ENSURE_EX(Slave_.Get(), TThreadPoolException() << TStringBuf("mtp queue not started"));
+    Y_ENSURE_EX(Slave_.Get(), TThreadPoolException() << AsStringBuf("mtp queue not started"));
 
     return Slave_->Add(obj);
 }
@@ -663,11 +658,11 @@ namespace {
 }
 
 void IThreadPool::SafeAdd(IObjectInQueue* obj) {
-    Y_ENSURE_EX(Add(obj), TThreadPoolException() << TStringBuf("can not add object to queue"));
+    Y_ENSURE_EX(Add(obj), TThreadPoolException() << AsStringBuf("can not add object to queue"));
 }
 
 void IThreadPool::SafeAddAndOwn(THolder<IObjectInQueue> obj) {
-    Y_ENSURE_EX(AddAndOwn(std::move(obj)), TThreadPoolException() << TStringBuf("can not add to queue and own"));
+    Y_ENSURE_EX(AddAndOwn(std::move(obj)), TThreadPoolException() << AsStringBuf("can not add to queue and own"));
 }
 
 bool IThreadPool::AddAndOwn(THolder<IObjectInQueue> obj) {

@@ -1,7 +1,8 @@
 #include "pool.h"
 
-#include <library/cpp/testing/unittest/registar.h>
+#include <library/cpp/unittest/registar.h>
 
+#include <util/stream/output.h>
 #include <util/random/fast.h>
 #include <util/system/spinlock.h>
 #include <util/system/thread.h>
@@ -117,7 +118,7 @@ Y_UNIT_TEST_SUITE(TThreadPoolTest) {
         q.Start(2);
         bool processed = false;
         bool destructed = false;
-        q.SafeAddAndOwn(MakeHolder<TThreadPoolTest::TOwnedTask>(processed, destructed));
+        q.SafeAddAndOwn(new TThreadPoolTest::TOwnedTask(processed, destructed));
         q.Stop();
 
         UNIT_ASSERT_C(processed, "Not processed");
@@ -185,10 +186,8 @@ Y_UNIT_TEST_SUITE(TThreadPoolTest) {
             name = TThread::CurrentThreadName();
         });
         pool.Stop();
-        if (TThread::CanGetCurrentThreadName()) {
-            UNIT_ASSERT_EQUAL(name, expectedName);
-            UNIT_ASSERT_UNEQUAL(TThread::CurrentThreadName(), expectedName);
-        }
+        UNIT_ASSERT_EQUAL(name, expectedName);
+        UNIT_ASSERT_UNEQUAL(TThread::CurrentThreadName(), expectedName);
     }
 
     Y_UNIT_TEST(TestFixedThreadName) {
@@ -224,9 +223,7 @@ Y_UNIT_TEST_SUITE(TThreadPoolTest) {
             });
         }
         pool.Stop();
-        if (TThread::CanGetCurrentThreadName()) {
-            UNIT_ASSERT_EQUAL(names, expectedNames);
-        }
+        UNIT_ASSERT_EQUAL(names, expectedNames);
     }
 
     Y_UNIT_TEST(TestEnumeratedThreadName) {

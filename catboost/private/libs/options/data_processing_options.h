@@ -4,7 +4,6 @@
 #include "enums.h"
 #include "binarization_options.h"
 #include "text_processing_options.h"
-#include "embedding_processing_options.h"
 #include "unimplemented_aware_option.h"
 
 #include <catboost/libs/helpers/sparse_array.h>
@@ -37,7 +36,6 @@ namespace NCatboostOptions {
         TOption<TBinarizationOptions> FloatFeaturesBinarization;
         TOption<TMap<ui32, TBinarizationOptions>> PerFloatFeatureQuantization;
         TOption<TTextProcessingOptions> TextProcessingOptions;
-        TOption<TEmbeddingProcessingOptions> EmbeddingProcessingOptions;
         TOption<ui32> ClassesCount;
         TOption<TVector<float>> ClassWeights;
         TOption<EAutoClassWeightsType> AutoClassWeights;
@@ -45,8 +43,6 @@ namespace NCatboostOptions {
 
         TOption<float> DevDefaultValueFractionToEnableSparseStorage; // 0 means sparse storage is disabled
         TOption<NCB::ESparseArrayIndexingType> DevSparseArrayIndexingType;
-        TOption<bool> ForceUnitAutoPairWeights;
-        TOption<float> EvalFraction;
 
         TGpuOnlyOption<EGpuCatFeaturesStorage> GpuCatFeaturesStorage;
         TCpuOnlyOption<bool> DevLeafwiseScoring;

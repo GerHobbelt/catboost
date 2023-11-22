@@ -14,5 +14,5 @@ namespace NCB {
         const TWeights<float>& itemWeights,
         ui32 classCount,
         EAutoClassWeightsType autoClassWeightsType,
-        NPar::ILocalExecutor* localExecutor);
+        NPar::TLocalExecutor* localExecutor);
 }

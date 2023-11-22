@@ -12,6 +12,7 @@ PEERDIR(
     catboost/idl/pool/proto
     catboost/libs/helpers
     catboost/private/libs/options
+    catboost/private/libs/quantization
     library/cpp/json
 )
 

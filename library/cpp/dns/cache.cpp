@@ -38,7 +38,7 @@ namespace {
 
     struct THashResolveInfo {
         inline size_t operator()(const TResolveInfo& ri) const {
-            return ComputeHash(ri.Host) ^ ri.Port;
+            return ri.Host.hash() ^ ri.Port;
         }
     };
 
@@ -123,7 +123,7 @@ namespace {
                 na = ThreadedResolve(host, rt.Info.Port);
             } else {
                 Y_ASSERT(0);
-                throw yexception() << TStringBuf("invalid resolve method");
+                throw yexception() << AsStringBuf("invalid resolve method");
             }
 
             return new TResolvedHost(originalHost, *na);
@@ -174,7 +174,7 @@ namespace {
         }
     };
 
-    inline IDns* ThrDns() {
+    static inline IDns* ThrDns() {
         return FastTlsSingleton<TThreadedDns>();
     }
 }

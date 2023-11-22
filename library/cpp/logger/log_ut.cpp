@@ -1,6 +1,6 @@
 #include "all.h"
 
-#include <library/cpp/testing/unittest/registar.h>
+#include <library/cpp/unittest/registar.h>
 
 #include <util/system/fs.h>
 #include <util/system/rwlock.h>
@@ -18,7 +18,6 @@ class TLogTest: public TTestBase {
     UNIT_TEST(TestThreaded)
     UNIT_TEST(TestThreadedWithOverflow)
     UNIT_TEST(TestNoFlush)
-    UNIT_TEST(TestMetaFlags)
     UNIT_TEST_SUITE_END();
 
 private:
@@ -28,7 +27,6 @@ private:
     void TestThreaded();
     void TestThreadedWithOverflow();
     void TestNoFlush();
-    void TestMetaFlags();
     void SetUp() override;
     void TearDown() override;
 };
@@ -64,7 +62,7 @@ void TLogTest::TestFile() {
 void TLogTest::TestThreaded() {
     {
         TFileLogBackend fb(LOGFILE);
-        TLog log(THolder(new TThreadedLogBackend(&fb)));
+        TLog log(new TThreadedLogBackend(&fb));
 
         int v1 = 12;
         unsigned v2 = 34;
@@ -108,7 +106,7 @@ void TLogTest::TestThreadedWithOverflow() {
 
     TFakeLogBackend fb;
     {
-        TLog log(THolder(new TThreadedLogBackend(&fb, 2)));
+        TLog log(new TThreadedLogBackend(&fb, 2));
 
         auto guard = fb.Guard();
         log.AddLog("first write");
@@ -120,7 +118,7 @@ void TLogTest::TestThreadedWithOverflow() {
 
     {
         ui32 overflows = 0;
-        TLog log(THolder(new TThreadedLogBackend(&fb, 2, [&overflows] { ++overflows; })));
+        TLog log(new TThreadedLogBackend(&fb, 2, [&overflows] { ++overflows; }));
 
         auto guard = fb.Guard();
         log.AddLog("first write");
@@ -136,7 +134,7 @@ void TLogTest::TestThreadedWithOverflow() {
 void TLogTest::TestNoFlush() {
     {
         TFileLogBackend fb(LOGFILE);
-        TLog log(THolder(new TThreadedLogBackend(&fb)));
+        TLog log(new TThreadedLogBackend(&fb));
 
         int v1 = 12;
         unsigned v2 = 34;
@@ -156,7 +154,7 @@ void TLogTest::TestFormat() {
     TStringStream data;
 
     {
-        TLog log(THolder(new TStreamLogBackend(&data)));
+        TLog log(new TStreamLogBackend(&data));
 
         log << "qw"
             << " "
@@ -171,7 +169,7 @@ void TLogTest::TestWrite() {
     TString test;
 
     {
-        TLog log(THolder(new TStreamLogBackend(&data)));
+        TLog log(new TStreamLogBackend(&data));
 
         for (size_t i = 0; i < 1000; ++i) {
             TVector<char> buf(i, (char)i);
@@ -182,33 +180,6 @@ void TLogTest::TestWrite() {
     }
 
     UNIT_ASSERT_EQUAL(data.Str(), test);
-}
-
-void TLogTest::TestMetaFlags() {
-    class TTestLogBackendStub: public TLogBackend {
-    public:
-        TTestLogBackendStub(TLogRecord::TMetaFlags& data)
-            : Data_(data)
-        {
-        }
-
-        void WriteData(const TLogRecord& record) override {
-            Data_ = record.MetaFlags;
-        }
-
-        void ReopenLog() override {
-        }
-
-    private:
-        TLogRecord::TMetaFlags& Data_;
-    };
-
-    TLogRecord::TMetaFlags metaFlags;
-    TLog log(MakeHolder<TTestLogBackendStub>(metaFlags));
-    log.Write(ELogPriority::TLOG_INFO, TString("message"), {{"key", "value"}});
-
-    TLogRecord::TMetaFlags expected{{"key", "value"}};
-    UNIT_ASSERT_EQUAL(metaFlags, expected);
 }
 
 void TLogTest::SetUp() {

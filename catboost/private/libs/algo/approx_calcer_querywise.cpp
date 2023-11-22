@@ -19,7 +19,7 @@ void CalculateDersForQueries(
     int queryEndIndex,
     TArrayRef<TDers> approxDers,
     ui64 randomSeed,
-    NPar::ILocalExecutor* localExecutor
+    NPar::TLocalExecutor* localExecutor
 ) {
     if (!approxesDelta.empty()) {
         TVector<double> fullApproxes;
@@ -103,7 +103,7 @@ void AddLeafDersForQueries(
     ELeavesEstimation estimationMethod,
     int recalcLeafWeights,
     TVector<TSum>* buckets,
-    NPar::ILocalExecutor* localExecutor
+    NPar::TLocalExecutor* localExecutor
 ) {
     const int leafCount = buckets->ysize();
 

@@ -1,5 +1,17 @@
+#include <util/generic/chartraits.h>
+
 #include "nlptypes.h"
 #include "token_structure.h"
+
+template <typename TChr>
+static size_t FindFirstOf(const TChr* s, size_t len, const TChr* set) {
+    size_t n = 0;
+    for (; *s && n < len; ++s, ++n) {
+        if (TCharTraits<TChr>::Find(set, *s))
+            break;
+    }
+    return n;
+}
 
 template <typename TChr>
 static NLP_TYPE GuessTypeByWordT(const TChr* w, size_t len) {
@@ -18,18 +30,17 @@ static NLP_TYPE GuessTypeByWordT(const TChr* w, size_t len) {
     };
     EState state = G_START;
 
-    static const TChr DIGITS[] =  {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 0};
-    static const TBasicStringBuf<TChr> DIGITS_BUF{DIGITS};
+    static const TChr DIGITS[] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 0};
 
     for (unsigned i = 0; i < len; ++i) {
         TChr c = w[i];
-        bool bIsDigit = DIGITS_BUF.Contains(c);
+        bool bIsDigit = TCharTraits<TChr>::Find(DIGITS, c);
         switch (state) {
             case G_START:
                 if (bIsDigit)
                     state = G_INT;
                 else {
-                    if (TBasicStringBuf<TChr>(w, len).find_first_of(DIGITS_BUF) >= len)
+                    if (FindFirstOf(w, len, DIGITS) >= len)
                         return NLP_WORD;
                     else
                         return NLP_MARK;

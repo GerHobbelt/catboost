@@ -41,11 +41,6 @@ namespace NCatboostOptions {
             IsSetFlag = true;
         }
 
-        void Reset() {
-            Value = DefaultValue;
-            IsSetFlag = false;
-        }
-
         virtual const TValue& Get() const {
             return Value;
         }

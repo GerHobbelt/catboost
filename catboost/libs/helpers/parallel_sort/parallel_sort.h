@@ -65,7 +65,7 @@ namespace NCB {
     inline void ParallelMergeSort(
         TCompare cmp,
         TVector<TElement>* elements,
-        NPar::ILocalExecutor* localExecutor,
+        NPar::TLocalExecutor* localExecutor,
         TVector<TElement>* buf = nullptr
     ) {
         if (elements->size() <= 1u) {

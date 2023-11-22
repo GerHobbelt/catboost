@@ -5,7 +5,6 @@
 
 #include <util/string/builder.h>
 #include <util/string/cast.h>
-#include <util/generic/fwd.h>
 #include <util/string/split.h>
 #include <util/string/vector.h>
 #include <util/string/strip.h>
@@ -99,16 +98,6 @@ double NCatboostOptions::GetAlpha(const TLossDescription& lossFunctionConfig) {
     return GetAlpha(lossParams);
 }
 
-TVector<double> NCatboostOptions::GetAlphaMultiQuantile(const TMap<TString, TString>& lossParams) {
-    const TString median("0.5");
-    const TStringBuf alphaParam(lossParams.contains("alpha") ? lossParams.at("alpha") : median);
-    TVector<double> alpha;
-    for (const auto& value : StringSplitter(alphaParam).Split(',').SkipEmpty()) {
-        alpha.emplace_back(FromString<double>(value.Token()));
-    }
-    return alpha;
-}
-
 double NCatboostOptions::GetAlphaQueryCrossEntropy(const TMap<TString, TString>& lossParams) {
     return GetParamOrDefault(lossParams, "alpha", 0.95);
 }
@@ -116,64 +105,6 @@ double NCatboostOptions::GetAlphaQueryCrossEntropy(const TMap<TString, TString>&
 double NCatboostOptions::GetAlphaQueryCrossEntropy(const TLossDescription& lossFunctionConfig) {
     const auto& lossParams = lossFunctionConfig.GetLossParamsMap();
     return GetAlphaQueryCrossEntropy(lossParams);
-}
-
-void NCatboostOptions::GetApproxScaleQueryCrossEntropy(
-    const TLossDescription& lossFunctionConfig,
-    TVector<float>* approxScale,
-    ui32* approxScaleSize,
-    float* defaultScale
-) {
-    const auto formatErrorMessage = "raw_values_scale should be space separated list of "
-        "items group_size,true_count:scale where true_count <= group_size. "
-        "If group_size = 0, scale is default scale for non-listed sizes and counts. "
-        "If all group_size > 0, default scale is 1.";
-
-    const auto& lossParams = lossFunctionConfig.GetLossParamsMap();
-    const auto& rawValuesScale = GetParamOrDefault(lossParams, "raw_values_scale", TString());
-    const TVector<TStringBuf> tokens = StringSplitter(rawValuesScale).Split(' ');
-
-    if (tokens.empty() || (tokens.size() == 1 && tokens[0].empty())) {
-        *approxScaleSize = 0;
-        *defaultScale = 1;
-        approxScale->clear();
-        return;
-    }
-
-    TVector<ui32> groupSizes;
-    TVector<ui32> trueCounts;
-    TVector<float> scales;
-    for (const auto& token : tokens) {
-        const TVector<TString> idxScale = StringSplitter(token).Split(':').Limit(2);
-        CB_ENSURE(idxScale.size() == 2, formatErrorMessage);
-        const TVector<TString> idx = StringSplitter(idxScale[0]).Split(',').Limit(2);
-        CB_ENSURE(idx.size() == 2, formatErrorMessage);
-        groupSizes.emplace_back();
-        trueCounts.emplace_back();
-        scales.emplace_back();
-        CB_ENSURE(
-            TryFromString<ui32>(idx[0], groupSizes.back())
-            && TryFromString<ui32>(idx[1], trueCounts.back())
-            && trueCounts.back() <= groupSizes.back(),
-            formatErrorMessage);
-        CB_ENSURE(TryFromString<float>(idxScale[1], scales.back()), formatErrorMessage);
-    }
-    *approxScaleSize = SafeIntegerCast<ui32>(*MaxElement(groupSizes.begin(), groupSizes.end()));
-    if (*approxScaleSize == 0) {
-        *defaultScale = scales[0];
-        approxScale->clear();
-        return;
-    }
-    *approxScaleSize += 1;
-    *defaultScale = 1;
-    const auto defaultScaleIdx = FindIndex(groupSizes, 0);
-    if (defaultScaleIdx != NPOS) {
-        *defaultScale = scales[defaultScaleIdx];
-    }
-    approxScale->resize(*approxScaleSize * *approxScaleSize, *defaultScale);
-    for (auto idx : xrange(groupSizes.size())) {
-        (*approxScale)[groupSizes[idx] * *approxScaleSize + trueCounts[idx]] = scales[idx];
-    }
 }
 
 int NCatboostOptions::GetYetiRankPermutations(const TLossDescription& lossFunctionConfig) {
@@ -187,7 +118,8 @@ double NCatboostOptions::GetYetiRankDecay(const TLossDescription& lossFunctionCo
     Y_ASSERT(
         lossFunctionConfig.GetLossFunction() == ELossFunction::YetiRank ||
         lossFunctionConfig.GetLossFunction() == ELossFunction::YetiRankPairwise);
-    return GetParamOrDefault(lossFunctionConfig, "decay", 0.85);
+    //TODO(nikitxskv): try to find the best default
+    return GetParamOrDefault(lossFunctionConfig, "decay", 0.99);
 }
 
 double NCatboostOptions::GetLqParam(const TLossDescription& lossFunctionConfig) {
@@ -207,19 +139,6 @@ double NCatboostOptions::GetHuberParam(const TLossDescription& lossFunctionConfi
 double NCatboostOptions::GetQuerySoftMaxLambdaReg(const TLossDescription& lossFunctionConfig) {
     Y_ASSERT(lossFunctionConfig.GetLossFunction() == ELossFunction::QuerySoftMax);
     return GetParamOrDefault(lossFunctionConfig, "lambda", 0.01);
-}
-
-double NCatboostOptions::GetQuerySoftMaxBeta(const TMap<TString, TString>& lossParams) {
-    return GetParamOrDefault(lossParams, "beta", 1.0);
-}
-
-double NCatboostOptions::GetQuerySoftMaxBeta(const TLossDescription& lossFunctionConfig) {
-    Y_ASSERT(lossFunctionConfig.GetLossFunction() == ELossFunction::QuerySoftMax);
-    return GetParamOrDefault(lossFunctionConfig, "beta", 1.0);
-}
-
-EAucType NCatboostOptions::GetAucType(const TMap<TString, TString>& lossParams) {
-    return GetParamOrDefault(lossParams, "type", EAucType::Classic);
 }
 
 ui32 NCatboostOptions::GetMaxPairCount(const TLossDescription& lossFunctionConfig) {
@@ -390,11 +309,10 @@ NJson::TJsonValue LossDescriptionToJson(const TStringBuf lossDescriptionRaw) {
 TString BuildMetricOptionDescription(const NJson::TJsonValue& lossOptions) {
     TString paramType = StripString(ToString(lossOptions["type"]), EqualsStripAdapter('"'));
     paramType += ":";
-    TLossParams lossParams;
-    NCatboostOptions::TJsonFieldHelper<TLossParams, false>::Read(lossOptions["params"], &lossParams);
-    const auto& paramsMap = lossParams.GetParamsMap();
-    for (const auto& paramName : lossParams.GetUserSpecifiedKeyOrder()) {
-        const TString& paramValue = StripString(paramsMap.at(paramName), EqualsStripAdapter('"'));
+
+    for (const auto& elem : lossOptions["params"].GetMap()) {
+        const TString& paramName = elem.first;
+        const TString& paramValue = StripString(ToString(elem.second), EqualsStripAdapter('"'));
         paramType += paramName + "=" + paramValue + ";";
     }
 
@@ -405,7 +323,6 @@ TString BuildMetricOptionDescription(const NJson::TJsonValue& lossOptions) {
 
 static bool IsFromAucFamily(ELossFunction loss) {
     return loss == ELossFunction::AUC
-        || loss == ELossFunction::QueryAUC
         || loss == ELossFunction::NormalizedGini;
 }
 
@@ -415,7 +332,7 @@ void CheckMetric(const ELossFunction metric, const ELossFunction modelLoss) {
     }
 
     CB_ENSURE(
-        (IsMultiTargetObjective(modelLoss) && IsMultiTargetMetric(metric)) || (!IsMultiTargetObjective(modelLoss) && !IsMultiTargetOnlyMetric(metric)),
+        IsMultiRegressionMetric(metric) == IsMultiRegressionMetric(modelLoss),
         "metric [" + ToString(metric) + "] and loss [" + ToString(modelLoss) + "] are incompatible"
     );
 
