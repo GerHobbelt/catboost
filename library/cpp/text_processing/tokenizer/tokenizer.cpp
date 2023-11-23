@@ -1,11 +1,14 @@
 #include "tokenizer.h"
 
+#include <library/cpp/cache/cache.h>
 #include <library/cpp/tokenizer/tokenizer.h>
 
+#include <util/generic/maybe.h>
 #include <util/string/split.h>
-#include <util/string/join.h>
 #include <util/string/strip.h>
 #include <util/string/type.h>
+#include <util/system/spinlock.h>
+#include <util/system/guard.h>
 
 using namespace NTextProcessing;
 using NTextProcessing::NTokenizer::ESubTokensPolicy;
@@ -13,6 +16,46 @@ using NTextProcessing::NTokenizer::EImplementationType;
 using NTextProcessing::NTokenizer::ILemmerImplementation;
 using NTextProcessing::NTokenizer::TLemmerImplementationFactory;
 
+
+namespace {
+    class TStringCapacity {
+    public:
+        size_t operator()(const TUtf16String& s) const {
+            return sizeof(typename TUtf16String::value_type) * s.capacity();
+        }
+    };
+
+    class TLemmerWithCache : public ILemmerImplementation {
+        using TLemmerCache = TLRUCache<TUtf16String, TUtf16String, TNoopDelete, TStringCapacity>;
+    public:
+        TLemmerWithCache(THolder<ILemmerImplementation> lemmer, size_t cacheSize)
+            : Lemmer(std::move(lemmer))
+            , LemmerCache(cacheSize)
+        {
+        }
+
+        void Lemmatize(TUtf16String* token) const override {
+            with_lock (Lock) {
+                auto it = LemmerCache.Find(*token);
+                if (it != LemmerCache.End()) {
+                    *token = *it;
+                    return;
+                }
+            }
+
+            const auto key = *token;
+            Lemmer->Lemmatize(token);
+            with_lock (Lock) {
+                LemmerCache.Insert(key, *token);
+            }
+        }
+
+    private:
+        THolder<ILemmerImplementation> Lemmer;
+        mutable TAdaptiveLock Lock;
+        mutable TLemmerCache LemmerCache;
+    };
+}
 
 static NTokenizer::ETokenType ConvertTokenType(NLP_TYPE tokenType) {
     switch (tokenType) {
@@ -104,7 +147,7 @@ namespace {
                     }
                 } else if (tokenType == NTokenizer::ETokenType::Punctuation) {
                     TString token(WideToUTF8(rawToken.Token, rawToken.Leng));
-                    Strip(token);
+                    StripInPlace(token);
                     if (!token.empty()) {
                         AddTokenInfo(std::move(token), tokenType);
                     }
@@ -217,12 +260,16 @@ NTokenizer::TTokenizer::TTokenizer()
 
 void NTokenizer::TTokenizer::Initialize() {
     if (TLemmerImplementationFactory::Has(EImplementationType::YandexSpecific)) {
-        Lemmer = TLemmerImplementationFactory::Construct(EImplementationType::YandexSpecific, Options.Languages);
+        Lemmer.Reset(TLemmerImplementationFactory::Construct(EImplementationType::YandexSpecific, Options.Languages));
     } else {
         Y_ENSURE(TLemmerImplementationFactory::Has(EImplementationType::Trivial),
             "Lemmer implementation factory should have open source implementation.");
         Y_ENSURE(!Options.Lemmatizing, "Lemmer isn't implemented yet.");
-        Lemmer = TLemmerImplementationFactory::Construct(EImplementationType::Trivial, {});
+        Lemmer.Reset(TLemmerImplementationFactory::Construct(EImplementationType::Trivial, {}));
+    }
+
+    if (Options.LemmerCacheSize != 0) {
+        Lemmer.Reset(new TLemmerWithCache(std::move(Lemmer), Options.LemmerCacheSize));
     }
 
     NeedToModifyTokensFlag |= Options.SeparatorType == NTokenizer::ESeparatorType::BySense;
@@ -241,6 +288,7 @@ void NTokenizer::TTokenizer::Tokenize(
     TVector<TString>* tokens,
     TVector<NTokenizer::ETokenType>* tokenTypes
 ) const {
+    Y_ASSERT(tokens);
     tokens->clear();
     if (tokenTypes) {
         tokenTypes->clear();

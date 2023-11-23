@@ -4,6 +4,8 @@
 #include "option.h"
 #include "unimplemented_aware_option.h"
 
+#include <catboost/libs/helpers/exception.h>
+
 #include <util/generic/vector.h>
 #include <util/system/types.h>
 
@@ -96,15 +98,25 @@ namespace NCatboostOptions {
         TString GetRocOutputPath() const;
 
         void SetAllowWriteFiles(bool flag) {
+            if (!flag) {
+                CB_ENSURE(!SaveSnapshot(), "Can't disable writing files because saving snapshots is enabled");
+            }
             AllowWriteFilesFlag.Set(flag);
         }
 
         void SetSaveSnapshotFlag(bool flag) {
+            if (flag) {
+                CB_ENSURE(AllowWriteFiles(), "Can't enable saving snapshots because writing files is disabled");
+            }
             SaveSnapshotFlag.Set(flag);
         }
 
         void SetMetricPeriod(ui32 period) {
             MetricPeriod.Set(period);
+        }
+
+        bool IsMetricPeriodSet() const {
+            return MetricPeriod.IsSet();
         }
 
         void SetTrainDir(const TString& trainDir) {

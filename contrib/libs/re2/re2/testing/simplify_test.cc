@@ -7,7 +7,8 @@
 #include <string.h>
 #include <string>
 
-#include "util/test.h"
+#include "absl/base/macros.h"
+#include "gtest/gtest.h"
 #include "util/logging.h"
 #include "re2/regexp.h"
 
@@ -125,7 +126,7 @@ static Test tests[] = {
   // explicit (?:) in place of non-parenthesized empty strings,
   // to make them easier to spot for other parsers.
   { "(a|b|)", "([a-b]|(?:))" },
-  { "(|)", "()" },
+  { "(|)", "((?:)|(?:))" },
   { "a()", "a()" },
   { "(()|())", "(()|())" },
   { "(a|)", "(a|(?:))" },
@@ -138,6 +139,22 @@ static Test tests[] = {
   { "(){1}", "()" },
   { "(){1,}", "()+" },
   { "(){0,2}", "(?:()()?)?" },
+
+  // For an empty-width op OR a concatenation or alternation of empty-width
+  // ops, test that the repetition count is capped at 1.
+  { "(?:^){0,}", "^*" },            // x{0,} -> x*
+  { "(?:$){28,}", "$+" },           // x{N,} -> x{1,} -> x+
+  { "(?-m:^){0,30}", "(?-m:^)?" },  // x{0,N} -> x{0,1} -> x?
+  { "(?-m:$){28,30}", "(?-m:$)" },  // x{N,M} -> x{1,1} -> x
+  { "\\b(?:\\b\\B){999}\\B", "\\b\\b\\B\\B" },
+  { "\\b(?:\\b|\\B){999}\\B", "\\b(?:\\b|\\B)\\B" },
+  // NonGreedy should also be handled.
+  { "(?:^){0,}?", "^*?" },
+  { "(?:$){28,}?", "$+?" },
+  { "(?-m:^){0,30}?", "(?-m:^)??" },
+  { "(?-m:$){28,30}?", "(?-m:$)" },
+  { "\\b(?:\\b\\B){999}?\\B", "\\b\\b\\B\\B" },
+  { "\\b(?:\\b|\\B){999}?\\B", "\\b(?:\\b|\\B)\\B" },
 
   // Test that coalescing occurs and that the resulting repeats are simplified.
   // Two-op combinations of *, +, ?, {n}, {n,} and {n,m} with a literal:
@@ -245,20 +262,20 @@ static Test tests[] = {
 };
 
 TEST(TestSimplify, SimpleRegexps) {
-  for (int i = 0; i < arraysize(tests); i++) {
+  for (size_t i = 0; i < ABSL_ARRAYSIZE(tests); i++) {
     RegexpStatus status;
     VLOG(1) << "Testing " << tests[i].regexp;
     Regexp* re = Regexp::Parse(tests[i].regexp,
                                Regexp::MatchNL | (Regexp::LikePerl &
                                                   ~Regexp::OneLine),
                                &status);
-    CHECK(re != NULL) << " " << tests[i].regexp << " " << status.Text();
+    ASSERT_TRUE(re != NULL) << " " << tests[i].regexp << " " << status.Text();
     Regexp* sre = re->Simplify();
-    CHECK(sre != NULL);
+    ASSERT_TRUE(sre != NULL);
 
     // Check that already-simple regexps don't allocate new ones.
     if (strcmp(tests[i].regexp, tests[i].simplified) == 0) {
-      CHECK(re == sre) << " " << tests[i].regexp
+      ASSERT_TRUE(re == sre) << " " << tests[i].regexp
         << " " << re->ToString() << " " << sre->ToString();
     }
 

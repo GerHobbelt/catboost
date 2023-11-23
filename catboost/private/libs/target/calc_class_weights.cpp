@@ -20,7 +20,7 @@ static std::function<float(ui64, ui64)> GetWeightFunction(EAutoClassWeightsType 
                     sqrt(maxSummaryClassWeight / summaryClassWeight) : 1.f;
             };
         case EAutoClassWeightsType::None:
-            Y_VERIFY(false);
+            CB_ENSURE(false, "Unexcepted auto class weights type");
     }
 }
 
@@ -28,12 +28,12 @@ static TVector<float> CalculateSummaryClassWeight(
     TConstArrayRef<float> targetClasses,
     const NCB::TWeights<float>& itemWeights,
     ui32 classCount,
-    NPar::TLocalExecutor* localExecutor
+    NPar::ILocalExecutor* localExecutor
 ) {
     const int numThreads = localExecutor->GetThreadCount() + 1;
     TVector<TVector<double>> summaryClassWeightsPerBlock(numThreads, TVector<double>(classCount, 0.));
 
-    NPar::TLocalExecutor::TExecRangeParams params{0, targetClasses.ysize()};
+    NPar::ILocalExecutor::TExecRangeParams params{0, targetClasses.ysize()};
     params.SetBlockCount(numThreads);
     localExecutor->ExecRange(
         [&](int i) {
@@ -58,9 +58,9 @@ namespace NCB {
         const TWeights<float>& itemWeights,
         ui32 classCount,
         EAutoClassWeightsType autoClassWeightsType,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
     ) {
-        Y_VERIFY(classCount > 0);
+        CB_ENSURE(classCount > 0, "Class count should be > 0");
         TVector<float> summaryClassWeights = CalculateSummaryClassWeight(
             targetClasses,
             itemWeights,
@@ -68,7 +68,7 @@ namespace NCB {
             localExecutor
         );
 
-        Y_VERIFY(summaryClassWeights.size() == classCount);
+        CB_ENSURE(summaryClassWeights.size() == classCount, "Number of classes and class weights mismatch");
 
         CATBOOST_INFO_LOG << "Class weights type: " << autoClassWeightsType << Endl;
         TVector<float> classWeights;

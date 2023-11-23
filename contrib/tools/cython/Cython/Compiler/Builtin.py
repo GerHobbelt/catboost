@@ -203,7 +203,7 @@ builtin_function_table = [
     #('raw_input', "",     "",      ""),
     #('reduce',    "",     "",      ""),
     BuiltinFunction('reload',     "O",    "O",     "PyImport_ReloadModule"),
-    BuiltinFunction('repr',       "O",    "O",     "PyObject_Repr", builtin_return_type='str'),
+    BuiltinFunction('repr',       "O",    "O",     "PyObject_Repr"),  # , builtin_return_type='str'),  # add in Cython 3.1
     #('round',     "",     "",      ""),
     BuiltinFunction('setattr',    "OOO",  "r",     "PyObject_SetAttr"),
     #('sum',       "",     "",      ""),
@@ -271,12 +271,10 @@ builtin_types_table = [
                                     ]),
     ("bytearray", "PyByteArray_Type", [
                                     ]),
-    ("bytes",   "PyBytes_Type",    [BuiltinMethod("__contains__",  "TO",   "b", "PySequence_Contains"),
-                                    BuiltinMethod("join",  "TO",   "O", "__Pyx_PyBytes_Join",
+    ("bytes",   "PyBytes_Type",    [BuiltinMethod("join",  "TO",   "O", "__Pyx_PyBytes_Join",
                                                   utility_code=UtilityCode.load("StringJoin", "StringTools.c")),
                                     ]),
-    ("str",     "PyString_Type",   [BuiltinMethod("__contains__",  "TO",   "b", "PySequence_Contains"),
-                                    BuiltinMethod("join",  "TO",   "O", "__Pyx_PyString_Join",
+    ("str",     "PyString_Type",   [BuiltinMethod("join",  "TO",   "O", "__Pyx_PyString_Join",
                                                   builtin_return_type='basestring',
                                                   utility_code=UtilityCode.load("StringJoin", "StringTools.c")),
                                     ]),
@@ -284,11 +282,9 @@ builtin_types_table = [
                                     BuiltinMethod("join",  "TO",   "T", "PyUnicode_Join"),
                                     ]),
 
-    ("tuple",   "PyTuple_Type",    [BuiltinMethod("__contains__",  "TO",   "b", "PySequence_Contains"),
-                                    ]),
+    ("tuple",   "PyTuple_Type",    []),
 
-    ("list",    "PyList_Type",     [BuiltinMethod("__contains__",  "TO",   "b", "PySequence_Contains"),
-                                    BuiltinMethod("insert",  "TzO",  "r", "PyList_Insert"),
+    ("list",    "PyList_Type",     [BuiltinMethod("insert",  "TzO",  "r", "PyList_Insert"),
                                     BuiltinMethod("reverse", "T",    "r", "PyList_Reverse"),
                                     BuiltinMethod("append",  "TO",   "r", "__Pyx_PyList_Append",
                                                   utility_code=UtilityCode.load("ListAppend", "Optimize.c")),
@@ -326,8 +322,7 @@ builtin_types_table = [
                                     ]),
 #    ("file",    "PyFile_Type",     []),  # not in Py3
 
-    ("set",       "PySet_Type",    [BuiltinMethod("__contains__",  "TO",   "b", "PySequence_Contains"),
-                                    BuiltinMethod("clear",   "T",  "r", "PySet_Clear"),
+    ("set",       "PySet_Type",    [BuiltinMethod("clear",   "T",  "r", "PySet_Clear"),
                                     # discard() and remove() have a special treatment for unhashable values
                                     BuiltinMethod("discard", "TO", "r", "__Pyx_PySet_Discard",
                                                   utility_code=UtilityCode.load("py_set_discard", "Optimize.c")),
@@ -422,9 +417,10 @@ def init_builtins():
     init_builtin_types()
     init_builtin_funcs()
 
-    builtin_scope.declare_var(
+    entry = builtin_scope.declare_var(
         '__debug__', PyrexTypes.c_const_type(PyrexTypes.c_bint_type),
-        pos=None, cname='(!Py_OptimizeFlag)', is_cdef=True)
+        pos=None, cname='__pyx_assertions_enabled()', is_cdef=True)
+    entry.utility_code = UtilityCode.load_cached("AssertionsEnabled", "Exceptions.c")
 
     global list_type, tuple_type, dict_type, set_type, frozenset_type
     global bytes_type, str_type, unicode_type, basestring_type, slice_type

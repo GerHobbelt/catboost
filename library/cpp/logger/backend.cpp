@@ -24,12 +24,15 @@ namespace {
                     return;
                 }
             }
-            Y_FAIL("Incorrect pointer for log backend");
+            Y_ABORT("Incorrect pointer for log backend");
         }
 
         void Reopen(bool flush) {
             TGuard<TMutex> g(Mutex);
             for (auto& b : Backends) {
+                if (typeid(*b) == typeid(TLogBackend)) {
+                    continue;
+                }
                 if (flush) {
                     b->ReopenLog();
                 } else {

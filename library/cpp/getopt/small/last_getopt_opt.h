@@ -4,12 +4,15 @@
 #include "last_getopt_handlers.h"
 
 #include <util/string/split.h>
+#include <util/generic/hash_set.h>
 #include <util/generic/ptr.h>
 #include <util/generic/string.h>
 #include <util/generic/maybe.h>
 #include <util/generic/vector.h>
 #include <util/string/cast.h>
+#include <util/string/join.h>
 
+#include <optional>
 #include <stdarg.h>
 
 namespace NLastGetopt {
@@ -62,6 +65,7 @@ namespace NLastGetopt {
 
         EHasArg HasArg_ = DEFAULT_HAS_ARG; // the argument parsing politics
         bool Required_ = false;            // option existence politics
+        bool EqParseOnly_ = false;             // allows option not to read argument
 
         bool AllowMultipleCompletion_ = false; // let the completer know that this option can occur more than once
 
@@ -78,6 +82,7 @@ namespace NLastGetopt {
         TdOptVal OptionalValue_;
         TdOptVal DefaultValue_;
         TOptHandlers Handlers_;
+        THashSet<TString> Choices_;
 
     public:
         /**
@@ -286,6 +291,23 @@ namespace NLastGetopt {
         }
 
         /**
+         *  allow only --option=arg parsing and disable --option arg
+         *  @return self
+         */
+        TOpt& DisableSpaceParse() {
+            Y_ASSERT(GetHasArg() == OPTIONAL_ARGUMENT || GetHasArg() == REQUIRED_ARGUMENT);
+            EqParseOnly_ = true;
+            return *this;
+        }
+
+        /**
+         *  @return true if only --option=arg parse allowed
+         */
+        bool IsEqParseOnly() const {
+            return EqParseOnly_;
+        }
+
+        /**
          *  sets the option to be optional
          *  @return self
          */
@@ -377,6 +399,10 @@ namespace NLastGetopt {
          */
         const TString& GetHelp() const {
             return Help_;
+        }
+
+        TString GetChoicesHelp() const {
+            return JoinSeq(", ", Choices_);
         }
 
         /**
@@ -604,6 +630,17 @@ namespace NLastGetopt {
             return StoreResultT<T>(target);
         }
 
+        // Uses TMaybe<T> to store FromString<T>(arg)
+        template <typename T>
+        TOpt& StoreResult(TMaybe<T>* target) {
+            return StoreResultT<T>(target);
+        }
+
+        template <typename T>
+        TOpt& StoreResult(std::optional<T>* target) {
+            return StoreResultT<T>(target);
+        }
+
         template <typename TpVal, typename T, typename TpDef>
         TOpt& StoreResultT(T* target, const TpDef& def) {
             return Handler1T<TpVal>(def, NPrivate::TStoreResultFunctor<T, TpVal>(target));
@@ -667,20 +704,32 @@ namespace NLastGetopt {
         }
 
         // Appends FromString<T>(arg) to *target for each argument
-        template <typename T>
-        TOpt& AppendTo(TVector<T>* target) {
-            return Handler1T<T>([target](auto&& value) { target->push_back(std::move(value)); });
+        template<class Container>
+        TOpt& AppendTo(Container* target) {
+            return Handler1T<typename Container::value_type>([target](auto&& value) { target->push_back(std::forward<decltype(value)>(value)); });
         }
 
         // Appends FromString<T>(arg) to *target for each argument
         template <typename T>
         TOpt& InsertTo(THashSet<T>* target) {
-            return Handler1T<T>([target](auto&& value) { target->insert(std::move(value)); });
+            return Handler1T<T>([target](auto&& value) { target->insert(std::forward<decltype(value)>(value)); });
+        }
+
+        // Appends FromString<T>(arg) to *target for each argument
+        template <class Container>
+        TOpt& InsertTo(Container* target) {
+            return Handler1T<typename Container::value_type>([target](auto&& value) { target->insert(std::forward<decltype(value)>(value)); });
         }
 
         // Emplaces TString arg to *target for each argument
         template <typename T>
         TOpt& EmplaceTo(TVector<T>* target) {
+            return Handler1T<TString>([target](TString arg) { target->emplace_back(std::move(arg)); } );
+        }
+
+        // Emplaces TString arg to *target for each argument
+        template <class Container>
+        TOpt& EmplaceTo(Container* target) {
             return Handler1T<TString>([target](TString arg) { target->emplace_back(std::move(arg)); } );
         }
 
@@ -697,6 +746,41 @@ namespace NLastGetopt {
         template <class TpFunc>
         TOpt& KVHandler(TpFunc func, const char kvdelim = '=') {
             return Handler(new NLastGetopt::TOptKVHandler<TpFunc>(func, kvdelim));
+        }
+
+        template <typename TIterator>
+        TOpt& Choices(TIterator begin, TIterator end) {
+            return Choices(THashSet<typename TIterator::value_type>{begin, end});
+        }
+
+        template <typename TValue>
+        TOpt& Choices(THashSet<TValue> choices) {
+            Choices_ = std::move(choices);
+            return Handler1T<TValue>(
+                [this] (const TValue& arg) {
+                    if (!Choices_.contains(arg)) {
+                        throw TUsageException() << " value '" << arg
+                                                << "' is not allowed for option '" << GetName() << "'";
+                    }
+                });
+        }
+
+        TOpt& Choices(TVector<TString> choices) {
+            return Choices(
+                THashSet<TString>{
+                    std::make_move_iterator(choices.begin()),
+                    std::make_move_iterator(choices.end())
+                });
+        }
+
+        TOpt& ChoicesWithCompletion(TVector<NComp::TChoice> choices) {
+            Completer(NComp::Choice(choices));
+            THashSet<TString> choicesSet;
+            choicesSet.reserve(choices.size());
+            for (const auto& choice : choices) {
+                choicesSet.insert(choice.Choice);
+            }
+            return Choices(std::move(choicesSet));
         }
     };
 

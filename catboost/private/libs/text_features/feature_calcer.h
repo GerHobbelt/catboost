@@ -9,7 +9,7 @@
 #include <catboost/libs/helpers/flatbuffers/guid.fbs.h>
 #include <catboost/private/libs/text_features/flatbuffers/feature_calcers.fbs.h>
 
-#include <library/object_factory/object_factory.h>
+#include <library/cpp/object_factory/object_factory.h>
 #include <util/generic/ptr.h>
 #include <util/generic/guid.h>
 #include <util/stream/input.h>
@@ -32,11 +32,11 @@ namespace NCB {
         }
 
         virtual void Save(IOutputStream*) const {
-            Y_FAIL("Serialization not allowed");
+            CB_ENSURE(false, "Serialization not allowed");
         };
 
         virtual void Load(IInputStream*) {
-            Y_FAIL("Deserialization not allowed");
+            CB_ENSURE(false, "Deserialization not allowed");
         };
 
         virtual void TrimFeatures(TConstArrayRef<ui32> featureIndices) = 0;
@@ -48,14 +48,33 @@ namespace NCB {
 
     class TOutputFloatIterator {
     public:
-        TOutputFloatIterator(float* data, ui64 size);
-        TOutputFloatIterator(float* data, ui64 step, ui64 size);
+        inline TOutputFloatIterator(float* data, ui64 size)
+            : DataPtr(data)
+            , EndPtr(data + size)
+            , Step(1) {}
 
-        float& operator*();
-        TOutputFloatIterator& operator++();
-        const TOutputFloatIterator operator++(int);
+        inline TOutputFloatIterator(float* data, ui64 step, ui64 size)
+            : DataPtr(data)
+            , EndPtr(data + size)
+            , Step(step) {}
 
-        bool IsValid();
+        inline float& operator*() {
+            Y_ASSERT(IsValid());
+            return *DataPtr;
+        }
+        inline TOutputFloatIterator& operator++() {
+            Y_ASSERT(IsValid());
+            DataPtr += Step;
+            return *this;
+        }
+        inline const TOutputFloatIterator operator++(int) {
+            TOutputFloatIterator tmp(*this);
+            operator++();
+            return tmp;
+        }
+        inline bool IsValid() const {
+            return DataPtr < EndPtr;
+        }
 
     private:
         float* DataPtr;
@@ -128,7 +147,7 @@ namespace NCB {
         };
 
         template <class F>
-        void ForEachActiveFeature(F&& func) const {
+        inline void ForEachActiveFeature(F&& func) const {
             for (ui32 featureId: GetActiveFeatureIndices()) {
                 func(featureId);
             }

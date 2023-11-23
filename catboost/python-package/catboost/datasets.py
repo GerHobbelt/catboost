@@ -8,6 +8,9 @@ import tempfile
 import six
 import shutil
 
+from .core import PATH_TYPES, fspath
+
+
 logger = logging.getLogger(__name__)
 
 
@@ -70,14 +73,14 @@ _cache_path = None
 def _get_cache_path():
     global _cache_path
     if _cache_path is None:
-         _cache_path = os.path.join(os.getcwd(), 'catboost_cached_datasets')
+        _cache_path = os.path.join(os.getcwd(), 'catboost_cached_datasets')
     return _cache_path
 
 
 def set_cache_path(path):
-    assert isinstance(path, str), 'expected string'
+    assert isinstance(path, PATH_TYPES), 'expected string or pathlib.Path'
     global _cache_path
-    _cache_path = path
+    _cache_path = fspath(path)
 
 
 def _download_dataset(url, md5, dataset_name, train_file, test_file, cache=False):
@@ -184,6 +187,13 @@ def rotten_tomatoes():
     return _load_dataset_pd(url, md5, dataset_name, train_file, test_file, sep='\t')
 
 
+def imdb():
+    url = 'https://catboost-opensource.s3.yandex.net/imdb.tar.gz'
+    md5 = '0fd62578d631ac3d71a71c3e6ced6f8b'
+    dataset_name, train_file, test_file = 'imdb', 'learn.tsv', 'test.tsv'
+    return _load_dataset_pd(url, md5, dataset_name, train_file, test_file, sep='\t')
+
+
 def epsilon():
     """
     Download "epsilon" [1] data set.
@@ -265,11 +275,11 @@ def adult():
         'relationship', 'race', 'sex', 'capital-gain', 'capital-loss', 'hours-per-week',
         'native-country', 'income', )
     dtype = {
-        'age': np.float, 'workclass': np.object, 'fnlwgt': np.float, 'education': np.object,
-        'education-num': np.float, 'marital-status': np.object, 'occupation': np.object,
-        'relationship': np.object, 'race': np.object, 'sex': np.object, 'capital-gain': np.float,
-        'capital-loss': np.float, 'hours-per-week': np.float,
-        'native-country': np.object, 'income': np.object, }
+        'age': float, 'workclass': object, 'fnlwgt': float, 'education': object,
+        'education-num': float, 'marital-status': object, 'occupation': object,
+        'relationship': object, 'race': object, 'sex': object, 'capital-gain': float,
+        'capital-loss': float, 'hours-per-week': float,
+        'native-country': object, 'income': object, }
 
     # proxy.sandbox.yandex-team.ru is Yandex internal storage, we first try to download it from
     # internal storage to avoid putting too much pressure on UCI storage from our internal CI
@@ -288,11 +298,11 @@ def adult():
     test_path = tempfile.mktemp()
     _cached_download(test_urls, test_md5, test_path)
 
-    train_df = pd.read_csv(train_path, names=names, header=None, sep=',\s*', na_values=['?'], engine='python')
+    train_df = pd.read_csv(train_path, names=names, header=None, sep=r',\s*', na_values=['?'], engine='python')
     os.remove(train_path)
 
     # lines in test part end with dot, thus we need to fix last column of the dataset
-    test_df = pd.read_csv(test_path, names=names, header=None, sep=',\s*', na_values=['?'], skiprows=1, converters={'income': lambda x: x[:-1]}, engine='python')
+    test_df = pd.read_csv(test_path, names=names, header=None, sep=r',\s*', na_values=['?'], skiprows=1, converters={'income': lambda x: x[:-1]}, engine='python')
     os.remove(test_path)
 
     # pandas 0.19.1 doesn't support `dtype` parameter for `read_csv` when `python` engine is used,

@@ -1,5 +1,5 @@
 // -*- C++ -*-
-//===---------------------------- locale.h --------------------------------===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -35,14 +35,18 @@ Functions:
 
 #include <__config>
 
+#if defined(_LIBCPP_HAS_NO_LOCALIZATION)
+#   error "<locale.h> is not supported since libc++ has been configured without support for localization."
+#endif
+
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#pragma GCC system_header
+#  pragma GCC system_header
 #endif
 
 #ifdef _LIBCPP_COMPILER_MSVC
-#include _LIBCPP_UCRT_INCLUDE(locale.h)
+#include Y_UCRT_INCLUDE_NEXT(locale.h)
 #else
 #include_next <locale.h>
 #endif
 
-#endif  // _LIBCPP_LOCALE_H
+#endif // _LIBCPP_LOCALE_H

@@ -6,7 +6,9 @@
 #include <catboost/libs/train_lib/train_model.h>
 #include <catboost/private/libs/text_features/ut/lib/text_features_data.h>
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
+
+#include <util/generic/ymath.h>
 
 using namespace NCB;
 using namespace NCB::NModelEvaluation;
@@ -80,11 +82,12 @@ Y_UNIT_TEST_SUITE(TObliviousTreeModel) {
 
     Y_UNIT_TEST(TestFlatCalcFloatWithScaleAndBias) {
         auto model = SimpleFloatModel();
-        model.SetScaleAndBias({0.5, 0.125});
+        model.SetScaleAndBias({0.5, {0.125}});
         auto norm = model.GetScaleAndBias();
         TVector<double> expectedPredicts;
+        double bias = norm.GetOneDimensionalBias();
         for (int sampleId : xrange(8)) {
-            expectedPredicts.push_back(sampleId * norm.Scale + norm.Bias);
+            expectedPredicts.push_back(sampleId * norm.Scale + bias);
         }
         CheckFlatCalcResult(model, expectedPredicts, xrange<ui32>(8));
         model.ModelTrees.GetMutable()->ConvertObliviousToAsymmetric();
@@ -142,6 +145,25 @@ Y_UNIT_TEST_SUITE(TObliviousTreeModel) {
         CheckFlatCalcResult(model, expectedPredicts, xrange(4), features);
     }
 
+    Y_UNIT_TEST(TestFlatCalcMultiValMultiProba) {
+        auto model = MultiValueFloatModel();
+        constexpr size_t DocCount = 4;
+        TConstArrayRef<TConstArrayRef<float>> features(FLOAT_FEATURES.begin(), DocCount);
+        TVector<double> expectedProbs = {
+            Sigmoid(00.), Sigmoid(10.), Sigmoid(20.),
+            Sigmoid(01.), Sigmoid(11.), Sigmoid(21.),
+            Sigmoid(02.), Sigmoid(12.), Sigmoid(22.),
+            Sigmoid(03.), Sigmoid(13.), Sigmoid(23.),
+        };
+        auto customEval = model.GetCurrentEvaluator()->Clone();
+        customEval->SetPredictionType(NCB::NModelEvaluation::EPredictionType::MultiProbability);
+        TVector<double> probs(model.GetDimensionsCount() * DocCount, 0);
+        customEval->Calc<TStringBuf>(features, {}, probs);
+        for (auto i : xrange(model.GetDimensionsCount() * DocCount)) {
+            UNIT_ASSERT_DOUBLES_EQUAL(expectedProbs[i], probs[i], 1.0e-6);
+        }
+    }
+
     Y_UNIT_TEST(TestCatOnlyModel) {
         const auto model = TrainCatOnlyModel();
 
@@ -174,7 +196,7 @@ Y_UNIT_TEST_SUITE(TObliviousTreeModel) {
             ui32 treeIndex = estimatedFeatureId;
             model.Calc(
                 {},
-                {},
+                TConstArrayRef<TVector<TStringBuf>>{},
                 transposedTextFeatures,
                 treeIndex,
                 treeIndex + 1,
@@ -193,7 +215,7 @@ Y_UNIT_TEST_SUITE(TObliviousTreeModel) {
 
     Y_UNIT_TEST(TestTextOnlyModel) {
         TVector<NCBTest::TTextFeature> features;
-        TVector<NCBTest::TTokenizedTextFeature> tokenizedFeatures;
+        TMap<ui32, NCBTest::TTokenizedTextFeature> tokenizedFeatures;
         TVector<TDigitizer> digitizers;
         TVector<TTextFeatureCalcerPtr> calcers;
         TVector<TVector<ui32>> perFeatureDigitizers;

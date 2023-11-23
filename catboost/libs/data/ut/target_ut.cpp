@@ -1,5 +1,6 @@
 #include "util.h"
 
+#include <catboost/libs/data/pairs.h>
 #include <catboost/libs/data/target.h>
 
 #include <catboost/libs/data/ut/lib/for_target.h>
@@ -7,6 +8,7 @@
 #include <catboost/libs/data/util.h>
 
 #include <catboost/libs/helpers/matrix.h>
+#include <catboost/libs/helpers/maybe.h>
 #include <catboost/libs/helpers/vector_helpers.h>
 
 #include <util/generic/hash.h>
@@ -15,7 +17,7 @@
 
 #include <utility>
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 
 using namespace NCB;
@@ -43,6 +45,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
             MakeIntrusive<TObjectsGrouping>(objectCount),
             std::move(rawTargetData),
             false,
+            false,
             &localExecutor
         );
     }
@@ -57,6 +60,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
         return TRawTargetDataProvider(
             MakeIntrusive<TObjectsGrouping>(TVector<TGroupBounds>(groupBounds)),
             std::move(rawTargetData),
+            false,
             false,
             &localExecutor
         );
@@ -76,7 +80,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
 
         auto rawTargetDataProvider = CreateProviderSimple(rawTarget.size(), rawTargetData);
 
-        const TVector<TString>* rawTargetStringData = GetIf<TVector<TString>>(
+        const TVector<TString>* rawTargetStringData = std::get_if<TVector<TString>>(
             *rawTargetDataProvider.GetOneDimensionalTarget()
         );
         UNIT_ASSERT(rawTargetStringData);
@@ -95,7 +99,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
 
         auto rawTargetDataProvider = CreateProviderSimple(objectCount, rawTargetData);
 
-        const ITypedSequencePtr<float>* rawTargetFloatData = GetIf<ITypedSequencePtr<float>>(
+        const ITypedSequencePtr<float>* rawTargetFloatData = std::get_if<ITypedSequencePtr<float>>(
             *rawTargetDataProvider.GetOneDimensionalTarget()
         );
         UNIT_ASSERT(rawTargetFloatData);
@@ -160,7 +164,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
                     UNIT_ASSERT_VALUES_EQUAL(targetData.size(), target.size());
 
                     for (auto i : xrange(target.size())) {
-                        UNIT_ASSERT_EQUAL(Get<TVector<TString>>(targetData[i]), target[i]);
+                        UNIT_ASSERT_EQUAL(std::get<TVector<TString>>(targetData[i]), target[i]);
                     }
                 }
             }
@@ -508,11 +512,17 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
                 {
                     TRawTargetData rawTargetData;
                     rawTargetData.SetTrivialWeights(5);
-                    rawTargetData.Pairs = pairs;
+                    rawTargetData.Pairs = TRawPairsData(pairs);
 
                     auto rawTargetDataProvider = CreateProviderSimple(groupBounds, rawTargetData);
 
-                    UNIT_ASSERT(EqualAsMultiSets(rawTargetDataProvider.GetPairs(), pairs));
+                    UNIT_ASSERT(
+                        Equal(
+                            rawTargetDataProvider.GetPairs(),
+                            TMaybeData<TRawPairsData>(pairs),
+                            EqualWithoutOrder
+                        )
+                    );
                 }
 
                 // check Set
@@ -526,7 +536,13 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
 
                     rawTargetDataProvider.SetPairs(pairs);
 
-                    UNIT_ASSERT(EqualAsMultiSets(rawTargetDataProvider.GetPairs(), pairs));
+                    UNIT_ASSERT(
+                        Equal(
+                            rawTargetDataProvider.GetPairs(),
+                            TMaybeData<TRawPairsData>(pairs),
+                            EqualWithoutOrder
+                        )
+                    );
                 }
             }
         }
@@ -543,7 +559,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
                 {
                     TRawTargetData rawTargetData;
                     rawTargetData.SetTrivialWeights(5);
-                    rawTargetData.Pairs = pairs;
+                    rawTargetData.Pairs = TRawPairsData(pairs);
 
                     UNIT_ASSERT_EXCEPTION(
                         CreateProviderSimple(groupBounds, rawTargetData),
@@ -593,7 +609,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
             rawTargetData.GroupWeights = TWeights<float>(
                 {1.0f, 3.0f, 2.0f, 2.1f, 2.1f, 2.1f, 0.0f, 1.1f, 1.1f}
             );
-            rawTargetData.Pairs = {TPair(7, 8, 0.0f), TPair(3, 5, 1.0f), TPair(3, 4, 2.0f)};
+            rawTargetData.Pairs = TFlatPairsInfo{TPair(7, 8, 0.0f), TPair(3, 5, 1.0f), TPair(3, 4, 2.0f)};
 
             rawTargetDataVector.push_back(rawTargetData);
         }
@@ -651,7 +667,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
             rawTargetData.Baseline = {{0.3f, 0.2f, 0.35f, 0.8f}};
             rawTargetData.Weights = TWeights<float>({2.0f, 3.0f, 0.0f, 1.0f});
             rawTargetData.GroupWeights = TWeights<float>({2.0f, 2.1f, 2.1f, 2.1f});
-            rawTargetData.Pairs = {TPair(1, 3, 1.0f), TPair(1, 2, 2.0f)};
+            rawTargetData.Pairs = TFlatPairsInfo{TPair(1, 3, 1.0f), TPair(1, 2, 2.0f)};
 
             expectedResults[TExpectedMapIndex(1, 1)] = std::make_pair(
                 rawTargetData,
@@ -670,6 +686,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
                 TRawTargetDataProvider rawTargetDataProvider(
                     targetDataGroupingVector[rawTargetDataIdx],
                     std::move(rawTargetData),
+                    false,
                     false,
                     &localExecutor
                 );
@@ -692,6 +709,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
                     expectedSubsetGrouping,
                     std::move(expectedSubsetRawTargetData),
                     false,
+                    false,
                     &localExecutor
                 );
 
@@ -709,7 +727,11 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
 #undef COMPARE_DATA_PROVIDER_FIELD
 
                 UNIT_ASSERT(
-                    EqualAsMultiSets(subsetDataProvider.GetPairs(), expectedSubsetDataProvider.GetPairs())
+                    Equal(
+                        subsetDataProvider.GetPairs(),
+                        expectedSubsetDataProvider.GetPairs(),
+                        EqualWithoutOrder
+                    )
                 );
 
                 UNIT_ASSERT_EQUAL(
@@ -751,7 +773,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
             rawTargetData.GroupWeights = TWeights<float>(
                 {1.0f, 3.0f, 2.0f, 2.1f, 2.1f, 2.1f, 0.0f, 1.1f, 1.1f}
             );
-            rawTargetData.Pairs = {TPair(7, 8, 0.0f), TPair(3, 5, 1.0f), TPair(3, 4, 2.0f)};
+            rawTargetData.Pairs = TFlatPairsInfo{TPair(7, 8, 0.0f), TPair(3, 5, 1.0f), TPair(3, 4, 2.0f)};
 
             rawTargetDataVector.push_back(rawTargetData);
         }
@@ -812,7 +834,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
             rawTargetData.Baseline = {{0.3f, 0.2f, 0.35f, 0.8f}};
             rawTargetData.Weights = TWeights<float>({2.0f, 3.0f, 0.0f, 1.0f});
             rawTargetData.GroupWeights = TWeights<float>({2.0f, 2.1f, 2.1f, 2.1f});
-            rawTargetData.Pairs = {TPair(1, 3, 1.0f), TPair(1, 2, 2.0f)};
+            rawTargetData.Pairs = TFlatPairsInfo{TPair(1, 3, 1.0f), TPair(1, 2, 2.0f)};
 
             expectedResults[TExpectedMapIndex(1, 1)] = std::make_pair(
                 rawTargetData,
@@ -831,6 +853,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
                 TRawTargetDataProvider rawTargetDataProvider(
                     targetDataGroupingVector[rawTargetDataIdx],
                     std::move(rawTargetData),
+                    false,
                     false,
                     &localExecutor
                 );
@@ -853,6 +876,7 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
                     expectedSubsetGrouping,
                     std::move(expectedSubsetRawTargetData),
                     false,
+                    false,
                     &localExecutor
                 );
 
@@ -870,7 +894,11 @@ Y_UNIT_TEST_SUITE(TRawTargetData) {
 #undef COMPARE_DATA_PROVIDER_FIELD
 
                 UNIT_ASSERT(
-                    EqualAsMultiSets(subsetDataProvider.GetPairs(), expectedSubsetDataProvider.GetPairs())
+                    Equal(
+                        subsetDataProvider.GetPairs(),
+                        expectedSubsetDataProvider.GetPairs(),
+                        EqualWithoutOrder
+                    )
                 );
 
                 UNIT_ASSERT_EQUAL(

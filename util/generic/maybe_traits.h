@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <type_traits>
 #include <initializer_list>
 
@@ -9,14 +10,24 @@ namespace NMaybe {
     template <class T, bool = std::is_trivially_destructible<T>::value>
     struct TStorageBase {
         constexpr TStorageBase() noexcept
-            : NullState_('\0') {}
+            : NullState_('\0')
+        {
+        }
 
         template <class... Args>
         constexpr TStorageBase(TInPlace, Args&&... args)
             : Data_(std::forward<Args>(args)...)
-            , Defined_(true) {}
+            , Defined_(true)
+        {
+        }
+
+        constexpr TStorageBase(TStorageBase&&) = default;
+        constexpr TStorageBase(const TStorageBase&) = default;
 
         ~TStorageBase() = default;
+
+        TStorageBase& operator=(const TStorageBase&) = default;
+        TStorageBase& operator=(TStorageBase&&) = default;
 
         union {
             char NullState_;
@@ -28,18 +39,28 @@ namespace NMaybe {
     template <class T>
     struct TStorageBase<T, false> {
         constexpr TStorageBase() noexcept
-            : NullState_('\0') {}
+            : NullState_('\0')
+        {
+        }
 
         template <class... Args>
         constexpr TStorageBase(TInPlace, Args&&... args)
             : Data_(std::forward<Args>(args)...)
-            , Defined_(true) {}
+            , Defined_(true)
+        {
+        }
+
+        constexpr TStorageBase(TStorageBase&&) = default;
+        constexpr TStorageBase(const TStorageBase&) = default;
 
         ~TStorageBase() {
             if (this->Defined_) {
                 this->Data_.~T();
             }
         }
+
+        TStorageBase& operator=(const TStorageBase&) = default;
+        TStorageBase& operator=(TStorageBase&&) = default;
 
         union {
             char NullState_;
@@ -51,12 +72,12 @@ namespace NMaybe {
     // -------------------- COPY CONSTRUCT --------------------
 
     template <class T, bool = std::is_trivially_copy_constructible<T>::value>
-    struct TCopyBase : TStorageBase<T> {
+    struct TCopyBase: TStorageBase<T> {
         using TStorageBase<T>::TStorageBase;
     };
 
     template <class T>
-    struct TCopyBase<T, false> : TStorageBase<T>  {
+    struct TCopyBase<T, false>: TStorageBase<T> {
         using TStorageBase<T>::TStorageBase;
 
         constexpr TCopyBase() = default;
@@ -74,12 +95,12 @@ namespace NMaybe {
     // -------------------- MOVE CONSTRUCT --------------------
 
     template <class T, bool = std::is_trivially_move_constructible<T>::value>
-    struct TMoveBase : TCopyBase<T> {
+    struct TMoveBase: TCopyBase<T> {
         using TCopyBase<T>::TCopyBase;
     };
 
     template <class T>
-    struct TMoveBase<T, false> : TCopyBase<T> {
+    struct TMoveBase<T, false>: TCopyBase<T> {
         using TCopyBase<T>::TCopyBase;
 
         constexpr TMoveBase() noexcept = default;
@@ -97,12 +118,12 @@ namespace NMaybe {
     // -------------------- COPY ASSIGN --------------------
 
     template <class T, bool = std::is_trivially_copy_assignable<T>::value>
-    struct TCopyAssignBase : TMoveBase<T> {
+    struct TCopyAssignBase: TMoveBase<T> {
         using TMoveBase<T>::TMoveBase;
     };
 
     template <class T>
-    struct TCopyAssignBase<T, false> : TMoveBase<T> {
+    struct TCopyAssignBase<T, false>: TMoveBase<T> {
         using TMoveBase<T>::TMoveBase;
 
         constexpr TCopyAssignBase() noexcept = default;
@@ -127,13 +148,13 @@ namespace NMaybe {
 
     // -------------------- MOVE ASSIGN --------------------
 
-    template <class T, bool = std::is_trivially_copy_assignable<T>::value>
-    struct TMoveAssignBase : TCopyAssignBase<T> {
+    template <class T, bool = std::is_trivially_move_assignable<T>::value>
+    struct TMoveAssignBase: TCopyAssignBase<T> {
         using TCopyAssignBase<T>::TCopyAssignBase;
     };
 
     template <class T>
-    struct TMoveAssignBase<T, false> : TCopyAssignBase<T> {
+    struct TMoveAssignBase<T, false>: TCopyAssignBase<T> {
         using TCopyAssignBase<T>::TCopyAssignBase;
 
         constexpr TMoveAssignBase() noexcept = default;
@@ -141,8 +162,8 @@ namespace NMaybe {
         constexpr TMoveAssignBase(TMoveAssignBase&&) = default;
         TMoveAssignBase& operator=(const TMoveAssignBase&) = default;
         TMoveAssignBase& operator=(TMoveAssignBase&& rhs) noexcept(
-            std::is_nothrow_move_assignable<T>::value &&
-            std::is_nothrow_move_constructible<T>::value)
+            std::is_nothrow_move_assignable<T>::value&&
+                std::is_nothrow_move_constructible<T>::value)
         {
             if (this->Defined_) {
                 if (rhs.Defined_) {

@@ -54,6 +54,8 @@ namespace NCatboostCuda {
         TStripeBuffer<float> Histograms;
         TStripeBuffer<const TCBinFeature> BinFeatures;
 
+        TMirrorBuffer<float> FeatureWeights;
+
         //existed leaves
         TVector<TLeaf> Leaves; //existed leaves
 
@@ -62,15 +64,15 @@ namespace NCatboostCuda {
         }
 
         TStripeBuffer<const TDataPartition> CurrentParts() const {
-            return NCudaLib::ParallelStripeView(Partitions, TSlice(0, Leaves.size()));
+            return NCudaLib::ParallelStripeView(Partitions, TSlice(0, Leaves.size())).AsConstBuf();
         }
 
         TStripeBuffer<const double> CurrentPartStats() const {
-            return NCudaLib::ParallelStripeView(PartitionStats, TSlice(0, Leaves.size()));
+            return NCudaLib::ParallelStripeView(PartitionStats, TSlice(0, Leaves.size())).AsConstBuf();
         }
 
         NCudaLib::TCudaBuffer<const TDataPartition, NCudaLib::TStripeMapping, NCudaLib::EPtrType::CudaHost> CurrentPartsCpu() const {
-            return NCudaLib::ParallelStripeView(PartitionsCpu, TSlice(0, Leaves.size()));
+            return NCudaLib::ParallelStripeView(PartitionsCpu, TSlice(0, Leaves.size())).AsConstBuf();
         }
     };
 
@@ -94,7 +96,8 @@ namespace NCatboostCuda {
         }
 
         TPointsSubsets CreateInitialSubsets(TOptimizationTarget&& target,
-                                            ui32 maxLeaves);
+                                            ui32 maxLeaves,
+                                            TConstArrayRef<float> featureWeights);
 
         /* Lazy call on demand */
         void BuildNecessaryHistograms(TPointsSubsets* subsets);

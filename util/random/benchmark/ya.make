@@ -1,6 +1,0 @@
-
-
-RECURSE(
-    prng
-    prng/metrics
-)

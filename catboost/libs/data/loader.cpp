@@ -1,10 +1,13 @@
 #include "baseline.h"
 #include "loader.h"
+#include "pairs_data_loaders.h"
 
 #include <catboost/libs/column_description/column.h>
 #include <catboost/libs/helpers/exception.h>
 #include <catboost/libs/helpers/mem_usage.h>
 #include <catboost/libs/helpers/vector_helpers.h>
+
+#include <library/cpp/containers/flat_hash/flat_hash.h>
 
 #include <util/charset/unidata.h>
 #include <util/generic/algorithm.h>
@@ -56,102 +59,30 @@ namespace NCB {
     }
 
 
-    static TVector<TPair> ReadPairs(const TPathWithScheme& filePath, ui64 docCount, TDatasetSubset loadSubset) {
-        THolder<ILineDataReader> reader = GetLineDataReader(filePath);
-
-        TVector<TPair> pairs;
-        TString line;
-        for (size_t lineNumber = 0; reader->ReadLine(&line); lineNumber++) {
-            TVector<TString> tokens = StringSplitter(line).Split('\t');
-            if (tokens.empty()) {
-                continue;
-            }
-            try {
-                CB_ENSURE(tokens.ysize() == 2 || tokens.ysize() == 3,
-                    "Each line should have two or three columns. This line has " << tokens.size()
-                );
-                TPair pair;
-
-                size_t tokenIdx = 0;
-                auto parseIdFunc = [&](TStringBuf description, ui32* id) {
-                    CB_ENSURE(
-                        TryFromString(tokens[tokenIdx], *id),
-                        "Invalid " << description << " index: cannot parse as nonnegative index ("
-                        << tokens[tokenIdx] << ')'
-                    );
-                    *id -= loadSubset.Range.Begin;
-                    if (*id < loadSubset.GetSize()) {
-                        CB_ENSURE(
-                            *id < docCount,
-                            "Invalid " << description << " index (" << *id << "): not less than number of samples"
-                            " (" << docCount << ')'
-                        );
-                    }
-                    ++tokenIdx;
-                };
-                parseIdFunc(AsStringBuf("Winner"), &pair.WinnerId);
-                parseIdFunc(AsStringBuf("Loser"), &pair.LoserId);
-
-                pair.Weight = 1.0f;
-                if (tokens.ysize() == 3) {
-                    CB_ENSURE(
-                        TryFromString(tokens[2], pair.Weight),
-                        "Invalid weight: cannot parse as float (" << tokens[2] << ')'
-                    );
-                }
-                if (pair.WinnerId < loadSubset.GetSize() && pair.LoserId < loadSubset.GetSize()) {
-                    pairs.push_back(std::move(pair));
-                } else {
-                    CB_ENSURE(
-                        pair.WinnerId >= loadSubset.GetSize() && pair.LoserId >= loadSubset.GetSize(),
-                        "Load subset " << loadSubset.Range << " must contain loser "
-                        << pair.LoserId + loadSubset.Range.Begin << " and winner " << pair.WinnerId + loadSubset.Range.Begin
-                    );
-                }
-            } catch (const TCatBoostException& e) {
-                throw TCatBoostException() << "Incorrect file with pairs. Invalid line number #" << lineNumber
-                    << ": " << e.what();
-            }
-        }
-
-        return pairs;
-    }
-
     static TVector<TVector<float>> ReadBaseline(const TPathWithScheme& filePath, ui64 docCount, TDatasetSubset loadSubset, const TVector<TString>& classNames) {
-        TBaselineReader reader(filePath, classNames);
+        THolder<IBaselineReader> reader = GetProcessor<IBaselineReader, TBaselineReaderArgs>(
+            filePath,
+            TBaselineReaderArgs{filePath, classNames, loadSubset.Range}
+        );
 
-        TString line;
-
-        TVector<ui32> tokenIndexes = reader.GetBaselineIndexes();
+        auto baselineCount = reader->GetBaselineCount();
 
         TVector<TVector<float>> baseline;
-        ResizeRank2(tokenIndexes.size(), docCount, baseline);
-        ui32 lineNumber = 0;
-        auto addBaselineFunc = [&baseline, &lineNumber, &loadSubset](ui32 approxIdx, float value) {
-            baseline[approxIdx][lineNumber - loadSubset.Range.Begin] = value;
-        };
+        ResizeRank2(baselineCount, docCount, baseline);
 
-        for (; reader.ReadLine(&line); lineNumber++) {
-            if (lineNumber < loadSubset.Range.Begin) {
-                continue;
+        TObjectBaselineData baselineData;
+        ui64 objectIdx = 0;
+        ui32 objectCount = 0;
+
+        for (; reader->Read(&baselineData, &objectIdx); objectCount++) {
+            for (auto approxIdx : xrange(baselineCount)) {
+                baseline[approxIdx][objectIdx] = baselineData.Baseline[approxIdx];
             }
-            if (lineNumber >= loadSubset.Range.End) {
-                break;
-            }
-            reader.Parse(addBaselineFunc, line, lineNumber - loadSubset.Range.Begin);
         }
-        CB_ENSURE(lineNumber - loadSubset.Range.Begin == docCount,
+        CB_ENSURE(objectCount == docCount,
             "Expected " << docCount << " lines in baseline file starting at offset " << loadSubset.Range.Begin
-            << " got " << lineNumber - loadSubset.Range.Begin);
+            << " got " << objectCount);
         return baseline;
-    }
-
-    namespace {
-        enum class EReadLocation {
-            BeforeSubset,
-            InSubset,
-            AfterSubset
-        };
     }
 
     static TVector<float> ReadGroupWeights(
@@ -162,12 +93,9 @@ namespace NCB {
     ) {
         Y_UNUSED(loadSubset);
         CB_ENSURE(groupIds.size() == docCount, "GroupId count should correspond to object count.");
-        TVector<float> groupWeights;
-        groupWeights.reserve(docCount);
-        ui64 groupIdCursor = 0;
-        EReadLocation readLocation = EReadLocation::BeforeSubset;
         THolder<ILineDataReader> reader = GetLineDataReader(filePath);
         TString line;
+        THashMap<TGroupId, float> groupWeightsByGroupId;
         for (size_t lineNumber = 0; reader->ReadLine(&line); lineNumber++) {
             try {
                 TVector<TString> tokens = StringSplitter(line).Split('\t');
@@ -180,38 +108,19 @@ namespace NCB {
                     TryFromString(tokens[1], groupWeight),
                     "Invalid group weight: cannot parse as float (" << tokens[1] << ')'
                 );
-
-                if (readLocation == EReadLocation::BeforeSubset) {
-                    if (groupId != groupIds[groupIdCursor]) {
-                        continue;
-                    }
-                    readLocation = EReadLocation::InSubset;
-                }
-                if (readLocation == EReadLocation::InSubset) {
-                    if (groupIdCursor < docCount) {
-                        ui64 groupSize = 0;
-                        CB_ENSURE(
-                            groupId == groupIds[groupIdCursor],
-                            "GroupId from the file with group weights does not match GroupId from the dataset; "
-                            LabeledOutput(groupId, groupIds[groupIdCursor], groupIdCursor));
-                        while (groupIdCursor < docCount && groupId == groupIds[groupIdCursor]) {
-                            ++groupSize;
-                            ++groupIdCursor;
-                        }
-                        groupWeights.insert(groupWeights.end(), groupSize, groupWeight);
-                    } else {
-                        readLocation = EReadLocation::AfterSubset;
-                    }
-                }
+                CB_ENSURE(!groupWeightsByGroupId.contains(groupId), "GroupId at line " << lineNumber << " is repeated in group weights file");
+                groupWeightsByGroupId[groupId] = groupWeight;
             } catch (const TCatBoostException& e) {
                 throw TCatBoostException() << "Incorrect file with group weights. Invalid line number #"
                     << lineNumber << ": " << e.what();
             }
         }
-        CB_ENSURE(readLocation != EReadLocation::BeforeSubset,
-            "Requested group ids are absent or non-consecutive in group weights file.");
-        CB_ENSURE(groupWeights.size() == docCount,
-            "Group weights file should have as many weights as the objects in the dataset.");
+        TVector<float> groupWeights;
+        groupWeights.reserve(docCount);
+        for (auto rowIdx : xrange(groupIds.size())) {
+            CB_ENSURE(groupWeightsByGroupId.contains(groupIds[rowIdx]), "GroupId from row " << rowIdx << " in dataset is not found in group weights file");
+            groupWeights.emplace_back(groupWeightsByGroupId.at(groupIds[rowIdx]));
+        }
 
         return groupWeights;
     }
@@ -267,12 +176,19 @@ namespace NCB {
         return timestamps;
     }
 
-
-
-    void SetPairs(const TPathWithScheme& pairsPath, ui32 objectCount, TDatasetSubset loadSubset, IDatasetVisitor* visitor) {
+    void SetPairs(const TPathWithScheme& pairsPath, TDatasetSubset loadSubset, IDatasetVisitor* visitor) {
         DumpMemUsage("After data read");
         if (pairsPath.Inited()) {
-            visitor->SetPairs(ReadPairs(pairsPath, objectCount, loadSubset));
+            auto pairsDataLoader = GetProcessor<IPairsDataLoader>(
+                pairsPath,
+                TPairsDataLoaderArgs{pairsPath, loadSubset}
+            );
+            if (pairsDataLoader->NeedGroupIdToIdxMap()) {
+                auto maybeGroupIds = visitor->GetGroupIds();
+                CB_ENSURE(maybeGroupIds, "Cannot load pairs data with group ids for a dataset without groups");
+                pairsDataLoader->SetGroupIdToIdxMap(*maybeGroupIds);
+            }
+            pairsDataLoader->Do(visitor);
         }
     }
 
@@ -421,51 +337,101 @@ namespace NCB {
                 return s[0] == '-';
             case 2:
                 return (ToLower(s[0]) == 'n') && (
-                    s == AsStringBuf("NA") ||
-                    s == AsStringBuf("Na") ||
-                    s == AsStringBuf("na") ||
+                    s == "NA"sv ||
+                    s == "Na"sv ||
+                    s == "na"sv ||
                     false);
             case 3:
                 return (ToLower(s[0]) == 'n' || ToLower(s[1]) == 'n') && (
-                    s == AsStringBuf("nan") ||
-                    s == AsStringBuf("NaN") ||
-                    s == AsStringBuf("NAN") ||
-                    s == AsStringBuf("#NA") ||
-                    s == AsStringBuf("N/A") ||
-                    s == AsStringBuf("n/a") ||
+                    s == "nan"sv ||
+                    s == "NaN"sv ||
+                    s == "NAN"sv ||
+                    s == "#NA"sv ||
+                    s == "N/A"sv ||
+                    s == "n/a"sv ||
                     false);
             case 4:
                 return (ToLower(s[0]) == 'n' || ToLower(s[1]) == 'n') && (
-                    s == AsStringBuf("#N/A") ||
-                    s == AsStringBuf("-NaN") ||
-                    s == AsStringBuf("-nan") ||
-                    s == AsStringBuf("NULL") ||
-                    s == AsStringBuf("null") ||
-                    s == AsStringBuf("Null") ||
-                    s == AsStringBuf("none") ||
-                    s == AsStringBuf("None") ||
+                    s == "#N/A"sv ||
+                    s == "-NaN"sv ||
+                    s == "-nan"sv ||
+                    s == "NULL"sv ||
+                    s == "null"sv ||
+                    s == "Null"sv ||
+                    s == "none"sv ||
+                    s == "None"sv ||
                     false);
             default:
                 return
-                    s == AsStringBuf("#N/A N/A") ||
-                    s == AsStringBuf("-1.#IND") ||
-                    s == AsStringBuf("-1.#QNAN") ||
-                    s == AsStringBuf("1.#IND") ||
-                    s == AsStringBuf("1.#QNAN") ||
+                    s == "#N/A N/A"sv ||
+                    s == "-1.#IND"sv ||
+                    s == "-1.#QNAN"sv ||
+                    s == "1.#IND"sv ||
+                    s == "1.#QNAN"sv ||
                     false;
         }
     }
 
-    bool TryParseFloatFeatureValue(TStringBuf stringValue, float* value) {
-        if (!TryFromString<float>(stringValue, *value)) {
-            if (IsMissingValue(stringValue)) {
-                *value = std::numeric_limits<float>::quiet_NaN();
-            } else {
+    namespace {
+        struct TStupidStringHash {
+            size_t operator()(TStringBuf str) {
+                Y_ASSERT(str.size() == 3);
+                return IntHash(str[0] + (str[2] << 8));
+            }
+        };
+
+        bool TryFloatFromStringFast(TStringBuf token, float& value) {
+            if (token.empty()) {
                 return false;
             }
+            static const NFH::TFlatHashMap<TStringBuf, float, TStupidStringHash> wellKnown = {
+                { TStringBuf("0.0"), 0.0f},
+                { TStringBuf("1.0"), 1.0f},
+                { TStringBuf("2.0"), 2.0f},
+                { TStringBuf("3.0"), 3.0f},
+                { TStringBuf("4.0"), 4.0f},
+                { TStringBuf("5.0"), 5.0f},
+                { TStringBuf("6.0"), 6.0f},
+                { TStringBuf("7.0"), 7.0f},
+                { TStringBuf("8.0"), 8.0f},
+                { TStringBuf("9.0"), 9.0f}
+            };
+            if (token.size() == 1 && token[0] >= '0' && token[0] <= '9') {
+                value = float(token[0] - '0');
+                return true;
+            } else if (token.size() == 3) {
+                if ( auto i = wellKnown.find(token); i != wellKnown.end()) {
+                    value = i->second;
+                    return true;
+                }
+            } else if (token[0] == '-' && token.size() == 4) {
+                if ( auto i = wellKnown.find(token.substr(1)); i != wellKnown.end()) {
+                    value = -i->second;
+                    return true;
+                }
+            }
+            return TryFromString<float>(token, value);
         }
-        if (*value == 0.0f) {
-            *value = 0.0f; // remove negative zeros
+    }
+
+    bool TryFloatFromString(TStringBuf token, bool parseNonFinite, float* value) {
+        if (TryFloatFromStringFast(token, *value)) {
+            if (*value == 0.0f) {
+                *value = 0.0f; // remove negative zeros
+            }
+            return true;
+        }
+        if (!parseNonFinite) {
+            return false;
+        }
+        if (IsMissingValue(token)) {
+            *value = std::numeric_limits<float>::quiet_NaN();
+        } else if (TCIEqualTo<TStringBuf>()(token, "inf") || TCIEqualTo<TStringBuf>()(token, "infinity")) {
+            *value = std::numeric_limits<float>::infinity();
+        } else if (TCIEqualTo<TStringBuf>()(token, "-inf") || TCIEqualTo<TStringBuf>()(token, "-infinity")) {
+            *value = -std::numeric_limits<float>::infinity();
+        } else {
+            return false;
         }
         return true;
     }

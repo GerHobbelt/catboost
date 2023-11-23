@@ -6,8 +6,8 @@
 // ATTENTION! MUST CALL DoInitGlobalLog BEFORE USAGE
 
 bool GlobalLogInitialized();
-void DoInitGlobalLog(const TString& logType, const int logLevel, const bool rotation, const bool startAsDaemon);
-void DoInitGlobalLog(THolder<TLogBackend> backend);
+void DoInitGlobalLog(const TString& logType, const int logLevel, const bool rotation, const bool startAsDaemon, THolder<ILoggerFormatter> formatter = {}, bool threaded = false);
+void DoInitGlobalLog(THolder<TLogBackend> backend, THolder<ILoggerFormatter> formatter = {});
 
 inline void InitGlobalLog2Null() {
     DoInitGlobalLog("null", TLOG_EMERG, false, false);
@@ -81,7 +81,7 @@ public:
     do {                                                      \
         if (Y_UNLIKELY(!(expr))) {                            \
             FATAL_LOG << Sprintf(msg, ##__VA_ARGS__) << Endl; \
-            Y_VERIFY(false, msg, ##__VA_ARGS__);              \
+            Y_ABORT_UNLESS(false, msg, ##__VA_ARGS__);              \
         };                                                    \
     } while (0);
 

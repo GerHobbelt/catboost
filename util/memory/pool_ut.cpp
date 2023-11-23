@@ -1,6 +1,6 @@
 #include "pool.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <util/stream/output.h>
 
@@ -115,7 +115,7 @@ private:
                 memset(m, 0, i);
             }
 
-            pool.ClearKeepFirstChunk();
+            UNIT_ASSERT_VALUES_EQUAL(pool.ClearReturnUsedChunkCount(true), 11);
 
             UNIT_ASSERT_VALUES_EQUAL(memalloc - 8, pool.MemoryAllocated());
             UNIT_ASSERT_VALUES_EQUAL(memwaste + 8, pool.MemoryWaste());
@@ -127,7 +127,7 @@ private:
                 memset(m, 0, i);
             }
 
-            pool.Clear();
+            UNIT_ASSERT_VALUES_EQUAL(pool.ClearReturnUsedChunkCount(false), 12);
 
             UNIT_ASSERT_VALUES_EQUAL(0, pool.MemoryAllocated());
             UNIT_ASSERT_VALUES_EQUAL(0, pool.MemoryWaste());
@@ -158,9 +158,9 @@ private:
 
         {
             TMemoryPool pool(123, TMemoryPool::TExpGrow::Instance(), &alloc);
-            THolder<TConstructorTest, TDestructor> data1 = pool.New<TConstructorTest>();
-            THolder<TConstructorTest, TDestructor> data2 = pool.New<TConstructorTest>(42);
-            THolder<TConstructorTest, TDestructor> data3 = pool.New<TConstructorTest>("hello", "world");
+            THolder<TConstructorTest, TDestructor> data1{pool.New<TConstructorTest>()};
+            THolder<TConstructorTest, TDestructor> data2{pool.New<TConstructorTest>(42)};
+            THolder<TConstructorTest, TDestructor> data3{pool.New<TConstructorTest>("hello", "world")};
             UNIT_ASSERT_VALUES_EQUAL(data1->ConstructorType, 1);
             UNIT_ASSERT_VALUES_EQUAL(data2->ConstructorType, 2);
             UNIT_ASSERT_VALUES_EQUAL(data3->ConstructorType, 4);

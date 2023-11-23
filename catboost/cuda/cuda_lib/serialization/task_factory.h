@@ -1,18 +1,12 @@
 #pragma once
 
 #include <catboost/cuda/cuda_lib/task.h>
-#include <library/object_factory/object_factory.h>
+#include <library/cpp/object_factory/object_factory.h>
 #include <util/generic/buffer.h>
 #include <util/generic/hash.h>
 #include <util/stream/buffer.h>
+#include <util/system/type_name.h>
 #include <typeindex>
-
-template <>
-struct THash<std::type_index> {
-    inline size_t operator()(const std::type_index& index) const {
-        return index.hash_code();
-    }
-};
 
 namespace NCudaLib {
     using TTaskFactory = NObjectFactory::TParametrizedObjectFactory<ICommand, ui64>;
@@ -86,7 +80,7 @@ namespace NCudaLib {
         static inline THolder<ICommand> LoadCommand(IInputStream* input) {
             ui32 id = 0;
             ::Load(input, id);
-            THolder<ICommand> command = TTaskFactory::Construct(id);
+            THolder<ICommand> command = THolder<ICommand>(TTaskFactory::Construct(id));
             CB_ENSURE(command, "Error: Can't find object with id " << id);
             command->Load(input);
             return command;
@@ -103,7 +97,7 @@ namespace NCudaLib {
             auto& uidsProvider = GetTaskUniqueIdsProvider();
             ui32 key = uidsProvider.GetUniqueId(command);
 #if defined(NDEBUG)
-            CB_ENSURE(TTaskFactory::Has(key), "Error: no ptr found for class " << typeid(TCommand).name());
+            CB_ENSURE(TTaskFactory::Has(key), "Error: no ptr found for class " << TypeName<TCommand>());
 #endif
             ::Save(out, key);
             ::Save(out, command);

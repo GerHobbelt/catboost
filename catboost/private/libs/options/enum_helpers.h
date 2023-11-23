@@ -6,9 +6,14 @@
 
 TConstArrayRef<ELossFunction> GetAllObjectives();
 
-// metric type (regression, multi-regression, classification(bin, multi), ranking(pair, group))
+// metric type (regression, multi-regression, classification(bin, multi, multilabel), ranking(pair, group))
 bool IsRegressionMetric(ELossFunction lossFunction);
 bool IsMultiRegressionMetric(ELossFunction loss);
+bool IsSurvivalRegressionMetric(ELossFunction loss);
+bool IsMultiLabelMetric(ELossFunction loss);
+bool IsMultiLabelOnlyMetric(ELossFunction loss);
+bool IsMultiTargetMetric(ELossFunction loss);
+bool IsMultiTargetOnlyMetric(ELossFunction loss);
 
 bool IsClassificationMetric(ELossFunction lossFunction);
 bool IsBinaryClassCompatibleMetric(ELossFunction lossFunction);
@@ -19,6 +24,7 @@ bool IsBinaryClassOnlyMetric(ELossFunction lossFunction);
 bool IsMultiClassOnlyMetric(ELossFunction lossFunction);
 
 bool IsRankingMetric(ELossFunction lossFunction);
+bool IsRankingMetric(TStringBuf metricName);
 bool IsGroupwiseMetric(ELossFunction lossFunction);
 bool IsGroupwiseMetric(TStringBuf metricName);
 bool IsPairwiseMetric(ELossFunction lossFunction);
@@ -32,6 +38,12 @@ bool IsRegressionObjective(ELossFunction lossFunction);
 bool IsRegressionObjective(TStringBuf lossDescription);
 bool IsMultiRegressionObjective(ELossFunction loss);
 bool IsMultiRegressionObjective(TStringBuf loss);
+bool IsMultiTargetObjective(ELossFunction loss);
+bool IsMultiTargetObjective(TStringBuf loss);
+bool IsSurvivalRegressionObjective(ELossFunction loss);
+bool IsSurvivalRegressionObjective(TStringBuf loss);
+bool IsMultiLabelObjective(ELossFunction lossFunction);
+bool IsMultiLabelObjective(TStringBuf lossFunction);
 
 // various
 bool UsesPairsForCalculation(ELossFunction lossFunction);
@@ -55,8 +67,13 @@ bool AreZeroWeightsAfterBootstrap(EBootstrapType type);
 bool ShouldSkipCalcOnTrainByDefault(ELossFunction lossFunction);
 
 bool IsUserDefined(ELossFunction lossFunction);
+bool IsUserDefined(TStringBuf metricName);
+
+bool HasGpuImplementation(ELossFunction loss);
+bool HasGpuImplementation(TStringBuf metricName);
 
 bool IsEmbeddingFeatureEstimator(EFeatureCalcerType estimatorType);
+bool IsClassificationOnlyEstimator(EFeatureCalcerType estimatorType);
 
 bool IsBuildingFullBinaryTree(EGrowPolicy growPolicy);
 
@@ -70,3 +87,9 @@ EFstrType AdjustFeatureImportanceType(EFstrType type, ELossFunction lossFunction
 EFstrType AdjustFeatureImportanceType(EFstrType type, TStringBuf lossDescription);
 
 bool IsInternalFeatureImportanceType(EFstrType type);
+
+bool IsUncertaintyPredictionType(EPredictionType type);
+
+EEstimatedSourceFeatureType FeatureTypeToEstimatedSourceFeatureType(EFeatureType featureType);
+
+EFeatureType EstimatedSourceFeatureTypeToFeatureType(EEstimatedSourceFeatureType featureType);

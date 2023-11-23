@@ -7,12 +7,12 @@
 #include "split.h"
 
 #include <catboost/private/libs/algo_helpers/custom_objective_descriptor.h>
+#include <catboost/private/libs/algo_helpers/scratch_cache.h>
 #include <catboost/libs/data/data_provider.h>
 #include <catboost/libs/data/features_layout.h>
 #include <catboost/libs/helpers/restorable_rng.h>
 #include <catboost/private/libs/labels/label_converter.h>
 #include <catboost/libs/loggers/catboost_logger_helpers.h>
-#include <catboost/libs/loggers/logger.h>
 #include <catboost/libs/logging/logging.h>
 #include <catboost/libs/logging/profile_info.h>
 #include <catboost/libs/model/fwd.h>
@@ -27,7 +27,7 @@
 
 
 namespace NPar {
-    class TLocalExecutor;
+    class ILocalExecutor;
 }
 
 namespace NCatboostOptions {
@@ -43,17 +43,17 @@ struct TFoldsCreationParams {
     bool HasPairwiseWeights;
     float FoldLenMultiplier;
     bool IsAverageFoldPermuted;
-    TMaybe<double> StartingApprox;
+    TMaybe<TVector<double>> StartingApprox;
     ELossFunction LossFunction;
 
 public:
     TFoldsCreationParams(
         const NCatboostOptions::TCatBoostOptions& params,
         const NCB::TQuantizedObjectsDataProvider& learnObjectsData,
-        TMaybe<double> startingApprox,
+        const TMaybe<TVector<double>>& startingApprox,
         bool isForWorkerLocalData);
 
-    ui32 CalcCheckSum(const NCB::TObjectsGrouping& objectsGrouping, NPar::TLocalExecutor* localExecutor) const;
+    ui32 CalcCheckSum(const NCB::TObjectsGrouping& objectsGrouping, NPar::ILocalExecutor* localExecutor) const;
 };
 
 
@@ -63,12 +63,17 @@ struct TLearnProgress {
     TVector<TVector<double>> AvrgApprox;          //       [dim][docIdx]
     TVector<TVector<TVector<double>>> TestApprox; // [test][dim][docIdx]
     TVector<TVector<double>> BestTestApprox;      //       [dim][docIdx]
-    TMaybe<double> StartingApprox;
+    TMaybe<TVector<double>> StartingApprox;
 
     /* folds and approx data can become invalid if ShrinkModel is called
      * then this data has to be recalculated if training continuation is called
      */
     bool IsFoldsAndApproxDataValid = true;
+
+    /* used to update AveragingFold faster
+     * if AveragingFold is not permuted, we do not use its LearnPermutation
+     */
+    bool IsAveragingFoldPermuted = false;
 
     /* used for training continuation
      * if FoldCreationParamsCheckSum is the same it means Folds and AveragingFold can be reused for
@@ -79,6 +84,7 @@ struct TLearnProgress {
     TVector<TCatFeature> CatFeatures;
     TVector<TFloatFeature> FloatFeatures;
     TVector<TTextFeature> TextFeatures;
+    TVector<TEmbeddingFeature> EmbeddingFeatures;
 
     int ApproxDimension = 1;
     TLabelConverter LabelConverter;
@@ -87,7 +93,7 @@ struct TLearnProgress {
 
     TString SerializedTrainParams; // TODO(kirillovs): do something with this field
 
-    TVector<TVariant<TSplitTree, TNonSymmetricTreeStructure>> TreeStruct;
+    TVector<std::variant<TSplitTree, TNonSymmetricTreeStructure>> TreeStruct;
     TVector<TTreeStats> TreeStats;
     TVector<TVector<TVector<double>>> LeafValues; // [numTree][dim][bucketId]
     /* Vector of multipliers that were applied to approxes at each iteration.
@@ -129,10 +135,13 @@ public:
         ui32 featuresCheckSum,
         ui32 foldCreationParamsCheckSum,
         const NCatboostOptions::TBinarizationOptions& estimatedFeaturesQuantizationOptions,
+
+        // can be non-empty only if there is single fold
+        TMaybe<NCB::TPrecomputedOnlineCtrData> precomputedSingleOnlineCtrDataForSingleFold,
         const NCatboostOptions::TObliviousTreeLearnerOptions& trainOptions,
         TMaybe<TFullModel*> initModel,
         NCB::TDataProviders initModelApplyCompatiblePools,
-        NPar::TLocalExecutor* localExecutor);
+        NPar::ILocalExecutor* localExecutor);
 
     // call after fold initizalization
     void SetSeparateInitModel(
@@ -140,7 +149,7 @@ public:
         const NCB::TDataProviders& initModelApplyCompatiblePools,
         bool isOrderedBoosting,
         bool storeExpApproxes,
-        NPar::TLocalExecutor* localExecutor);
+        NPar::ILocalExecutor* localExecutor);
 
     void PrepareForContinuation();
 
@@ -161,7 +170,7 @@ public:
         const TMaybe<TCustomObjectiveDescriptor>& objectiveDescriptor,
         const TMaybe<TCustomMetricDescriptor>& evalMetricDescriptor,
         NCB::TFeaturesLayoutPtr layout,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
     )
         : Params(params)
         , ObjectiveDescriptor(objectiveDescriptor)
@@ -177,7 +186,7 @@ public:
     NCB::TFeaturesLayoutPtr Layout;
     TCtrHelper CtrsHelper;
     // TODO(asaitgalin): local executor should be shared by all contexts. MLTOOLS-2451.
-    NPar::TLocalExecutor* LocalExecutor;
+    NPar::ILocalExecutor* LocalExecutor;
 };
 
 
@@ -194,16 +203,17 @@ public:
         const TMaybe<TCustomMetricDescriptor>& evalMetricDescriptor,
         const NCatboostOptions::TOutputFilesOptions& outputOptions,
         const NCB::TTrainingDataProviders& data,
+
+        // can be non-empty only if there is single fold
+        TMaybe<NCB::TPrecomputedOnlineCtrData> precomputedSingleOnlineCtrDataForSingleFold,
         const TLabelConverter& labelConverter,
-        TMaybe<double> startingApprox,
+        const TMaybe<TVector<double>>& startingApprox,
         TMaybe<const TRestorableFastRng64*> initRand,
         TMaybe<TFullModel*> initModel,
         THolder<TLearnProgress> initLearnProgress, // will be modified if not non-nullptr
         NCB::TDataProviders initModelApplyCompatiblePools,
-        NPar::TLocalExecutor* localExecutor,
+        NPar::ILocalExecutor* localExecutor,
         const TString& fileNamesPrefix = "");
-
-    ~TLearnContext();
 
     void SaveProgress(std::function<void(IOutputStream*)> onSaveSnapshot = [] (IOutputStream* /*snapshot*/) {});
     bool TryLoadProgress(std::function<bool(IInputStream*)> onLoadSnapshot = [] (IInputStream* /*snapshot*/) { return true; });
@@ -220,6 +230,8 @@ public:
     TBucketStatsCache PrevTreeLevelStats;
     TProfileInfo Profile;
 
+    NCB::TScratchCache ScratchCache;
+
 private:
     bool UseTreeLevelCachingFlag;
     bool HasWeights;
@@ -229,3 +241,5 @@ bool NeedToUseTreeLevelCaching(
     const NCatboostOptions::TCatBoostOptions& params,
     ui32 maxBodyTailCount,
     ui32 approxDimension);
+
+bool UseAveragingFoldAsFoldZero(const TLearnContext& ctx);

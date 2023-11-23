@@ -55,11 +55,11 @@ namespace NCatboostCuda {
 
             bool IsSatisfied(double step,
                              double nextFuncValue,
-                             const TVector<double>& nextFuncGradient) const override {
-                double directionNextGradDot = 0;
+                             const TVector<double>& /*nextFuncGradient*/) const override {
+                /*double directionNextGradDot = 0;
                 for (ui32 i = 0; i < Gradient.size(); ++i) {
                     directionNextGradDot += Gradient[i] * nextFuncGradient[i];
-                }
+                }*/
                 return (nextFuncValue >= (FunctionValue + C * step * DirGradDot));
             }
         };
@@ -71,13 +71,13 @@ namespace NCatboostCuda {
                                                 const TVector<float>& moveDirection) {
         switch (type) {
             case ELeavesEstimationStepBacktracking::No: {
-                return new TSkipStepEstimation;
+                return MakeHolder<TSkipStepEstimation>();
             }
             case ELeavesEstimationStepBacktracking::AnyImprovement: {
-                return new TSimpleStepEstimator(currentPoint);
+                return MakeHolder<TSimpleStepEstimator>(currentPoint);
             }
             case ELeavesEstimationStepBacktracking::Armijo: {
-                return new TArmijoStepEstimation(currentPoint, gradientAtPoint, moveDirection);
+                return MakeHolder<TArmijoStepEstimation>(currentPoint, gradientAtPoint, moveDirection);
             }
             default: {
                 ythrow TCatBoostException() << "Unknown step estimator type " << type;

@@ -1,5 +1,0 @@
-# Atocheck blacklist
-# The list of top level directories excluded from autocheck
-frontend
-junk
-mobile

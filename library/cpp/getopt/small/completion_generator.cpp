@@ -1,6 +1,6 @@
 #include "completion_generator.h"
 
-#include <library/overloaded/overloaded.h>
+#include <util/generic/overloaded.h>
 
 #include <util/string/ascii.h>
 #include <util/generic/hash_set.h>
@@ -24,13 +24,13 @@ namespace NLastGetopt {
     TCompletionGenerator::TCompletionGenerator(const TModChooser* modChooser)
         : Options_(modChooser)
     {
-        Y_VERIFY(modChooser != nullptr);
+        Y_ABORT_UNLESS(modChooser != nullptr);
     }
 
     TCompletionGenerator::TCompletionGenerator(const TOpts* opts)
         : Options_(opts)
     {
-        Y_VERIFY(opts != nullptr);
+        Y_ABORT_UNLESS(opts != nullptr);
     }
 
     void TZshCompletionGenerator::Generate(TStringBuf command, IOutputStream& stream) {
@@ -48,7 +48,7 @@ namespace NLastGetopt {
             L << "local prefix_orig=\"$PREFIX\"";
             L << "local suffix_orig=\"$SUFFIX\"";
             L;
-            Visit(TOverloaded{
+            std::visit(TOverloaded{
                 [&out, &manager](const TModChooser* modChooser) {
                     GenerateModesCompletion(out, *modChooser, manager);
                 },
@@ -390,7 +390,7 @@ namespace NLastGetopt {
             L << "local need_space=\"1\"";
             L << "local IFS=$' \\t\\n'";
             L;
-            Visit(TOverloaded{
+            std::visit(TOverloaded{
                 [&out, &manager](const TModChooser* modChooser) {
                     GenerateModesCompletion(out, *modChooser, manager, 1);
                 },
@@ -553,12 +553,6 @@ namespace NLastGetopt {
                         }
                         L << ";;";
                     }
-                }
-
-                L << "-*)";
-                {
-                    I;
-                    L << ";;";
                 }
 
                 L << "*)";

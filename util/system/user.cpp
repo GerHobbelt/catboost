@@ -1,23 +1,22 @@
 #include "user.h"
-#include "platform.h"
-#include "defaults.h"
 #include "env.h"
 
 #include <util/generic/yexception.h>
 
 #ifdef _win_
-#include "winint.h"
+    #include "winint.h"
 #else
-#include <errno.h>
-#include <pwd.h>
-#include <unistd.h>
+    #include <cerrno>
+    #include <pwd.h>
+    #include <unistd.h>
 #endif
 
 TString GetUsername() {
     for (const auto& var : {"LOGNAME", "USER", "LNAME", "USERNAME"}) {
         TString val = GetEnv(var);
-        if (val)
+        if (val) {
             return val;
+        }
     }
 
     TTempBuf nameBuf;
@@ -40,7 +39,7 @@ TString GetUsername() {
             return TString(pwd->pw_name);
         }
 
-        ythrow TSystemError() << AsStringBuf(" getpwuid failed");
+        ythrow TSystemError() << TStringBuf(" getpwuid failed");
 #else
         passwd pwd;
         passwd* tmpPwd;

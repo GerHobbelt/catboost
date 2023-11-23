@@ -11,10 +11,16 @@
 
 #include <stdio.h>
 #include <string.h>
-#include "internal/engine.h"
+#include "crypto/engine.h"
 #include <openssl/rand.h>
 #include <openssl/err.h>
 #include <openssl/crypto.h>
+
+#if defined(__has_feature)
+# if __has_feature(memory_sanitizer)
+#  include <sanitizer/msan_interface.h>
+# endif
+#endif
 
 #if (defined(__i386)   || defined(__i386__)   || defined(_M_IX86) || \
      defined(__x86_64) || defined(__x86_64__) || \
@@ -27,6 +33,16 @@ static int get_random_bytes(unsigned char *buf, int num)
     if (num < 0) {
         return 0;
     }
+
+# if defined(__has_feature)
+#  if __has_feature(memory_sanitizer)
+    /*
+     * MemorySanitizer fails to understand asm and produces false positive 
+     * use-of-uninitialized-value warnings.
+     */
+    __msan_unpoison(buf, num);
+#  endif
+# endif
 
     return (size_t)num == OPENSSL_ia32_rdrand_bytes(buf, (size_t)num);
 }

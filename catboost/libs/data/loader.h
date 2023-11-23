@@ -1,6 +1,7 @@
 #pragma once
 
 #include "async_row_processor.h"
+#include "baseline.h"
 #include "meta_info.h"
 #include "objects.h"
 #include "visitor.h"
@@ -12,7 +13,7 @@
 #include <catboost/private/libs/options/load_options.h>
 #include <catboost/libs/column_description/cd_parser.h>
 
-#include <library/object_factory/object_factory.h>
+#include <library/cpp/object_factory/object_factory.h>
 #include <library/cpp/threading/local_executor/local_executor.h>
 
 #include <util/generic/maybe.h>
@@ -31,17 +32,29 @@ namespace NCB {
 
     struct TDatasetSubset {
         bool HasFeatures = true;
-        TIndexRange<ui32> Range = {0, Max<ui32>()};
+        TIndexRange<ui64> Range = {0, Max<ui64>()};
 
     public:
-        ui32 GetSize() const { return Range.GetSize(); }
+        ui64 GetSize() const { return Range.GetSize(); }
 
-        static TDatasetSubset MakeRange(ui32 start, ui32 end) {
+        static TDatasetSubset MakeRange(ui64 start, ui64 end) {
             return {true, {start, end}};
         }
 
         static TDatasetSubset MakeColumns(bool hasFeatures = true) {
-            return {hasFeatures, {0u, Max<ui32>()}};
+            return {hasFeatures, {0u, Max<ui64>()}};
+        }
+
+        size_t GetHash() const {
+            return MultiHash(HasFeatures, Range.Begin, Range.End);
+        }
+
+        bool operator==(const TDatasetSubset& rhs) const {
+            return std::tie(HasFeatures, Range) == std::tie(rhs.HasFeatures, rhs.Range);
+        }
+
+        bool operator!=(const TDatasetSubset& rhs) const {
+            return !(rhs == *this);
         }
     };
 
@@ -51,14 +64,18 @@ namespace NCB {
         TPathWithScheme BaselineFilePath;
         TPathWithScheme TimestampsFilePath;
         TPathWithScheme FeatureNamesPath;
+        TPathWithScheme PoolMetaInfoPath;
         const TVector<NJson::TJsonValue>& ClassLabels;
         TDsvFormatOptions PoolFormat;
         THolder<ICdProvider> CdProvider;
         TVector<ui32> IgnoredFeatures;
-        EObjectsOrder ObjectsOrder;
-        ui32 BlockSize;
+        EObjectsOrder ObjectsOrder = EObjectsOrder::Undefined;
+        ui32 BlockSize = 0;
         TDatasetSubset DatasetSubset;
-        NPar::TLocalExecutor* LocalExecutor;
+        bool LoadColumnsAsString = false;
+        bool LoadSampleIds = false; // special flag because they are rarely used
+        bool ForceUnitAutoPairWeights = false;
+        NPar::ILocalExecutor* LocalExecutor = nullptr;
     };
 
     // pass this struct to to IDatasetLoader ctor
@@ -138,7 +155,10 @@ namespace NCB {
                                                    TString,
                                                    TDatasetLoaderPullArgs>;
 
-
+    using TDatasetLineDataLoaderFactory =
+        NObjectFactory::TParametrizedObjectFactory<IDatasetLoader,
+                                                   TString,
+                                                   TLineDataLoaderPushArgs>;
 
     ///////////////////////////////////////////////////////////////////////////
     // Common functionality used in IDatasetLoader implementations
@@ -165,7 +185,11 @@ namespace NCB {
      * Indices of objects passed to visitor methods are indices from the beginning of the subset (not indices in the whole dataset).
      * objectCount parameter represents the number of objects in the subset.
      */
-    void SetPairs(const TPathWithScheme& pairsPath, ui32 objectCount, TDatasetSubset loadSubset, IDatasetVisitor* visitor);
+    THashMap<TGroupId, ui32> ConvertGroupIdToIdxMap(TConstArrayRef<TGroupId> groupIdsArray);
+    void SetPairs(
+        const TPathWithScheme& pairsPath,
+        TDatasetSubset loadSubset,
+        IDatasetVisitor* visitor);
     void SetGroupWeights(
         const TPathWithScheme& groupWeightsPath,
         ui32 objectCount,
@@ -267,7 +291,7 @@ namespace NCB {
             if (!inBlock) {
                 const ui32 objectCount = GetObjectCountSynchronized();
                 SetGroupWeights(Args.GroupWeightsFilePath, objectCount, Args.DatasetSubset, visitor);
-                SetPairs(Args.PairsFilePath, objectCount, Args.DatasetSubset, visitor);
+                SetPairs(Args.PairsFilePath, Args.DatasetSubset, visitor);
                 SetTimestamps(Args.TimestampsFilePath, objectCount, Args.DatasetSubset, visitor);
             }
             visitor->Finish();
@@ -278,7 +302,7 @@ namespace NCB {
     protected:
         TDatasetLoaderCommonArgs Args;
         NCB::TAsyncRowProcessor<TData> AsyncRowProcessor;
-        NCB::TAsyncRowProcessor<TString> AsyncBaselineRowProcessor;
+        NCB::TAsyncRowProcessor<TObjectBaselineData> AsyncBaselineRowProcessor;
 
         TVector<TString> FeatureIds;
         TDataMetaInfo DataMetaInfo;
@@ -290,5 +314,12 @@ namespace NCB {
      */
     bool IsMissingValue(const TStringBuf& s);
 
-    bool TryParseFloatFeatureValue(TStringBuf stringValue, float* value);
+    bool TryFloatFromString(TStringBuf token, bool parseNonFinite, float* value);
 }
+
+template <>
+struct THash<NCB::TDatasetSubset> {
+    inline size_t operator()(const NCB::TDatasetSubset& value) const {
+        return value.GetHash();
+    }
+};

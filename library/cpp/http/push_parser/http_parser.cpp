@@ -1,7 +1,8 @@
 #include "http_parser.h"
 
-#include <library/blockcodecs/stream.h>
-#include <library/blockcodecs/codecs.h>
+#include <library/cpp/blockcodecs/stream.h>
+#include <library/cpp/blockcodecs/codecs.h>
+#include <library/cpp/streams/brotli/brotli.h>
 
 #include <util/generic/string.h>
 #include <util/generic/yexception.h>
@@ -107,7 +108,7 @@ bool THttpParser::HeadersParser() {
 
 bool THttpParser::ContentParser() {
     DBGOUT("Content parsing()");
-    if (HasContentLength_) {
+    if (HasContentLength_ && !BodyNotExpected_) {
         size_t rd = Min<size_t>(DataEnd_ - Data_, ContentLength_ - Content_.size());
         Content_.append(Data_, rd);
         Data_ += rd;
@@ -118,8 +119,8 @@ bool THttpParser::ContentParser() {
     } else {
         if (MessageType_ == Request) {
             return OnEndParsing(); //RFC2616 4.4-5
-        } else if (Y_UNLIKELY(RetCode() < 200 || RetCode() == 204 || RetCode() == 304)) {
-            return OnEndParsing(); //RFC2616 4.4-1 (but not checked HEAD request type !)
+        } else if (Y_UNLIKELY(BodyNotExpected_ || RetCode() < 200 || RetCode() == 204 || RetCode() == 304)) {
+            return OnEndParsing(); //RFC2616 4.4-1
         }
 
         Content_.append(Data_, DataEnd_);
@@ -257,18 +258,26 @@ void THttpParser::OnEof() {
     if (Parser_ == &THttpParser::ContentParser && !HasContentLength_ && !ChunkInputState_) {
         return; //end of content determined by end of input
     }
-    throw THttpException() << AsStringBuf("incompleted http response");
+    throw THttpException() << TStringBuf("incompleted http response");
 }
 
 bool THttpParser::DecodeContent() {
-    if (!ContentEncoding_) {
+    if (!DecodeContent_) {
+        return false;
+    }
+
+    if (!ContentEncoding_ || ContentEncoding_ == "identity" || ContentEncoding_ == "none") {
         DecodedContent_ = Content_;
         return false;
     }
 
     TMemoryInput in(Content_.data(), Content_.size());
     if (ContentEncoding_ == "gzip") {
-        DecodedContent_ = TZLibDecompress(&in, ZLib::GZip).ReadAll();
+        auto decompressor = TZLibDecompress(&in, ZLib::GZip);
+        if (!GzipAllowMultipleStreams_) {
+            decompressor.SetAllowMultipleStreams(false);
+        }
+        DecodedContent_ = decompressor.ReadAll();
     } else if (ContentEncoding_ == "deflate") {
 
         //https://tools.ietf.org/html/rfc1950
@@ -305,6 +314,12 @@ bool THttpParser::DecodeContent() {
         }
         NBlockCodecs::TDecodedInput decoder(&in, codec);
         DecodedContent_ = decoder.ReadAll();
+    } else if (ContentEncoding_ == "lz4") {
+        const auto* codec = NBlockCodecs::Codec(TStringBuf(ContentEncoding_));
+        DecodedContent_ = codec->Decode(Content_);
+    } else if (ContentEncoding_ == "br") {
+        TBrotliDecompress decoder(&in);
+        DecodedContent_ = decoder.ReadAll();
     } else {
         throw THttpParseException() << "Unsupported content-encoding method: " << ContentEncoding_;
     }
@@ -312,17 +327,17 @@ bool THttpParser::DecodeContent() {
 }
 
 void THttpParser::ApplyHeaderLine(const TStringBuf& name, const TStringBuf& val) {
-    if (AsciiEqualsIgnoreCase(name, AsStringBuf("connection"))) {
-        KeepAlive_ = AsciiEqualsIgnoreCase(val, AsStringBuf("keep-alive"));
-    } else if (AsciiEqualsIgnoreCase(name, AsStringBuf("content-length"))) {
+    if (AsciiEqualsIgnoreCase(name, TStringBuf("connection"))) {
+        KeepAlive_ = AsciiEqualsIgnoreCase(val, TStringBuf("keep-alive"));
+    } else if (AsciiEqualsIgnoreCase(name, TStringBuf("content-length"))) {
         Y_ENSURE(val.size(), "NEH: Content-Length cannot be empty string. ");
         ContentLength_ = FromString<ui64>(val);
         HasContentLength_ = true;
-    } else if (AsciiEqualsIgnoreCase(name, AsStringBuf("transfer-encoding"))) {
-        if (AsciiEqualsIgnoreCase(val, AsStringBuf("chunked"))) {
+    } else if (AsciiEqualsIgnoreCase(name, TStringBuf("transfer-encoding"))) {
+        if (AsciiEqualsIgnoreCase(val, TStringBuf("chunked"))) {
             ChunkInputState_ = new TChunkInputState();
         }
-    } else if (AsciiEqualsIgnoreCase(name, AsStringBuf("accept-encoding"))) {
+    } else if (AsciiEqualsIgnoreCase(name, TStringBuf("accept-encoding"))) {
         TStringBuf encodings(val);
         while (encodings.size()) {
             TStringBuf enc = encodings.NextTok(',').After(' ').Before(' ');
@@ -333,7 +348,7 @@ void THttpParser::ApplyHeaderLine(const TStringBuf& name, const TStringBuf& val)
             s.to_lower();
             AcceptEncodings_.insert(s);
         }
-    } else if (AsciiEqualsIgnoreCase(name, AsStringBuf("content-encoding"))) {
+    } else if (AsciiEqualsIgnoreCase(name, TStringBuf("content-encoding"))) {
         TString s(val);
         s.to_lower();
         ContentEncoding_ = s;

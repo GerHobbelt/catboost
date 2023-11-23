@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2019 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2020 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the OpenSSL license (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -10,9 +10,9 @@
 #include <assert.h>
 #include <limits.h>
 #include "internal/cryptlib.h"
-#include "bn_lcl.h"
+#include "bn_local.h"
 #include <openssl/opensslconf.h>
-#include "internal/constant_time_locl.h"
+#include "internal/constant_time.h"
 
 /* This stuff appears to be completely unused, so is deprecated */
 #if OPENSSL_API_COMPAT < 0x00908000L
@@ -87,6 +87,15 @@ const BIGNUM *BN_value_one(void)
     return &const_one;
 }
 
+/*
+ * Old Visual Studio ARM compiler miscompiles BN_num_bits_word()
+ * https://mta.openssl.org/pipermail/openssl-users/2018-August/008465.html
+ */
+#if defined(_MSC_VER) && defined(_ARM_) && defined(_WIN32_WCE) \
+    && _MSC_VER>=1400 && _MSC_VER<1501
+# define MS_BROKEN_BN_num_bits_word
+# pragma optimize("", off)
+#endif
 int BN_num_bits_word(BN_ULONG l)
 {
     BN_ULONG x, mask;
@@ -131,6 +140,9 @@ int BN_num_bits_word(BN_ULONG l)
 
     return bits;
 }
+#ifdef MS_BROKEN_BN_num_bits_word
+# pragma optimize("", on)
+#endif
 
 /*
  * This function still leaks `a->dmax`: it's caller's responsibility to
@@ -322,15 +334,19 @@ BIGNUM *BN_dup(const BIGNUM *a)
 
 BIGNUM *BN_copy(BIGNUM *a, const BIGNUM *b)
 {
+    int bn_words;
+
     bn_check_top(b);
+
+    bn_words = BN_get_flags(b, BN_FLG_CONSTTIME) ? b->dmax : b->top;
 
     if (a == b)
         return a;
-    if (bn_wexpand(a, b->top) == NULL)
+    if (bn_wexpand(a, bn_words) == NULL)
         return NULL;
 
     if (b->top > 0)
-        memcpy(a->d, b->d, sizeof(b->d[0]) * b->top);
+        memcpy(a->d, b->d, sizeof(b->d[0]) * bn_words);
 
     a->neg = b->neg;
     a->top = b->top;
@@ -983,6 +999,28 @@ void *BN_GENCB_get_arg(BN_GENCB *cb)
 BIGNUM *bn_wexpand(BIGNUM *a, int words)
 {
     return (words <= a->dmax) ? a : bn_expand2(a, words);
+}
+
+void bn_correct_top_consttime(BIGNUM *a)
+{
+    int j, atop;
+    BN_ULONG limb;
+    unsigned int mask;
+
+    for (j = 0, atop = 0; j < a->dmax; j++) {
+        limb = a->d[j];
+        limb |= 0 - limb;
+        limb >>= BN_BITS2 - 1;
+        limb = 0 - limb;
+        mask = (unsigned int)limb;
+        mask &= constant_time_msb(j - a->top);
+        atop = constant_time_select_int(mask, j + 1, atop);
+    }
+
+    mask = constant_time_eq_int(atop, 0);
+    a->top = atop;
+    a->neg = constant_time_select_int(mask, 0, a->neg);
+    a->flags &= ~BN_FLG_FIXED_TOP;
 }
 
 void bn_correct_top(BIGNUM *a)

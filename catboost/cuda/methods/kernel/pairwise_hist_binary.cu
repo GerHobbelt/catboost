@@ -2,7 +2,7 @@
 #include "split_properties_helpers.cuh"
 #include "compute_pair_hist_loop.cuh"
 #include <cooperative_groups.h>
-#include <library/cuda/wrappers/arch.cuh>
+#include <library/cpp/cuda/wrappers/arch.cuh>
 #include <catboost/cuda/cuda_util/kernel/instructions.cuh>
 #include <catboost/cuda/cuda_util/kernel/kernel_helpers.cuh>
 using namespace cooperative_groups;
@@ -200,7 +200,7 @@ namespace NKernel {
 
         Y_ASSERT(featureCount == binFeatureCount);
 
-        if (featureCount > 0) {
+        if (featureCount > 0 && partCount / (fullPass ? 1 : 4) > 0) {
             const int blockSize = 768;
             dim3 numBlocks;
             numBlocks.x = (featureCount + 31) / 32;

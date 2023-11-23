@@ -113,7 +113,7 @@ namespace NCB {
             , BlockLengths(TMaybeOwningConstArrayHolder<TSize>::CreateOwning(std::move(blockLengths)))
         {}
 
-        SAVELOAD(BlockStarts, BlockLengths)
+        SAVELOAD(BlockStarts, BlockLengths);
 
         bool operator==(const TSparseSubsetBlocks& rhs) const {
             return std::tie(BlockStarts, BlockLengths) == std::tie(rhs.BlockStarts, rhs.BlockLengths);
@@ -184,7 +184,7 @@ namespace NCB {
         TVector<ui64> BlockBitmaps;
 
     public:
-        SAVELOAD(BlockIndices, BlockBitmaps)
+        SAVELOAD(BlockIndices, BlockBitmaps);
 
         bool operator==(const TSparseSubsetHybridIndex& rhs) const {
             return std::tie(BlockIndices, BlockBitmaps) == std::tie(rhs.BlockIndices, rhs.BlockBitmaps);
@@ -254,7 +254,7 @@ namespace NCB {
 
     public:
         using TImpl =
-            TVariant<TSparseSubsetIndices<TSize>, TSparseSubsetBlocks<TSize>, TSparseSubsetHybridIndex<TSize>>;
+            std::variant<TSparseSubsetIndices<TSize>, TSparseSubsetBlocks<TSize>, TSparseSubsetHybridIndex<TSize>>;
 
     public:
         // needed for IBinSaver serialization
@@ -492,6 +492,10 @@ namespace NCB {
         // f is a visitor function that will be repeatedly called with (index, value) arguments
         template <class F>
         inline void ForEachNonDefault(F&& f, TSize maxBlockSize = TSize(128)) const;
+
+        // f is a visitor function that will be repeatedly called with (indexBlock, valueBlock) arguments
+        template <class F>
+        inline void ForBlockNonDefault(F&& f, TSize maxBlockSize = TSize(128)) const;
 
         TVector<TNonConstValue> ExtractValues() const;
 

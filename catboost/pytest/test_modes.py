@@ -2,7 +2,7 @@ import os
 import pytest
 import re
 import yatest.common as yc
-from catboost_pytest_lib import (
+from lib import (
     data_file,
     get_limited_precision_dsv_diff_tool,
 )
@@ -101,16 +101,21 @@ class TestModeNormalizeModel(object):
         return model_with_set_scale_bias
 
     def get_minmax(self, eval_result):
-        data = map(float, open(eval_result).readlines()[1:])
+        data = list(map(float, open(eval_result).readlines()[1:]))
         return min(data), max(data)
 
-    def test_normalize_good(self):
+    @pytest.mark.parametrize('loss_function', ['RMSE', 'RMSEWithUncertainty'])
+    def test_normalize_good(self, loss_function):
         dataset = Dataset('adult')
-        model = self.fit('RMSE', dataset)
-        normalized_model = self.normalize_model(model, dataset, 'test_file')
-        normalized_eval = self.eval_model(normalized_model, dataset, 'test_file')
-        normalized_minmax = self.get_minmax(normalized_eval)
-        assert normalized_minmax == (0, 1)
+        model = self.fit(loss_function, dataset)
+        if loss_function == 'RMSEWithUncertainty':
+            with pytest.raises(Exception):
+                self.normalize_model(model, dataset, 'test_file')
+        else:
+            normalized_model = self.normalize_model(model, dataset, 'test_file')
+            normalized_eval = self.eval_model(normalized_model, dataset, 'test_file')
+            normalized_minmax = self.get_minmax(normalized_eval)
+            assert normalized_minmax == (0, 1)
 
     def test_normalize_bad(self):
         dataset = Dataset('precipitation_small')

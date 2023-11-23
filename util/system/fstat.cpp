@@ -2,60 +2,93 @@
 #include "file.h"
 
 #include <sys/stat.h>
-#include <sys/types.h>
 
-#include <util/datetime/systime.h>
-#include <util/generic/string.h>
 #include <util/folder/path.h>
 
-#include <errno.h>
+#include <cerrno>
 
 #if defined(_win_)
-#include "fs_win.h"
+    #include "fs_win.h"
 
-#ifdef _S_IFLNK
-#undef _S_IFLNK
-#endif
-#define _S_IFLNK 0x80000000
+    #ifdef _S_IFLNK
+        #undef _S_IFLNK
+    #endif
+    #define _S_IFLNK 0x80000000
 
-ui32 GetFileMode(DWORD fileAttributes) {
+// See https://docs.microsoft.com/en-us/windows/win32/fileio/file-attribute-constants
+// for possible flag values
+static ui32 GetWinFileType(DWORD fileAttributes, ULONG reparseTag) {
+    // I'm not really sure, why it is done like this. MSDN tells that
+    // FILE_ATTRIBUTE_DEVICE is reserved for system use. Some more info is
+    // available at https://stackoverflow.com/questions/3419527/setting-file-attribute-device-in-visual-studio
+    // We should probably replace this with GetFileType call and check for
+    // FILE_TYPE_CHAR and FILE_TYPE_PIPE return values.
+    if (fileAttributes & FILE_ATTRIBUTE_DEVICE) {
+        return _S_IFCHR;
+    }
+
+    if (fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+        // We consider IO_REPARSE_TAG_SYMLINK and IO_REPARSE_TAG_MOUNT_POINT
+        // both to be symlinks to align with current WinReadLink behaviour.
+        if (reparseTag == IO_REPARSE_TAG_SYMLINK || reparseTag == IO_REPARSE_TAG_MOUNT_POINT) {
+            return _S_IFLNK;
+        }
+    }
+
+    if (fileAttributes & FILE_ATTRIBUTE_DIRECTORY) {
+        return _S_IFDIR;
+    }
+
+    return _S_IFREG;
+}
+
+static ui32 GetFileMode(DWORD fileAttributes, ULONG reparseTag) {
     ui32 mode = 0;
     if (fileAttributes == 0xFFFFFFFF)
         return mode;
-    if (fileAttributes & FILE_ATTRIBUTE_DEVICE)
-        mode |= _S_IFCHR;
-    if (fileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)
-        mode |= _S_IFLNK; // todo: was undefined by the moment of writing this code
-    if (fileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        mode |= _S_IFDIR;
-    if (fileAttributes & (FILE_ATTRIBUTE_NORMAL | FILE_ATTRIBUTE_ARCHIVE))
-        mode |= _S_IFREG;
+
+    mode |= GetWinFileType(fileAttributes, reparseTag);
+
+    if ((fileAttributes & FILE_ATTRIBUTE_READONLY) == 0) {
+        mode |= _S_IWRITE;
+    }
     return mode;
 }
 
-#define S_ISDIR(st_mode) (st_mode & _S_IFDIR)
-#define S_ISREG(st_mode) (st_mode & _S_IFREG)
-#define S_ISLNK(st_mode) (st_mode & _S_IFLNK)
+    #define S_ISDIR(st_mode) (st_mode & _S_IFDIR)
+    #define S_ISREG(st_mode) (st_mode & _S_IFREG)
+    #define S_ISLNK(st_mode) (st_mode & _S_IFLNK)
 
-using TSystemFStat = BY_HANDLE_FILE_INFORMATION;
+struct TSystemFStat: public BY_HANDLE_FILE_INFORMATION {
+    ULONG ReparseTag = 0;
+};
 
-#else
-
+#elif defined(_unix_)
 using TSystemFStat = struct stat;
-
+#else
+    #error unsupported platform
 #endif
 
-static void MakeStat(TFileStat& st, const TSystemFStat& fs) {
-#ifdef _unix_
+static void MakeStatFromStructStat(TFileStat& st, const struct stat& fs) {
     st.Mode = fs.st_mode;
     st.NLinks = fs.st_nlink;
     st.Uid = fs.st_uid;
     st.Gid = fs.st_gid;
     st.Size = fs.st_size;
+#ifdef _unix_
+    st.AllocationSize = fs.st_blocks * 512;
+#else
+    st.AllocationSize = st.Size; // FIXME
+#endif
     st.ATime = fs.st_atime;
     st.MTime = fs.st_mtime;
     st.CTime = fs.st_ctime;
     st.INode = fs.st_ino;
+}
+
+static void MakeStat(TFileStat& st, const TSystemFStat& fs) {
+#ifdef _unix_
+    MakeStatFromStructStat(st, fs);
 #else
     timeval tv;
     FileTimeToTimeval(&fs.ftCreationTime, &tv);
@@ -65,17 +98,24 @@ static void MakeStat(TFileStat& st, const TSystemFStat& fs) {
     FileTimeToTimeval(&fs.ftLastWriteTime, &tv);
     st.MTime = tv.tv_sec;
     st.NLinks = fs.nNumberOfLinks;
-    st.Mode = GetFileMode(fs.dwFileAttributes);
+    st.Mode = GetFileMode(fs.dwFileAttributes, fs.ReparseTag);
     st.Uid = 0;
     st.Gid = 0;
     st.Size = ((ui64)fs.nFileSizeHigh << 32) | fs.nFileSizeLow;
+    st.AllocationSize = st.Size; // FIXME
     st.INode = ((ui64)fs.nFileIndexHigh << 32) | fs.nFileIndexLow;
 #endif
 }
 
 static bool GetStatByHandle(TSystemFStat& fs, FHANDLE f) {
 #ifdef _win_
-    return GetFileInformationByHandle(f, &fs);
+    if (!GetFileInformationByHandle(f, &fs)) {
+        return false;
+    }
+    if (fs.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) {
+        fs.ReparseTag = NFsPrivate::WinReadReparseTag(f);
+    }
+    return true;
 #else
     return !fstat(f, &fs);
 #endif
@@ -86,14 +126,16 @@ static bool GetStatByName(TSystemFStat& fs, const char* fileName, bool nofollow)
     TFileHandle h = NFsPrivate::CreateFileWithUtf8Name(fileName, FILE_READ_ATTRIBUTES | FILE_READ_EA, FILE_SHARE_READ | FILE_SHARE_WRITE,
                                                        OPEN_EXISTING,
                                                        (nofollow ? FILE_FLAG_OPEN_REPARSE_POINT : 0) | FILE_FLAG_BACKUP_SEMANTICS, true);
+    if (!h.IsOpen()) {
+        return false;
+    }
     return GetStatByHandle(fs, h);
 #else
     return !(nofollow ? lstat : stat)(fileName, &fs);
 #endif
 }
 
-TFileStat::TFileStat() {
-}
+TFileStat::TFileStat() = default;
 
 TFileStat::TFileStat(const TFile& f) {
     *this = TFileStat(f.GetHandle());
@@ -106,6 +148,10 @@ TFileStat::TFileStat(FHANDLE f) {
     } else {
         *this = TFileStat();
     }
+}
+
+TFileStat::TFileStat(const struct stat& st) {
+    MakeStatFromStructStat(*this, st);
 }
 
 void TFileStat::MakeFromFileName(const char* fileName, bool nofollow) {
@@ -168,8 +214,9 @@ i64 GetFileLength(FHANDLE fd) {
     return pos.QuadPart;
 #elif defined(_unix_)
     struct stat statbuf;
-    if (::fstat(fd, &statbuf) != 0)
+    if (::fstat(fd, &statbuf) != 0) {
         return -1L;
+    }
     if (!(statbuf.st_mode & (S_IFREG | S_IFBLK | S_IFCHR))) {
         // st_size only makes sense for regular files or devices
         errno = EINVAL;
@@ -177,7 +224,7 @@ i64 GetFileLength(FHANDLE fd) {
     }
     return statbuf.st_size;
 #else
-#error unsupported platform
+    #error unsupported platform
 #endif
 }
 
@@ -192,8 +239,9 @@ i64 GetFileLength(const char* name) {
 #elif defined(_unix_)
     struct stat buf;
     int r = ::stat(name, &buf);
-    if (r == -1)
+    if (r == -1) {
         return -1;
+    }
     if (!(buf.st_mode & (S_IFREG | S_IFBLK | S_IFCHR))) {
         // st_size only makes sense for regular files or devices
         errno = EINVAL;
@@ -201,7 +249,7 @@ i64 GetFileLength(const char* name) {
     }
     return (i64)buf.st_size;
 #else
-#error unsupported platform
+    #error unsupported platform
 #endif
 }
 

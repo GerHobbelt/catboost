@@ -5,6 +5,7 @@
 
 #include <util/generic/ptr.h>
 #include <util/generic/string.h>
+#include <util/network/sock.h>
 
 namespace NAddr {
     class IRemoteAddr {
@@ -19,6 +20,7 @@ namespace NAddr {
     using IRemoteAddrRef = TAtomicSharedPtr<NAddr::IRemoteAddr>;
 
     IRemoteAddrPtr GetSockAddr(SOCKET s);
+    IRemoteAddrPtr GetPeerAddr(SOCKET s);
     void PrintHost(IOutputStream& out, const IRemoteAddr& addr);
 
     TString PrintHost(const IRemoteAddr& addr);
@@ -131,5 +133,17 @@ namespace NAddr {
 
     private:
         const sockaddr_in6 A_;
+    };
+
+    class TUnixSocketAddr: public IRemoteAddr {
+    public:
+        explicit TUnixSocketAddr(TStringBuf path);
+
+        const sockaddr* Addr() const override;
+
+        socklen_t Len() const override;
+
+    private:
+        TSockAddrLocal SockAddr_;
     };
 }

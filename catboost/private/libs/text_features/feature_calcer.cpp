@@ -51,7 +51,7 @@ namespace NCB {
     void TTextFeatureCalcer::Load(IInputStream* stream) {
         ui64 bufferSize;
         ::Load(stream, bufferSize);
-        TArrayHolder<ui8> buffer = new ui8[bufferSize];
+        TArrayHolder<ui8> buffer = TArrayHolder<ui8>(new ui8[bufferSize]);
         const ui64 loadedBytes = stream->Load(buffer.Get(), bufferSize);
         CB_ENSURE(loadedBytes == bufferSize, "Failed to deserialize: Couldn't read calcer flatbuffer");
 
@@ -77,19 +77,19 @@ namespace NCB {
     }
 
     TTextFeatureCalcer::TFeatureCalcerFbs TTextFeatureCalcer::SaveParametersToFB(flatbuffers::FlatBufferBuilder&) const {
-        Y_FAIL("Serialization to flatbuffer is not implemented");
+        CB_ENSURE(false, "Serialization to flatbuffer is not implemented");
     }
 
     void TTextFeatureCalcer::SaveLargeParameters(IOutputStream*) const {
-        Y_FAIL("Serialization is not implemented");
+        CB_ENSURE(false, "Serialization is not implemented");
     }
 
     void TTextFeatureCalcer::LoadParametersFromFB(const NCatBoostFbs::TFeatureCalcer*) {
-        Y_FAIL("Deserialization from flatbuffer is not implemented");
+        CB_ENSURE(false, "Deserialization from flatbuffer is not implemented");
     }
 
     void TTextFeatureCalcer::LoadLargeParameters(IInputStream*) {
-        Y_FAIL("Deserialization is not implemented");
+        CB_ENSURE(false, "Deserialization is not implemented");
     }
 
     flatbuffers::Offset<flatbuffers::Vector<uint32_t>> TTextFeatureCalcer::ActiveFeatureIndicesToFB(flatbuffers::FlatBufferBuilder& builder) const {
@@ -114,37 +114,6 @@ namespace NCB {
 
     TConstArrayRef<ui32> TTextFeatureCalcer::GetActiveFeatureIndices() const {
         return MakeConstArrayRef(ActiveFeatureIndices);
-    }
-
-    TOutputFloatIterator::TOutputFloatIterator(float* data, ui64 size)
-        : DataPtr(data)
-        , EndPtr(data + size)
-        , Step(1) {}
-
-    TOutputFloatIterator::TOutputFloatIterator(float* data, ui64 step, ui64 size)
-        : DataPtr(data)
-        , EndPtr(data + size)
-        , Step(step) {}
-
-    const TOutputFloatIterator TOutputFloatIterator::operator++(int) {
-        TOutputFloatIterator tmp(*this);
-        operator++();
-        return tmp;
-    }
-
-    bool TOutputFloatIterator::IsValid() {
-        return DataPtr < EndPtr;
-    }
-
-    TOutputFloatIterator& TOutputFloatIterator::operator++() {
-        Y_ASSERT(IsValid());
-        DataPtr += Step;
-        return *this;
-    }
-
-    float& TOutputFloatIterator::operator*() {
-        Y_ASSERT(IsValid());
-        return *DataPtr;
     }
 
 }

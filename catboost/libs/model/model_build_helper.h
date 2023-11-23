@@ -11,6 +11,7 @@ public:
         const TVector<TFloatFeature>& allFloatFeatures,
         const TVector<TCatFeature>& allCategoricalFeatures,
         const TVector<TTextFeature>& allTextFeatures,
+        const TVector<TEmbeddingFeature>& allEmbeddingFeatures,
         int approxDimension);
     void ProcessSplitsSet(const TSet<TModelSplit>& modelSplitSet, TModelTrees* tree);
 public:
@@ -21,6 +22,8 @@ public:
     TVector<size_t> CatFeaturesInternalIndexesMap;
     TVector<TTextFeature> TextFeatures;
     TVector<size_t> TextFeaturesInternalIndexesMap;
+    TVector<TEmbeddingFeature> EmbeddingFeatures;
+    TVector<size_t> EmbeddingFeaturesInternalIndexesMap;
     THashMap<TModelSplit, int> BinFeatureIndexes;
 };
 
@@ -30,6 +33,7 @@ public:
         const TVector<TFloatFeature>& allFloatFeatures,
         const TVector<TCatFeature>& allCategoricalFeatures,
         const TVector<TTextFeature>& allTextFeatures,
+        const TVector<TEmbeddingFeature>& allEmbeddingFeatures,
         int approxDimension
     );
     void AddTree(
@@ -59,7 +63,7 @@ public:
     TMaybe<TModelSplit> SplitCondition;
     THolder<TNonSymmetricTreeNode> Left;
     THolder<TNonSymmetricTreeNode> Right;
-    TVariant<TEmptyValue, double, TVector<double>> Value;
+    std::variant<TEmptyValue, double, TVector<double>> Value;
     TMaybe<double> NodeWeight;
 
     bool IsSplitNode() const {
@@ -69,10 +73,10 @@ public:
     void Validate() const {
         if (IsSplitNode()) {
             CB_ENSURE(Left && Right, "Split node should contain both left and right nodes");
-            CB_ENSURE(HoldsAlternative<TEmptyValue>(Value), "Split node must hold empty value");
+            CB_ENSURE(std::holds_alternative<TEmptyValue>(Value), "Split node must hold empty value");
         } else {
             CB_ENSURE(!Left && !Right, "Value node should have no child leafs");
-            CB_ENSURE(!HoldsAlternative<TEmptyValue>(Value), "Split node must hold empty value");
+            CB_ENSURE(!std::holds_alternative<TEmptyValue>(Value), "Split node must hold empty value");
         }
     }
 };
@@ -83,6 +87,7 @@ public:
         const TVector<TFloatFeature>& allFloatFeatures,
         const TVector<TCatFeature>& allCategoricalFeatures,
         const TVector<TTextFeature>& allTextFeatures,
+        const TVector<TEmbeddingFeature>& allEmbeddingFeatures,
         int approxDimension
     );
     void AddTree(THolder<TNonSymmetricTreeNode> head);

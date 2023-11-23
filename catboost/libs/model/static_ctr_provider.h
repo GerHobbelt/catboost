@@ -19,12 +19,12 @@ public:
     {}
     ~TStaticCtrProvider() override {}
 
-    bool HasNeededCtrs(const TVector<TModelCtr>& neededCtrs) const override;
+    bool HasNeededCtrs(TConstArrayRef<TModelCtr> neededCtrs) const override;
 
     void CalcCtrs(
-        const TVector<TModelCtr>& neededCtrs,
-        const TConstArrayRef<ui8>& binarizedFeatures, // vector of binarized float & one hot features
-        const TConstArrayRef<ui32>& hashedCatFeatures,
+        const TConstArrayRef<TModelCtr> neededCtrs,
+        const TConstArrayRef<ui8> binarizedFeatures, // vector of binarized float & one hot features
+        const TConstArrayRef<ui32> hashedCatFeatures,
         size_t docCount,
         TArrayRef<float> result) override;
 
@@ -55,6 +55,10 @@ public:
 
     void Load(IInputStream* inp) override {
         ::Load(inp, CtrData);
+    }
+
+    void LoadNonOwning(TMemoryInput* in) {
+        CtrData.LoadNonOwning(in);
     }
 
     static TString ModelPartId() {
@@ -98,14 +102,14 @@ public:
     }
     ~TStaticCtrOnFlightSerializationProvider() = default;
 
-    bool HasNeededCtrs(const TVector<TModelCtr>& ) const override {
+    bool HasNeededCtrs(const TConstArrayRef<TModelCtr>) const override {
         return false;
     }
 
     void CalcCtrs(
-        const TVector<TModelCtr>& ,
-        const TConstArrayRef<ui8>& ,
-        const TConstArrayRef<ui32>& ,
+        const TConstArrayRef<TModelCtr>,
+        const TConstArrayRef<ui8>,
+        const TConstArrayRef<ui32>,
         size_t,
         TArrayRef<float>) override {
 

@@ -10,36 +10,12 @@
 
 #include <library/cpp/threading/local_executor/local_executor.h>
 
+
 template <class TConsumer>
-inline void ReadAndProceedPoolInBlocks(const NCatboostOptions::TDatasetReadingParams& params,
-                                       ui32 blockSize,
+inline void ReadAndProceedPoolInBlocks(THolder<NCB::IDatasetLoader>&& datasetLoader,
+                                       bool hasSeparatePairsData,
                                        TConsumer&& poolConsumer,
-                                       NPar::TLocalExecutor* localExecutor) {
-
-    auto datasetLoader = NCB::GetProcessor<NCB::IDatasetLoader>(
-        params.PoolPath, // for choosing processor
-
-        // processor args
-        NCB::TDatasetLoaderPullArgs {
-            params.PoolPath,
-
-            NCB::TDatasetLoaderCommonArgs {
-                params.PairsFilePath,
-                /*GroupWeightsFilePath=*/NCB::TPathWithScheme(),
-                /*BaselineFilePath=*/NCB::TPathWithScheme(),
-                /*TimestampsFilePath*/NCB::TPathWithScheme(),
-                params.FeatureNamesPath,
-                params.ClassLabels,
-                params.ColumnarPoolFormatParams.DsvFormat,
-                MakeCdProviderFromFile(params.ColumnarPoolFormatParams.CdFilePath),
-                params.IgnoredFeatures,
-                NCB::EObjectsOrder::Undefined,
-                blockSize,
-                NCB::TDatasetSubset::MakeColumns(),
-                localExecutor
-            }
-        }
-    );
+                                       NPar::ILocalExecutor* localExecutor) {
 
     THolder<NCB::IDataProviderBuilder> dataProviderBuilder = NCB::CreateDataProviderBuilder(
         datasetLoader->GetVisitorType(),
@@ -55,7 +31,7 @@ inline void ReadAndProceedPoolInBlocks(const NCatboostOptions::TDatasetReadingPa
     NCB::IRawObjectsOrderDatasetLoader* rawObjectsOrderDatasetLoader
         = dynamic_cast<NCB::IRawObjectsOrderDatasetLoader*>(datasetLoader.Get());
 
-    if (rawObjectsOrderDatasetLoader) {
+    if (rawObjectsOrderDatasetLoader && !hasSeparatePairsData) {
         // process in blocks
         NCB::IRawObjectsOrderDataVisitor* visitor = dynamic_cast<NCB::IRawObjectsOrderDataVisitor*>(
             dataProviderBuilder.Get()
@@ -77,4 +53,49 @@ inline void ReadAndProceedPoolInBlocks(const NCatboostOptions::TDatasetReadingPa
         datasetLoader->DoIfCompatible(dynamic_cast<NCB::IDatasetVisitor*>(dataProviderBuilder.Get()));
         poolConsumer(dataProviderBuilder->GetResult());
     }
+}
+
+
+template <class TConsumer>
+inline void ReadAndProceedPoolInBlocks(const NCatboostOptions::TDatasetReadingParams& params,
+                                       ui32 blockSize,
+                                       TConsumer&& poolConsumer,
+                                       NPar::ILocalExecutor* localExecutor,
+                                       THolder<ICdProvider> cdProvider=nullptr) {
+
+    auto datasetLoader = NCB::GetProcessor<NCB::IDatasetLoader>(
+        params.PoolPath, // for choosing processor
+
+        // processor args
+        NCB::TDatasetLoaderPullArgs {
+            params.PoolPath,
+
+            NCB::TDatasetLoaderCommonArgs {
+                params.PairsFilePath,
+                /*GroupWeightsFilePath=*/NCB::TPathWithScheme(),
+                /*BaselineFilePath=*/NCB::TPathWithScheme(),
+                /*TimestampsFilePath*/NCB::TPathWithScheme(),
+                params.FeatureNamesPath,
+                params.PoolMetaInfoPath,
+                params.ClassLabels,
+                params.ColumnarPoolFormatParams.DsvFormat,
+                cdProvider ? std::move(cdProvider) : MakeCdProviderFromFile(params.ColumnarPoolFormatParams.CdFilePath),
+                params.IgnoredFeatures,
+                NCB::EObjectsOrder::Undefined,
+                blockSize,
+                NCB::TDatasetSubset::MakeColumns(),
+                /*LoadColumnsAsString*/ params.LoadSampleIds,
+                params.LoadSampleIds,
+                params.ForceUnitAutoPairWeights,
+                localExecutor
+            }
+        }
+    );
+
+    ReadAndProceedPoolInBlocks(
+        std::move(datasetLoader),
+        params.PairsFilePath.Inited(),
+        std::move(poolConsumer),
+        localExecutor
+    );
 }

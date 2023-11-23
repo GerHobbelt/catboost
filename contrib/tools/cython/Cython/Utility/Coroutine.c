@@ -185,7 +185,11 @@ static PyObject *__Pyx__Coroutine_GetAwaitableIter(PyObject *obj) {
     } else
 #endif
 #if CYTHON_COMPILING_IN_CPYTHON && defined(CO_ITERABLE_COROUTINE)
+#if PY_VERSION_HEX >= 0x030C00A6
+    if (PyGen_CheckExact(obj) && (PyGen_GetCode((PyGenObject*)obj)->co_flags & CO_ITERABLE_COROUTINE)) {
+#else
     if (PyGen_CheckExact(obj) && ((PyGenObject*)obj)->gi_code && ((PyCodeObject *)((PyGenObject*)obj)->gi_code)->co_flags & CO_ITERABLE_COROUTINE) {
+#endif
         // Python generator marked with "@types.coroutine" decorator
         return __Pyx_NewRef(obj);
     } else
@@ -388,6 +392,7 @@ typedef struct {
     PyObject *gi_qualname;
     PyObject *gi_modulename;
     PyObject *gi_code;
+    PyObject *gi_frame;
     int resume_label;
     // using T_BOOL for property below requires char value
     char is_running;
@@ -489,6 +494,12 @@ static int __pyx_Generator_init(void); /*proto*/
 
 #include <structmember.h>
 #include <frameobject.h>
+#if PY_VERSION_HEX >= 0x030b00a6
+  #ifndef Py_BUILD_CORE
+    #define Py_BUILD_CORE 1
+  #endif
+  #include "internal/pycore_frame.h"
+#endif
 
 #define __Pyx_Coroutine_Undelegate(gen) Py_CLEAR((gen)->yieldfrom)
 
@@ -713,9 +724,15 @@ PyObject *__Pyx_Coroutine_SendEx(__pyx_CoroutineObject *self, PyObject *value, i
             PyTracebackObject *tb = (PyTracebackObject *) exc_state->exc_traceback;
             PyFrameObject *f = tb->tb_frame;
 
-            Py_XINCREF(tstate->frame);
             assert(f->f_back == NULL);
+            #if PY_VERSION_HEX >= 0x030B00A1
+            // PyThreadState_GetFrame returns NULL if there isn't a current frame
+            // which is a valid state so no need to check
+            f->f_back = PyThreadState_GetFrame(tstate);
+            #else
+            Py_XINCREF(tstate->frame);
             f->f_back = tstate->frame;
+            #endif
         }
         #endif
     }
@@ -738,8 +755,7 @@ PyObject *__Pyx_Coroutine_SendEx(__pyx_CoroutineObject *self, PyObject *value, i
 #endif
 
     self->is_running = 1;
-    PyObject* s = (PyObject *)(self);
-    retval = self->body(s, tstate, value);
+    retval = self->body((PyObject *) self, tstate, value);
     self->is_running = 0;
 
 #if CYTHON_USE_EXC_INFO_STACK
@@ -789,6 +805,32 @@ PyObject *__Pyx_Coroutine_MethodReturn(CYTHON_UNUSED PyObject* gen, PyObject *re
     return retval;
 }
 
+#if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x03030000 && (defined(__linux__) || PY_VERSION_HEX >= 0x030600B3)
+static CYTHON_INLINE
+PyObject *__Pyx_PyGen_Send(PyGenObject *gen, PyObject *arg) {
+#if PY_VERSION_HEX <= 0x030A00A1
+    return _PyGen_Send(gen, arg);
+#else
+    PyObject *result;
+    // PyIter_Send() asserts non-NULL arg
+    if (PyIter_Send((PyObject*)gen, arg ? arg : Py_None, &result) == PYGEN_RETURN) {
+        if (PyAsyncGen_CheckExact(gen)) {
+            assert(result == Py_None);
+            PyErr_SetNone(PyExc_StopAsyncIteration);
+        }
+        else if (result == Py_None) {
+            PyErr_SetNone(PyExc_StopIteration);
+        }
+        else {
+            _PyGen_SetStopIterationValue(result);
+        }
+        Py_CLEAR(result);
+    }
+    return result;
+#endif
+}
+#endif
+
 static CYTHON_INLINE
 PyObject *__Pyx_Coroutine_FinishDelegation(__pyx_CoroutineObject *gen) {
     PyObject *ret;
@@ -830,13 +872,13 @@ static PyObject *__Pyx_Coroutine_Send(PyObject *self, PyObject *value) {
         #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x03030000 && (defined(__linux__) || PY_VERSION_HEX >= 0x030600B3)
         // _PyGen_Send() is not exported before Py3.6
         if (PyGen_CheckExact(yf)) {
-            ret = _PyGen_Send((PyGenObject*)yf, value == Py_None ? NULL : value);
+            ret = __Pyx_PyGen_Send((PyGenObject*)yf, value == Py_None ? NULL : value);
         } else
         #endif
         #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x03050000 && defined(PyCoro_CheckExact) && (defined(__linux__) || PY_VERSION_HEX >= 0x030600B3)
         // _PyGen_Send() is not exported before Py3.6
         if (PyCoro_CheckExact(yf)) {
-            ret = _PyGen_Send((PyGenObject*)yf, value == Py_None ? NULL : value);
+            ret = __Pyx_PyGen_Send((PyGenObject*)yf, value == Py_None ? NULL : value);
         } else
         #endif
         {
@@ -932,7 +974,7 @@ static PyObject *__Pyx_Generator_Next(PyObject *self) {
         #if CYTHON_COMPILING_IN_CPYTHON && PY_VERSION_HEX >= 0x03030000 && (defined(__linux__) || PY_VERSION_HEX >= 0x030600B3)
         // _PyGen_Send() is not exported before Py3.6
         if (PyGen_CheckExact(yf)) {
-            ret = _PyGen_Send((PyGenObject*)yf, NULL);
+            ret = __Pyx_PyGen_Send((PyGenObject*)yf, NULL);
         } else
         #endif
         #ifdef __Pyx_Coroutine_USED
@@ -1112,6 +1154,7 @@ static int __Pyx_Coroutine_clear(PyObject *self) {
     }
 #endif
     Py_CLEAR(gen->gi_code);
+    Py_CLEAR(gen->gi_frame);
     Py_CLEAR(gen->gi_name);
     Py_CLEAR(gen->gi_qualname);
     Py_CLEAR(gen->gi_modulename);
@@ -1132,7 +1175,7 @@ static void __Pyx_Coroutine_dealloc(PyObject *self) {
         if (PyObject_CallFinalizerFromDealloc(self))
 #else
         Py_TYPE(gen)->tp_del(self);
-        if (self->ob_refcnt > 0)
+        if (Py_REFCNT(self) > 0)
 #endif
         {
             // resurrected.  :(
@@ -1166,7 +1209,7 @@ static void __Pyx_Coroutine_del(PyObject *self) {
 #if !CYTHON_USE_TP_FINALIZE
     // Temporarily resurrect the object.
     assert(self->ob_refcnt == 0);
-    self->ob_refcnt = 1;
+    __Pyx_SET_REFCNT(self, 1);
 #endif
 
     __Pyx_PyThreadState_assign
@@ -1247,7 +1290,7 @@ static void __Pyx_Coroutine_del(PyObject *self) {
 #if !CYTHON_USE_TP_FINALIZE
     // Undo the temporary resurrection; can't use DECREF here, it would
     // cause a recursive call.
-    assert(self->ob_refcnt > 0);
+    assert(Py_REFCNT(self) > 0);
     if (--self->ob_refcnt == 0) {
         // this is the normal path out
         return;
@@ -1256,12 +1299,12 @@ static void __Pyx_Coroutine_del(PyObject *self) {
     // close() resurrected it!  Make it look like the original Py_DECREF
     // never happened.
     {
-        Py_ssize_t refcnt = self->ob_refcnt;
+        Py_ssize_t refcnt = Py_REFCNT(self);
         _Py_NewReference(self);
-        self->ob_refcnt = refcnt;
+        __Pyx_SET_REFCNT(self, refcnt);
     }
 #if CYTHON_COMPILING_IN_CPYTHON
-    assert(PyType_IS_GC(self->ob_type) &&
+    assert(PyType_IS_GC(Py_TYPE(self)) &&
            _Py_AS_GC(self)->gc.gc_refs != _PyGC_REFS_UNTRACKED);
 
     // If Py_REF_DEBUG, _Py_NewReference bumped _Py_RefTotal, so
@@ -1344,6 +1387,31 @@ __Pyx_Coroutine_set_qualname(__pyx_CoroutineObject *self, PyObject *value, CYTHO
     return 0;
 }
 
+
+static PyObject *
+__Pyx_Coroutine_get_frame(__pyx_CoroutineObject *self, CYTHON_UNUSED void *context)
+{
+    PyObject *frame = self->gi_frame;
+    if (!frame) {
+        if (unlikely(!self->gi_code)) {
+            // Avoid doing something stupid, e.g. during garbage collection.
+            Py_RETURN_NONE;
+        }
+        frame = (PyObject *) PyFrame_New(
+            PyThreadState_Get(),            /*PyThreadState *tstate,*/
+            (PyCodeObject*) self->gi_code,  /*PyCodeObject *code,*/
+            $moddict_cname,                 /*PyObject *globals,*/
+            0                               /*PyObject *locals*/
+        );
+        if (unlikely(!frame))
+            return NULL;
+        // keep the frame cached once it's created
+        self->gi_frame = frame;
+    }
+    Py_INCREF(frame);
+    return frame;
+}
+
 static __pyx_CoroutineObject *__Pyx__Coroutine_New(
             PyTypeObject* type, __pyx_coroutine_body_t body, PyObject *code, PyObject *closure,
             PyObject *name, PyObject *qualname, PyObject *module_name) {
@@ -1378,6 +1446,7 @@ static __pyx_CoroutineObject *__Pyx__Coroutine_NewInit(
     gen->gi_modulename = module_name;
     Py_XINCREF(code);
     gen->gi_code = code;
+    gen->gi_frame = NULL;
 
     PyObject_GC_Track(gen);
     return gen;
@@ -1498,11 +1567,17 @@ static PyTypeObject __pyx_CoroutineAwaitType_type = {
 #if PY_VERSION_HEX >= 0x030400a1
     0,                                  /*tp_finalize*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b1
+#if PY_VERSION_HEX >= 0x030800b1 && (!CYTHON_COMPILING_IN_PYPY || PYPY_VERSION_NUM >= 0x07030800)
     0,                                  /*tp_vectorcall*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b4
-    0,                                  /* tp_print */
+#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
+    0,                                  /*tp_print*/
+#endif
+#if PY_VERSION_HEX >= 0x030C0000
+    0,                                  /*tp_watched*/
+#endif
+#if CYTHON_COMPILING_IN_PYPY && PY_VERSION_HEX >= 0x03090000 && PY_VERSION_HEX < 0x030a0000
+    0,                                          /*tp_pypy_flags*/
 #endif
 };
 
@@ -1532,13 +1607,6 @@ static PyObject *__Pyx_Coroutine_await(PyObject *coroutine) {
     return __Pyx__Coroutine_await(coroutine);
 }
 #endif
-
-static PyObject *
-__Pyx_Coroutine_get_frame(CYTHON_UNUSED __pyx_CoroutineObject *self, CYTHON_UNUSED void *context)
-{
-    // Fake implementation that always returns None, but at least does not raise an AttributeError.
-    Py_RETURN_NONE;
-}
 
 #if CYTHON_COMPILING_IN_CPYTHON && PY_MAJOR_VERSION >= 3 && PY_VERSION_HEX < 0x030500B1
 static PyObject *__Pyx_Coroutine_compare(PyObject *obj, PyObject *other, int op) {
@@ -1592,6 +1660,9 @@ static __Pyx_PyAsyncMethodsStruct __pyx_Coroutine_as_async = {
     __Pyx_Coroutine_await, /*am_await*/
     0, /*am_aiter*/
     0, /*am_anext*/
+#if PY_VERSION_HEX >= 0x030A00A3
+    0, /*am_send*/
+#endif
 };
 #endif
 
@@ -1662,11 +1733,17 @@ static PyTypeObject __pyx_CoroutineType_type = {
 #elif PY_VERSION_HEX >= 0x030400a1
     0,                                  /*tp_finalize*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b1
+#if PY_VERSION_HEX >= 0x030800b1 && (!CYTHON_COMPILING_IN_PYPY || PYPY_VERSION_NUM >= 0x07030800)
     0,                                  /*tp_vectorcall*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b4
-    0,                                  /* tp_print */
+#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
+    0,                                  /*tp_print*/
+#endif
+#if PY_VERSION_HEX >= 0x030C0000
+    0,                                  /*tp_watched*/
+#endif
+#if CYTHON_COMPILING_IN_PYPY && PY_VERSION_HEX >= 0x03090000 && PY_VERSION_HEX < 0x030a0000
+    0,                                          /*tp_pypy_flags*/
 #endif
 };
 
@@ -1773,11 +1850,17 @@ static PyTypeObject __pyx_IterableCoroutineType_type = {
 #if PY_VERSION_HEX >= 0x030400a1
     __Pyx_Coroutine_del,                /*tp_finalize*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b1
+#if PY_VERSION_HEX >= 0x030800b1 && (!CYTHON_COMPILING_IN_PYPY || PYPY_VERSION_NUM >= 0x07030800)
     0,                                  /*tp_vectorcall*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b4
-    0,                                  /* tp_print */
+#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
+    0,                                  /*tp_print*/
+#endif
+#if PY_VERSION_HEX >= 0x030C0000
+    0,                                  /*tp_watched*/
+#endif
+#if CYTHON_COMPILING_IN_PYPY && PY_VERSION_HEX >= 0x03090000 && PY_VERSION_HEX < 0x030a0000
+    0,                                          /*tp_pypy_flags*/
 #endif
 };
 
@@ -1819,6 +1902,8 @@ static PyGetSetDef __pyx_Generator_getsets[] = {
      (char*) PyDoc_STR("name of the generator"), 0},
     {(char *) "__qualname__", (getter)__Pyx_Coroutine_get_qualname, (setter)__Pyx_Coroutine_set_qualname,
      (char*) PyDoc_STR("qualified name of the generator"), 0},
+    {(char *) "gi_frame", (getter)__Pyx_Coroutine_get_frame, NULL,
+     (char*) PyDoc_STR("Frame of the generator"), 0},
     {0, 0, 0, 0, 0}
 };
 
@@ -1879,11 +1964,17 @@ static PyTypeObject __pyx_GeneratorType_type = {
 #elif PY_VERSION_HEX >= 0x030400a1
     0,                                  /*tp_finalize*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b1
+#if PY_VERSION_HEX >= 0x030800b1 && (!CYTHON_COMPILING_IN_PYPY || PYPY_VERSION_NUM >= 0x07030800)
     0,                                  /*tp_vectorcall*/
 #endif
-#if PY_VERSION_HEX >= 0x030800b4
-    0,                                  /* tp_print */
+#if PY_VERSION_HEX >= 0x030800b4 && PY_VERSION_HEX < 0x03090000
+    0,                                  /*tp_print*/
+#endif
+#if PY_VERSION_HEX >= 0x030C0000
+    0,                                  /*tp_watched*/
+#endif
+#if CYTHON_COMPILING_IN_PYPY && PY_VERSION_HEX >= 0x03090000 && PY_VERSION_HEX < 0x030a0000
+    0,                                          /*tp_pypy_flags*/
 #endif
 };
 
@@ -2280,6 +2371,9 @@ static PyTypeObject __Pyx__PyExc_StopAsyncIteration_type = {
     0,                                  /*tp_version_tag*/
 #if PY_VERSION_HEX >= 0x030400a1
     0,                                  /*tp_finalize*/
+#endif
+#if CYTHON_COMPILING_IN_PYPY && PYPY_VERSION_NUM+0 >= 0x06000000
+    0,                                          /*tp_pypy_flags*/
 #endif
 };
 #endif

@@ -4,7 +4,7 @@
 #include <catboost/libs/model/model.h>
 #include <catboost/libs/train_lib/train_model.h>
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <util/folder/tempdir.h>
 #include <util/generic/array_ref.h>
@@ -124,6 +124,7 @@ Y_UNIT_TEST_SUITE(TrainModelTests) {
                 nullptr,
                 {},
                 {},
+                Nothing(),
                 std::move(dataProviders),
                 /*initModel*/ Nothing(),
                 /*initLearnProgress*/ nullptr,
@@ -160,6 +161,7 @@ Y_UNIT_TEST_SUITE(TrainModelTests) {
             nullptr,
             {},
             {},
+            Nothing(),
             std::move(dataProviders),
             /*initModel*/ Nothing(),
             /*initLearnProgress*/ nullptr,
@@ -208,6 +210,7 @@ Y_UNIT_TEST_SUITE(TrainModelTests) {
                         numericFeatureCount,
                         TVector<ui32>{},
                         TVector<ui32>{},
+                        TVector<ui32>{},
                         TVector<TString>{});
 
                     visitor->Start(metaInfo, objectCount, EObjectsOrder::Undefined, {});
@@ -237,6 +240,7 @@ Y_UNIT_TEST_SUITE(TrainModelTests) {
                 nullptr,
                 {},
                 {},
+                Nothing(),
                 std::move(dataProviders),
                 /*initModel*/ Nothing(),
                 /*initLearnProgress*/ nullptr,

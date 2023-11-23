@@ -1,6 +1,7 @@
 #pragma once
 
 #include <stddef.h>
+#include <util/system/compiler.h>
 #include <util/system/yassert.h>
 #include <util/system/defaults.h>
 #include <util/system/tls.h>
@@ -21,8 +22,8 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #if defined(_MSC_VER) && defined(_DEBUG)
-#include <util/system/winint.h>
-#define CHECK_YPTR2
+    #include <util/system/winint.h>
+    #define CHECK_YPTR2
 #endif
 
 struct IBinSaver;
@@ -209,7 +210,9 @@ protected:                                                        \
         this->ObjData += nHoldObjs;                               \
     }                                                             \
                                                                   \
-private:
+private:                                                          \
+    Y_SEMICOLON_GUARD
+
 #define OBJECT_NOCOPY_METHODS(classname) OBJECT_METHODS(classname)
 #define BASIC_REGISTER_CLASS(classname)                                              \
     Y_PRAGMA_DIAGNOSTIC_PUSH                                                         \
@@ -358,10 +361,12 @@ inline bool IsValid(const TPtrBase<T, TRef>& p) {
         TPtrName() {                             \
         }                                        \
         TPtrName(T* _ptr)                        \
-            : CBase(_ptr) {                      \
+            : CBase(_ptr)                        \
+        {                                        \
         }                                        \
         TPtrName(const TPtrName& a)              \
-            : CBase(a) {                         \
+            : CBase(a)                           \
+        {                                        \
         }                                        \
         TPtrName& operator=(T* _ptr) {           \
             this->Set(_ptr);                     \

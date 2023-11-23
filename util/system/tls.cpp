@@ -1,24 +1,23 @@
 #include "tls.h"
-#include "mutex.h"
-#include "thread.h"
 
-#include <util/generic/set.h>
 #include <util/generic/hash.h>
 #include <util/generic/intrlist.h>
 #include <util/generic/singleton.h>
 #include <util/generic/vector.h>
 
+#include <atomic>
+
 #if defined(_unix_)
-#include <pthread.h>
+    #include <pthread.h>
 #endif
 
 using namespace NTls;
 
 namespace {
-    static inline TAtomicBase AcquireKey() {
-        static TAtomic cur;
+    static inline size_t AcquireKey() {
+        static std::atomic<size_t> cur;
 
-        return AtomicIncrement(cur) - (TAtomicBase)1;
+        return cur++;
     }
 
     class TGenericTlsBase {
@@ -123,14 +122,14 @@ namespace {
     class TMasterTls: public TGenericTlsBase {
     public:
         inline TMasterTls() {
-            Y_VERIFY(!pthread_key_create(&Key_, Dtor), "pthread_key_create failed");
+            Y_ABORT_UNLESS(!pthread_key_create(&Key_, Dtor), "pthread_key_create failed");
         }
 
         inline ~TMasterTls() override {
             //explicitly call dtor for main thread
             Dtor(pthread_getspecific(Key_));
 
-            Y_VERIFY(!pthread_key_delete(Key_), "pthread_key_delete failed");
+            Y_ABORT_UNLESS(!pthread_key_delete(Key_), "pthread_key_delete failed");
         }
 
         static inline TMasterTls* Instance() {
@@ -144,7 +143,7 @@ namespace {
             if (!ret) {
                 ret = new TPerThreadStorage();
 
-                Y_VERIFY(!pthread_setspecific(Key_, ret), "pthread_setspecific failed");
+                Y_ABORT_UNLESS(!pthread_setspecific(Key_, ret), "pthread_setspecific failed");
             }
 
             return (TPerThreadStorage*)ret;
@@ -242,6 +241,8 @@ TKey::TKey(TDtor dtor)
     : Impl_(new TImpl(dtor))
 {
 }
+
+TKey::TKey(TKey&&) noexcept = default;
 
 TKey::~TKey() = default;
 

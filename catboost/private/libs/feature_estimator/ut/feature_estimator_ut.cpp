@@ -1,12 +1,13 @@
-#include <catboost/private/libs/feature_estimator/text_feature_estimators.h>
 #include <catboost/private/libs/feature_estimator/base_text_feature_estimator.h>
+#include <catboost/private/libs/feature_estimator/classification_target.h>
+#include <catboost/private/libs/feature_estimator/text_feature_estimators.h>
 
 #include <catboost/private/libs/options/text_processing_options.h>
 #include <catboost/private/libs/text_features/bow.h>
 #include <catboost/private/libs/text_features/bm25.h>
 #include <catboost/private/libs/text_features/naive_bayesian.h>
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 #include <util/random/fast.h>
 
 
@@ -41,7 +42,7 @@ Y_UNIT_TEST_SUITE(TestFeatureEstimators) {
 
         class TIdentityVisitor final : public ITextCalcerVisitor {
         public:
-            void Update(ui32 classIdx, const TText& text, TTextFeatureCalcer* calcer) {
+            void Update(ui32 classIdx, const TText& text, TTextFeatureCalcer* calcer) override {
                 auto identityCalcer = dynamic_cast<TIdentityCalcer*>(calcer);
                 Y_ASSERT(identityCalcer);
 
@@ -50,13 +51,13 @@ Y_UNIT_TEST_SUITE(TestFeatureEstimators) {
             }
         };
 
-        class TSampleCountEstimator : public TBaseEstimator<TIdentityCalcer, TIdentityVisitor> {
+        class TSampleCountEstimator : public TTextBaseEstimator<TIdentityCalcer, TIdentityVisitor> {
         public:
             TSampleCountEstimator(
-                TTextClassificationTargetPtr target,
+                TClassificationTargetPtr target,
                 TTextDataSetPtr learnTexts,
                 TArrayRef<TTextDataSetPtr> testText)
-                : TBaseEstimator(std::move(target), std::move(learnTexts), testText)
+                : TTextBaseEstimator(std::move(target), std::move(learnTexts), testText)
                 , Identity()
             {
             }
@@ -87,7 +88,7 @@ Y_UNIT_TEST_SUITE(TestFeatureEstimators) {
         for (ui32 i: xrange(numSamples)) {
             classes[i] = i + 1;
         }
-        TTextClassificationTargetPtr target = MakeIntrusive<TTextClassificationTarget>(
+        TClassificationTargetPtr target = MakeIntrusive<TClassificationTarget>(
             std::move(classes),
             numClasses
         );
@@ -148,7 +149,7 @@ Y_UNIT_TEST_SUITE(TestFeatureEstimators) {
         for (ui32 i: xrange(numSamples)) {
             classes[i] = i % numClasses;
         }
-        TTextClassificationTargetPtr target = MakeIntrusive<TTextClassificationTarget>(
+        TClassificationTargetPtr target = MakeIntrusive<TClassificationTarget>(
             std::move(classes),
             numClasses
         );
@@ -203,11 +204,9 @@ Y_UNIT_TEST_SUITE(TestFeatureEstimators) {
             {EFeatureCalcerType::NaiveBayes, MakeIntrusive<TNaiveBayesVisitor>()}
         };
 
-        TEmbeddingPtr embeddingPtr;
         for (auto calcerType : calcerTypes) {
-            TVector<TOnlineFeatureEstimatorPtr> estimators = CreateEstimators(
+            TVector<TOnlineFeatureEstimatorPtr> estimators = CreateTextEstimators(
                 {NCatboostOptions::TFeatureCalcerDescription(calcerType)},
-                embeddingPtr,
                 target,
                 learnTexts,
                 testText
@@ -248,9 +247,8 @@ Y_UNIT_TEST_SUITE(TestFeatureEstimators) {
         { // Test BagOfWords
             TFeatureCalcerDescription bowParams(EFeatureCalcerType::BoW);
 
-            TVector<TFeatureEstimatorPtr> estimators = CreateEstimators(
+            TVector<TFeatureEstimatorPtr> estimators = CreateTextEstimators(
                 {bowParams},
-                embeddingPtr,
                 learnTexts,
                 testText
             );

@@ -1,6 +1,6 @@
 #include "quote.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 Y_UNIT_TEST_SUITE(TCGIEscapeTest) {
     Y_UNIT_TEST(ReturnsEndOfTo) {
@@ -22,27 +22,27 @@ Y_UNIT_TEST_SUITE(TCGIEscapeTest) {
     Y_UNIT_TEST(StringBuf) {
         char tmp[100];
 
-        UNIT_ASSERT_VALUES_EQUAL(CgiEscape(tmp, "!@#$%^&*(){}[]\" "), AsStringBuf("!@%23$%25^%26*%28%29%7B%7D%5B%5D%22+"));
+        UNIT_ASSERT_VALUES_EQUAL(CgiEscape(tmp, "!@#$%^&*(){}[]\" "), TStringBuf("!@%23$%25%5E%26*%28%29%7B%7D%5B%5D%22+"));
     }
 
     Y_UNIT_TEST(StrokaRet) {
-        UNIT_ASSERT_VALUES_EQUAL(CGIEscapeRet("!@#$%^&*(){}[]\" "), TString("!@%23$%25^%26*%28%29%7B%7D%5B%5D%22+"));
+        UNIT_ASSERT_VALUES_EQUAL(CGIEscapeRet("!@#$%^&*(){}[]\" "), TString("!@%23$%25%5E%26*%28%29%7B%7D%5B%5D%22+"));
     }
 
     Y_UNIT_TEST(StrokaAppendRet) {
         TString param;
         AppendCgiEscaped("!@#$%^&*(){}[]\" ", param);
-        UNIT_ASSERT_VALUES_EQUAL(param, TString("!@%23$%25^%26*%28%29%7B%7D%5B%5D%22+"));
+        UNIT_ASSERT_VALUES_EQUAL(param, TString("!@%23$%25%5E%26*%28%29%7B%7D%5B%5D%22+"));
 
         TString param2 = "&param=";
         AppendCgiEscaped("!@#$%^&*(){}[]\" ", param2);
         UNIT_ASSERT_VALUES_EQUAL(param2,
-            TString("&param=!@%23$%25^%26*%28%29%7B%7D%5B%5D%22+"));
+            TString("&param=!@%23$%25%5E%26*%28%29%7B%7D%5B%5D%22+"));
 
         param2.append("&param_param=");
         AppendCgiEscaped("!@#$%^&*(){}[]\" ", param2);
         UNIT_ASSERT_VALUES_EQUAL(param2,
-            TString("&param=!@%23$%25^%26*%28%29%7B%7D%5B%5D%22+&param_param=!@%23$%25^%26*%28%29%7B%7D%5B%5D%22+"));
+            TString("&param=!@%23$%25%5E%26*%28%29%7B%7D%5B%5D%22+&param_param=!@%23$%25%5E%26*%28%29%7B%7D%5B%5D%22+"));
     }
 
 }
@@ -51,7 +51,7 @@ Y_UNIT_TEST_SUITE(TCGIUnescapeTest) {
     Y_UNIT_TEST(StringBuf) {
         char tmp[100];
 
-        UNIT_ASSERT_VALUES_EQUAL(CgiUnescape(tmp, "!@%23$%25^%26*%28%29"), AsStringBuf("!@#$%^&*()"));
+        UNIT_ASSERT_VALUES_EQUAL(CgiUnescape(tmp, "!@%23$%25^%26*%28%29"), TStringBuf("!@#$%^&*()"));
     }
 
     Y_UNIT_TEST(TestValidZeroTerm) {

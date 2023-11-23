@@ -10,4 +10,6 @@
 // зависимости к каждой компиляции nvcc.
 
 #include <cmath>
+#include <functional>
 #include <new>
+#include <utility>

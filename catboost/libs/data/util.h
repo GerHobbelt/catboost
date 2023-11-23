@@ -2,7 +2,7 @@
 
 #include <catboost/private/libs/data_types/pair.h>
 #include <catboost/libs/helpers/exception.h>
-#include <catboost/libs/helpers/maybe_data.h>
+#include <catboost/libs/helpers/maybe.h>
 
 #include <util/generic/array_ref.h>
 #include <util/generic/mapfindptr.h>
@@ -23,7 +23,7 @@ namespace NCB {
         T expectedSize,
         const TStringBuf dataName,
         bool dataCanBeEmpty = false,
-        const TStringBuf expectedSizeName = AsStringBuf("object count"),
+        const TStringBuf expectedSizeName = "object count",
         bool internalCheck = false
     ) {
         CB_ENSURE(
@@ -33,9 +33,6 @@ namespace NCB {
         );
     }
 
-    // pairs are a special case because there's no guaranteed order for now, so compare them as multisets
-    bool EqualAsMultiSets(TConstArrayRef<TPair> lhs, TConstArrayRef<TPair> rhs);
-
     template <class T>
     void PrepareForInitialization(
         size_t size,
@@ -43,8 +40,8 @@ namespace NCB {
         TVector<T>* data
     ) {
         if (prevTailSize) {
-            Y_VERIFY(prevTailSize <= size);
-            Y_VERIFY(prevTailSize <= data->size());
+            CB_ENSURE(prevTailSize <= size, "Data remainder is too large");
+            CB_ENSURE(prevTailSize <= data->size(), "Data remainder is too large");
             std::move(data->end() - prevTailSize, data->end(), data->begin());
         }
         data->yresize(size);
@@ -61,7 +58,7 @@ namespace NCB {
         auto& dataRef = *data;
         if (defined) {
             if (!dataRef) {
-                Y_VERIFY(prevTailSize == 0);
+                CB_ENSURE(prevTailSize == 0, "Data remainder should be empty");
                 dataRef = TVector<T>();
             }
             PrepareForInitialization(size, prevTailSize, &*dataRef);

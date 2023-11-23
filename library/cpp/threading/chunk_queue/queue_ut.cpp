@@ -1,6 +1,6 @@
 #include "queue.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <util/generic/set.h>
 
@@ -53,7 +53,6 @@ Y_UNIT_TEST(ShouldStoreMultipleChunks) {
     }
 }
 }
-;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -89,7 +88,6 @@ Y_UNIT_TEST(ShouldReturnEntries) {
     UNIT_ASSERT(!queue.Dequeue(result));
 }
 }
-;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -125,7 +123,6 @@ Y_UNIT_TEST(ShouldReturnEntries) {
     UNIT_ASSERT(!queue.Dequeue(result));
 }
 }
-;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -163,7 +160,6 @@ Y_UNIT_TEST(ShouldReturnEntries) {
     UNIT_ASSERT(!queue.Dequeue(result));
 }
 }
-;
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -201,5 +197,4 @@ Y_UNIT_TEST(ShouldReturnEntries) {
     UNIT_ASSERT(!queue.Dequeue(result));
 }
 }
-;
 }

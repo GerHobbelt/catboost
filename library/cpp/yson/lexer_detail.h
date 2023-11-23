@@ -3,7 +3,7 @@
 #include "detail.h"
 #include "token.h"
 
-namespace NYT {
+namespace NYson {
     ////////////////////////////////////////////////////////////////////////////////
 
     namespace NDetail {
@@ -30,7 +30,7 @@ namespace NYT {
         //             None                    = 10111b
         //             Percent                 = 11011b
 
-        enum EReadStartCase {
+        enum EReadStartCase : unsigned {
             BinaryString = 0,      // =    00b
             OtherSpecialToken = 2, // =    10b
 
@@ -217,7 +217,7 @@ namespace NYT {
                         } else if (state == EReadStartCase::BinaryTrue) {
                             *token = TToken(true);
                         } else {
-                            Y_FAIL("unreachable");
+                            Y_ABORT("unreachable");
                         }
                     }
                 } else { // BinaryStringOrOtherSpecialToken = x0b
@@ -293,4 +293,4 @@ namespace NYT {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-}
+} // namespace NYson

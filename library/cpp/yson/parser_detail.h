@@ -2,7 +2,7 @@
 
 #include "detail.h"
 
-namespace NYT {
+namespace NYson {
     namespace NDetail {
         ////////////////////////////////////////////////////////////////////////////////
 
@@ -22,20 +22,20 @@ namespace NYT {
 
             void DoParse(EYsonType ysonType) {
                 switch (ysonType) {
-                    case YT_NODE:
+                    case ::NYson::EYsonType::Node:
                         ParseNode<true>();
                         break;
 
-                    case YT_LIST_FRAGMENT:
+                    case ::NYson::EYsonType::ListFragment:
                         ParseListFragment<true>(EndSymbol);
                         break;
 
-                    case YT_MAP_FRAGMENT:
+                    case ::NYson::EYsonType::MapFragment:
                         ParseMapFragment<true>(EndSymbol);
                         break;
 
                     default:
-                        Y_FAIL("unreachable");
+                        Y_ABORT("unreachable");
                 }
 
                 while (!(TBase::IsFinished() && TBase::IsEmpty())) {
@@ -219,7 +219,7 @@ namespace NYT {
                         ch = TBase::template SkipSpaceAndGetChar<AllowFinish>();
                     } else if (ch != endSymbol) {
                         ythrow TYsonException() << "Expected '" << KeyedItemSeparatorSymbol
-                                                << "' or '" << endSymbol << "' but '" << ch << "' found";
+                                                << "' or '\\0' ' but '" << ch << "' found";
                     }
                 }
             }
@@ -247,7 +247,7 @@ namespace NYT {
                     return true;
                 } else if (ch != endSymbol) {
                     ythrow TYsonException() << "Expected '" << ListItemSeparatorSymbol
-                                            << "' or '" << endSymbol << "' but '" << ch << "' found";
+                                            << "' or '\\0' but '" << ch << "' found";
                 }
                 return false;
             }
@@ -305,7 +305,7 @@ namespace NYT {
     template <class TConsumer, class TBlockStream>
     void ParseYsonStreamImpl(
         const TBlockStream& blockStream,
-        IYsonConsumer* consumer,
+        NYT::NYson::IYsonConsumer* consumer,
         EYsonType parsingMode,
         bool enableLinePositionInfo,
         TMaybe<ui64> memoryLimit) {
@@ -322,7 +322,7 @@ namespace NYT {
 
     class TStatelessYsonParserImplBase {
     public:
-        virtual void Parse(const TStringBuf& data, EYsonType type = YT_NODE) = 0;
+        virtual void Parse(const TStringBuf& data, EYsonType type = ::NYson::EYsonType::Node) = 0;
 
         virtual ~TStatelessYsonParserImplBase() {
         }
@@ -341,7 +341,7 @@ namespace NYT {
         {
         }
 
-        void Parse(const TStringBuf& data, EYsonType type = YT_NODE) override {
+        void Parse(const TStringBuf& data, EYsonType type = ::NYson::EYsonType::Node) override {
             Parser.SetBuffer(data.begin(), data.end());
             Parser.DoParse(type);
         }
@@ -378,4 +378,4 @@ namespace NYT {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-}
+} // namespace NYson

@@ -1,14 +1,14 @@
 #include "string.h"
 #include "hash.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <map>
 
 #include "mapfindptr.h"
 
 Y_UNIT_TEST_SUITE(TMapFindPtrTest) {
-    struct TTestMap : std::map<int, TString>, TMapOps<TTestMap> {};
+    struct TTestMap: std::map<int, TString>, TMapOps<TTestMap> {};
 
     Y_UNIT_TEST(TestDerivedClass) {
         TTestMap a;
@@ -50,6 +50,7 @@ Y_UNIT_TEST_SUITE(TMapFindPtrTest) {
 
         UNIT_ASSERT_VALUES_EQUAL(a.Value(1, "123"), "lol");
         UNIT_ASSERT_VALUES_EQUAL(a.Value(2, "123"), "123");
+        UNIT_ASSERT_VALUES_EQUAL(a.Value(2, "123"sv), "123"sv);
     }
 
     Y_UNIT_TEST(TestValueRef) {

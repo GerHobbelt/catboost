@@ -1,8 +1,10 @@
 #include "full_model_saver.h"
 
+#include <catboost/libs/data/features_layout_helpers.h>
 #include <catboost/libs/helpers/exception.h>
 #include <catboost/libs/helpers/vector_helpers.h>
 #include <catboost/libs/model/ctr_value_table.h>
+#include <catboost/libs/model/model_estimated_features.h>
 #include <catboost/libs/model/model.h>
 #include <catboost/libs/model/model_export/model_exporter.h>
 #include <catboost/libs/model/static_ctr_provider.h>
@@ -10,9 +12,10 @@
 #include <catboost/private/libs/options/enum_helpers.h>
 #include <catboost/private/libs/options/json_helper.h>
 #include <catboost/private/libs/options/system_options.h>
+#include <catboost/private/libs/algo/learn_context.h>
 #include <catboost/private/libs/target/classification_target_helper.h>
 
-#include <library/svnversion/svnversion.h>
+#include <library/cpp/svnversion/svnversion.h>
 #include <library/cpp/threading/local_executor/local_executor.h>
 
 #include <util/datetime/base.h>
@@ -31,7 +34,7 @@ namespace {
         TTextCollectionBuilder(
             const TFeatureEstimators& estimators,
             const TTextDigitizers& textDigitizers,
-            NPar::TLocalExecutor* localExecutor
+            NPar::ILocalExecutor* localExecutor
         )
             : WasBuilt(false)
             , FeatureEstimators(estimators)
@@ -47,9 +50,10 @@ namespace {
             PerTokenizedFeatureCalcers.resize(tokenizedFeatureCount);
         }
 
-        TTextCollectionBuilder& AddFeatureEstimator(
+        void AddFeatureEstimator(
             const TGuid& calcerId,
-            TConstArrayRef<TEstimatedFeature> estimatedFeatures
+            TConstArrayRef<TEstimatedFeature> estimatedFeatures,
+            TVector<TEstimatedFeature>* reorderedEstimatedFeatures
         ) {
             TEstimatorSourceId estimatorSourceId = FeatureEstimators.GetEstimatorSourceFeatureIdx(calcerId);
             const ui32 textFeatureIdx = estimatorSourceId.TextFeatureId;
@@ -61,20 +65,30 @@ namespace {
 
             TVector<ui32> localIds;
             for (const auto& estimatedFeature : estimatedFeatures) {
-                localIds.push_back(estimatedFeature.LocalIndex);
+                localIds.push_back(estimatedFeature.ModelEstimatedFeature.LocalId);
             }
 
             const ui32 calcerFlatIdx = AddCalcer(MakeFinalFeatureCalcer(calcerId, MakeConstArrayRef(localIds)));
 
-            AddEstimatedFeature(textFeatureIdx, calcerFlatIdx, estimatedFeatures);
+            const auto& calcer = Calcers[calcerFlatIdx];
+            for (ui32 localIndex: xrange(calcer->FeatureCount())) {
+                TEstimatedFeature estimatedFeature(TModelEstimatedFeature{
+                        SafeIntegerCast<int>(textFeatureIdx),
+                        calcer->Id(),
+                        SafeIntegerCast<int>(localIndex),
+                        EEstimatedSourceFeatureType::Text
+                    },
+                    estimatedFeatures[localIndex].Borders
+                );
+                reorderedEstimatedFeatures->push_back(estimatedFeature);
+            }
+
             RegisterIndices(
                 textFeatureIdx,
                 tokenizedFeatureIdx,
                 digitizerFlatIdx,
                 calcerFlatIdx
             );
-
-            return *this;
         }
 
         void InitializeDigitizer(
@@ -99,8 +113,7 @@ namespace {
         }
 
         void Build(
-            TTextProcessingCollection* textProcessingCollection,
-            TVector<TEstimatedFeature>* estimatedFeatures
+            TTextProcessingCollection* textProcessingCollection
         ) {
             CB_ENSURE_INTERNAL(!WasBuilt, "TTextCollectionBuilder: Build can be done only once");
             WasBuilt = true;
@@ -121,8 +134,6 @@ namespace {
             *textProcessingCollection = TTextProcessingCollection(
                 digitizers, Calcers, perFeatureDigitizers, PerTokenizedFeatureCalcers
             );
-
-            *estimatedFeatures = EstimatedFeatures;
         }
 
     private:
@@ -142,26 +153,9 @@ namespace {
             return calcerId;
         }
 
-        void AddEstimatedFeature(
-            ui32 textFeatureId,
-            ui32 calcerFlatIdx,
-            TConstArrayRef<TEstimatedFeature> estimatedFeatures
-        ) {
-            const auto& calcer = Calcers[calcerFlatIdx];
-            for (ui32 localIndex: xrange(calcer->FeatureCount())) {
-                TEstimatedFeature estimatedFeature = TEstimatedFeature{
-                    SafeIntegerCast<int>(textFeatureId),
-                    calcer->Id(),
-                    SafeIntegerCast<int>(localIndex)
-                };
-                estimatedFeature.Borders = estimatedFeatures[localIndex].Borders;
-                EstimatedFeatures.push_back(estimatedFeature);
-            }
-        }
-
         void RegisterIndices(ui32 textFeatureId, ui32 tokenizedFeatureId, ui32 digitizerId, ui32 calcerId) {
-            PerFeatureDigitizers[textFeatureId][tokenizedFeatureId] = digitizerId;
-            PerTokenizedFeatureCalcers[tokenizedFeatureId].push_back(calcerId);
+            PerFeatureDigitizers[textFeatureId][tokenizedFeatureId - PerFeatureDigitizers.size()] = digitizerId;
+            PerTokenizedFeatureCalcers[tokenizedFeatureId - PerFeatureDigitizers.size()].push_back(calcerId);
         }
 
         void CheckFeatureIndexes(
@@ -210,7 +204,6 @@ namespace {
         }
 
         bool WasBuilt = false;
-
         const TFeatureEstimators& FeatureEstimators;
         const TTextDigitizers& TextDigitizers;
 
@@ -219,38 +212,122 @@ namespace {
 
         THashMap<TDigitizer, ui32> DigitizerToId;
         TVector<TTextFeatureCalcerPtr> Calcers;
-
         THashMap<TGuid, TDigitizerId> CalcerToDigitizer;
-        TVector<TEstimatedFeature> EstimatedFeatures;
 
-        NPar::TLocalExecutor* LocalExecutor;
+        NPar::ILocalExecutor* LocalExecutor;
+    };
+
+    class TEmbeddingCollectionBuilder {
+    public:
+        TEmbeddingCollectionBuilder(
+            const TFeatureEstimators& estimators,
+            NPar::ILocalExecutor* localExecutor
+        )
+            : WasBuilt(false)
+            , FeatureEstimators(estimators)
+            , PerEmbeddingFeatureCalcers()
+            , LocalExecutor(localExecutor)
+        {
+        }
+        void AddFeatureEstimator(
+            const TGuid& calcerId,
+            TConstArrayRef<TEstimatedFeature> estimatedFeatures,
+            TVector<TEstimatedFeature>* reorderedEstimatedFeatures
+        ) {
+            TEstimatorSourceId estimatorSourceId = FeatureEstimators.GetEstimatorSourceFeatureIdx(calcerId);
+            const ui32 FeatureIdx = estimatorSourceId.TextFeatureId;
+
+            TVector<ui32> localIds;
+            for (const auto& estimatedFeature : estimatedFeatures) {
+                localIds.push_back(estimatedFeature.ModelEstimatedFeature.LocalId);
+            }
+
+            const ui32 calcerFlatIdx = AddCalcer(MakeFinalFeatureCalcer(calcerId, MakeConstArrayRef(localIds)));
+
+            const auto& calcer = Calcers[calcerFlatIdx];
+            for (ui32 localIndex: xrange(calcer->FeatureCount())) {
+                TEstimatedFeature estimatedFeature(TModelEstimatedFeature{
+                    SafeIntegerCast<int>(FeatureIdx),
+                    calcer->Id(),
+                    SafeIntegerCast<int>(localIndex),
+                    EEstimatedSourceFeatureType::Embedding
+                });
+                if (localIndex < estimatedFeatures.size()) {
+                    estimatedFeature.Borders = estimatedFeatures[localIndex].Borders;
+                }
+                reorderedEstimatedFeatures->push_back(estimatedFeature);
+            }
+            RegisterIndices(
+                FeatureIdx,
+                calcerFlatIdx
+            );
+        }
+
+        void Build(
+            TEmbeddingProcessingCollection* embeddingProcessingCollection
+        ) {
+            CB_ENSURE_INTERNAL(!WasBuilt, "TEmbeddingCollectionBuilder: Build can be done only once");
+            WasBuilt = true;
+
+            *embeddingProcessingCollection = TEmbeddingProcessingCollection(
+                Calcers, PerEmbeddingFeatureCalcers
+            );
+        }
+
+    private:
+        ui32 AddCalcer(TEmbeddingFeatureCalcerPtr&& calcer) {
+            const ui32 calcerId = Calcers.size();
+            Calcers.push_back(calcer);
+            return calcerId;
+        }
+        TEmbeddingFeatureCalcerPtr MakeFinalFeatureCalcer(const TGuid& calcerId, TConstArrayRef<ui32> featureIds) {
+            TFeatureEstimatorPtr estimator = FeatureEstimators.GetEstimatorByGuid(calcerId);
+
+            auto calcerHolder = estimator->MakeFinalFeatureCalcer(featureIds, LocalExecutor);
+            TEmbeddingFeatureCalcerPtr calcerPtr = dynamic_cast<TEmbeddingFeatureCalcer*>(calcerHolder.Release());
+            CB_ENSURE(calcerPtr, "CalcerPtr == null after MakeFinalFeatureCalcer");
+            CB_ENSURE(estimator->Id() == calcerPtr->Id(), "Estimator.Id() != Calcer.Id()");
+            return calcerPtr;
+        }
+        void RegisterIndices(ui32 FeatureId, ui32 calcerId) {
+            if (PerEmbeddingFeatureCalcers.size() < FeatureId + 1) {
+                PerEmbeddingFeatureCalcers.resize(FeatureId + 1);
+            }
+            PerEmbeddingFeatureCalcers[FeatureId].push_back(calcerId);
+        }
+    private:
+        bool WasBuilt = false;
+        const TFeatureEstimators& FeatureEstimators;
+        TVector<TVector<ui32>> PerEmbeddingFeatureCalcers;
+        TVector<TEmbeddingFeatureCalcerPtr> Calcers;
+        NPar::ILocalExecutor* LocalExecutor;
     };
 }
-
 
 namespace NCB {
 
     static void CreateTargetClasses(
-        NPar::TLocalExecutor& localExecutor,
-        TConstArrayRef<float> targets,
+        NPar::ILocalExecutor& localExecutor,
+        TConstArrayRef<TConstArrayRef<float>> targets,
         const TVector<TTargetClassifier>& targetClassifiers,
         TVector<TVector<int>>* learnTargetClasses,
         TVector<int>* targetClassesCount
     ) {
         ui64 ctrCount = targetClassifiers.size();
-        const int sampleCount = static_cast<const int>(targets.size());
+        const int sampleCount = static_cast<const int>(targets[0].size());
 
         learnTargetClasses->assign(ctrCount, TVector<int>(sampleCount));
         targetClassesCount->resize(ctrCount);
 
         for (ui32 ctrIdx = 0; ctrIdx < ctrCount; ++ctrIdx) {
+            auto targetId = targetClassifiers[ctrIdx].GetTargetId();
             NPar::ParallelFor(
                 localExecutor,
                 0,
                 (ui32)sampleCount,
                 [&](int sample) {
                     (*learnTargetClasses)[ctrIdx][sample]
-                        = targetClassifiers[ctrIdx].GetTargetClass(targets[sample]);
+                        = targetClassifiers[ctrIdx].GetTargetClass(targets[targetId][sample]);
                 }
             );
 
@@ -260,7 +337,7 @@ namespace NCB {
 
     static bool NeedTargetClasses(const TFullModel& coreModel) {
         return AnyOf(
-            coreModel.ModelTrees->GetUsedModelCtrs(),
+            coreModel.ModelTrees->GetApplyData()->UsedModelCtrs,
             [](const TModelCtr& modelCtr) {
                 return NeedTargetClassifier(modelCtr.Base.CtrType);
             }
@@ -272,20 +349,16 @@ namespace NCB {
         class TIncompleteData {
         public:
             TIncompleteData(
-                TTrainingDataProviders&& trainingData,
+                const TTrainingDataProviders& trainingData,
                 THashMap<TFeatureCombination, TProjection>&& featureCombinationToProjection,
                 const TVector<TTargetClassifier>& targetClassifiers,
-                ECounterCalc counterCalcMethod,
                 ui32 numThreads
             )
-                : TrainingData(std::move(trainingData))
+                : TrainingDataRef(trainingData)
                 , TargetClassifiers(targetClassifiers)
                 , NumThreads(numThreads)
                 , FeatureCombinationToProjection(std::move(featureCombinationToProjection))
             {
-                if (counterCalcMethod == ECounterCalc::SkipTest) {
-                    TrainingData.Test.clear();
-                }
             }
 
             void operator()(
@@ -293,13 +366,13 @@ namespace NCB {
                 TDatasetDataForFinalCtrs* outDatasetDataForFinalCtrs,
                 const THashMap<TFeatureCombination, TProjection>** outFeatureCombinationToProjection
             ) {
-                outDatasetDataForFinalCtrs->Data = std::move(TrainingData);
+                outDatasetDataForFinalCtrs->Data = TrainingDataRef;
                 outDatasetDataForFinalCtrs->LearnPermutation = Nothing();
 
-                // since counters are not implemented for mult-dimensional target
-                if (outDatasetDataForFinalCtrs->Data.Learn->TargetData->GetTargetDimension() == 1) {
-                    outDatasetDataForFinalCtrs->Targets = *outDatasetDataForFinalCtrs->Data.Learn->TargetData->GetOneDimensionalTarget();
-                }
+                auto targets =  *outDatasetDataForFinalCtrs->Data.Learn->TargetData->GetTarget();
+                outDatasetDataForFinalCtrs->Targets = TVector<TConstArrayRef<float>>();
+                for (const auto& ref: targets)
+                    outDatasetDataForFinalCtrs->Targets->emplace_back(ref);
 
                 *outFeatureCombinationToProjection = &FeatureCombinationToProjection;
 
@@ -323,7 +396,7 @@ namespace NCB {
             }
 
         private:
-            TTrainingDataProviders TrainingData;
+            const TTrainingDataProviders& TrainingDataRef;
 
             const TVector<TTargetClassifier>& TargetClassifiers;
             ui32 NumThreads;
@@ -390,16 +463,15 @@ namespace NCB {
     }
 
     TCoreModelToFullModelConverter& TCoreModelToFullModelConverter::WithBinarizedDataComputedFrom(
-        TTrainingDataProviders&& trainingData,
+        const TTrainingDataProviders& trainingData,
         THashMap<TFeatureCombination, TProjection>&& featureCombinationToProjection,
         const TVector<TTargetClassifier>& targetClassifiers
     ) {
         if (FinalCtrComputationMode != EFinalCtrComputationMode::Skip) {
             GetBinarizedDataFunc = TIncompleteData(
-                std::move(trainingData),
+                trainingData,
                 std::move(featureCombinationToProjection),
                 targetClassifiers,
-                Options.CatFeatureParams.Get().CounterCalcMethod,
                 NumThreads
             );
         }
@@ -425,16 +497,18 @@ namespace NCB {
     void TCoreModelToFullModelConverter::Do(
         bool requiresStaticCtrProvider,
         TFullModel* dstModel,
-        NPar::TLocalExecutor* localExecutor) {
+        NPar::ILocalExecutor* localExecutor,
+        const TVector<TTargetClassifier>* targetClassifiers) {
 
-        DoImpl(requiresStaticCtrProvider, dstModel, localExecutor);
+        DoImpl(requiresStaticCtrProvider, dstModel, localExecutor, targetClassifiers);
     }
 
     void TCoreModelToFullModelConverter::Do(
         const TString& fullModelPath,
         const TVector<EModelType>& formats,
         bool addFileFormatExtension,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor,
+        const TVector<TTargetClassifier>* targetClassifiers
     ) {
         TFullModel fullModel;
 
@@ -448,7 +522,8 @@ namespace NCB {
                 }
             ),
             &fullModel,
-            localExecutor
+            localExecutor,
+            targetClassifiers
         );
 
         ExportFullModel(fullModel, fullModelPath, LearnObjectsData.Get(), formats, addFileFormatExtension);
@@ -457,7 +532,8 @@ namespace NCB {
     void TCoreModelToFullModelConverter::DoImpl(
         bool requiresStaticCtrProvider,
         TFullModel* dstModel,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor,
+        const TVector<TTargetClassifier>* targetClassifiers
     ) {
         CB_ENSURE_INTERNAL(CoreModel, "CoreModel has not been specified");
 
@@ -498,8 +574,10 @@ namespace NCB {
                 LearnObjectsData->GetQuantizedFeaturesInfo()->GetTextDigitizers();
 
             TTextProcessingCollection textProcessingCollection;
+            TEmbeddingProcessingCollection embeddingProcessingCollection;
             TVector<TEstimatedFeature> remappedEstimatedFeatures;
-            CreateTextProcessingCollection(
+            remappedEstimatedFeatures.reserve(dstModel->ModelTrees->GetEstimatedFeatures().size());
+            CreateProcessingCollections(
                 *FeatureEstimators,
                 textDigitizers,
                 TVector<TEstimatedFeature>(
@@ -507,11 +585,17 @@ namespace NCB {
                     dstModel->ModelTrees->GetEstimatedFeatures().end()
                 ),
                 &textProcessingCollection,
+                &embeddingProcessingCollection,
                 &remappedEstimatedFeatures,
                 localExecutor
             );
 
-            dstModel->TextProcessingCollection = MakeIntrusive<TTextProcessingCollection>(textProcessingCollection);
+            if (!textProcessingCollection.Empty()) {
+                dstModel->TextProcessingCollection = MakeIntrusive<TTextProcessingCollection>(textProcessingCollection);
+            }
+            if (!embeddingProcessingCollection.Empty()) {
+                dstModel->EmbeddingProcessingCollection = MakeIntrusive<TEmbeddingProcessingCollection>(embeddingProcessingCollection);
+            }
             dstModel->UpdateEstimatedFeaturesIndices(std::move(remappedEstimatedFeatures));
         }
 
@@ -528,6 +612,7 @@ namespace NCB {
         CB_ENSURE_INTERNAL(GetBinarizedDataFunc, "Need BinarizedDataFunc data specified");
 
         TDatasetDataForFinalCtrs datasetDataForFinalCtrs;
+        datasetDataForFinalCtrs.TargetClassifiers = targetClassifiers;
         const THashMap<TFeatureCombination, TProjection>* featureCombinationToProjectionMap;
 
         GetBinarizedDataFunc(*dstModel, &datasetDataForFinalCtrs, &featureCombinationToProjectionMap);
@@ -537,16 +622,15 @@ namespace NCB {
             PerfectHashedToHashedCatValuesMap,
             "PerfectHashedToHashedCatValuesMap has not been specified"
         );
-
+        auto applyData = dstModel->ModelTrees->GetApplyData();
         if (requiresStaticCtrProvider) {
             dstModel->CtrProvider = new TStaticCtrProvider;
 
             TMutex lock;
-
             CalcFinalCtrs(
                 datasetDataForFinalCtrs,
                 *featureCombinationToProjectionMap,
-                dstModel->ModelTrees->GetUsedModelCtrBases(),
+                applyData->GetUsedModelCtrBases(),
                 [&dstModel, &lock](TCtrValueTable&& table) {
                     with_lock(lock) {
                         dstModel->CtrProvider->AddCtrCalcerData(std::move(table));
@@ -557,7 +641,7 @@ namespace NCB {
             dstModel->UpdateDynamicData();
         } else {
             dstModel->CtrProvider = new TStaticCtrOnFlightSerializationProvider(
-                dstModel->ModelTrees->GetUsedModelCtrBases(),
+                applyData->GetUsedModelCtrBases(),
                 [this,
                  datasetDataForFinalCtrs = std::move(datasetDataForFinalCtrs),
                  featureCombinationToProjectionMap] (
@@ -601,17 +685,18 @@ namespace NCB {
         );
     }
 
-    void CreateTextProcessingCollection(
+    void CreateProcessingCollections(
         const TFeatureEstimators& featureEstimators,
         const TTextDigitizers& textDigitizers,
         const TVector<TEstimatedFeature>& estimatedFeatures,
         TTextProcessingCollection* textProcessingCollection,
+        TEmbeddingProcessingCollection* embeddingProcessingCollection,
         TVector<TEstimatedFeature>* reorderedEstimatedFeatures,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
     ) {
         CB_ENSURE(
             !estimatedFeatures.empty(),
-            "CreateTextProcessingCollection: Estimated feature shouldn't be empty"
+            "CreateProcessingCollection: Estimated feature shouldn't be empty"
         );
 
         TTextCollectionBuilder textCollectionBuilder(
@@ -620,20 +705,31 @@ namespace NCB {
             localExecutor
         );
 
-        TVector<TEstimatedFeature> usedEstimatedFeatures;
-        TGuid lastCalcerId = estimatedFeatures[0].CalcerId;
+        TEmbeddingCollectionBuilder embeddingCollectionBuilder(
+            featureEstimators,
+            localExecutor
+        );
 
-        for (const auto& estimatedFeature: estimatedFeatures) {
-            const TGuid currentCalcerIndex = estimatedFeature.CalcerId;
-            if (lastCalcerId != currentCalcerIndex) {
-                textCollectionBuilder.AddFeatureEstimator(lastCalcerId, usedEstimatedFeatures);
-                lastCalcerId = currentCalcerIndex;
-                usedEstimatedFeatures.clear();
+        int firstFeatureFromCalcer = 0;
+        for (auto estimatedFeatureId : xrange(1, estimatedFeatures.ysize() + 1)) {
+            if (estimatedFeatureId == estimatedFeatures.ysize() ||
+                estimatedFeatures[firstFeatureFromCalcer].ModelEstimatedFeature.CalcerId !=
+                estimatedFeatures[estimatedFeatureId].ModelEstimatedFeature.CalcerId) {
+
+                auto calcerId = estimatedFeatures[firstFeatureFromCalcer].ModelEstimatedFeature.CalcerId;
+                TConstArrayRef<TEstimatedFeature> usedEstimatedFeatures(estimatedFeatures.begin() + firstFeatureFromCalcer,
+                                                                        estimatedFeatures.begin() + estimatedFeatureId);
+
+                if (featureEstimators.GetEstimatorSourceType(calcerId) == EFeatureType::Text) {
+                    textCollectionBuilder.AddFeatureEstimator(calcerId, usedEstimatedFeatures, reorderedEstimatedFeatures);
+                } else {
+                    embeddingCollectionBuilder.AddFeatureEstimator(calcerId, usedEstimatedFeatures, reorderedEstimatedFeatures);
+                }
+                firstFeatureFromCalcer = estimatedFeatureId;
             }
-            usedEstimatedFeatures.push_back(estimatedFeature);
         }
-        textCollectionBuilder.AddFeatureEstimator(lastCalcerId, usedEstimatedFeatures);
-        textCollectionBuilder.Build(textProcessingCollection, reorderedEstimatedFeatures);
+        textCollectionBuilder.Build(textProcessingCollection);
+        embeddingCollectionBuilder.Build(embeddingProcessingCollection);
     };
 
     void ExportFullModel(
@@ -643,12 +739,7 @@ namespace NCB {
         TConstArrayRef<EModelType> formats,
         bool addFileFormatExtension
     ) {
-        const TConstArrayRef<TFloatFeature> floatFeatures = fullModel.ModelTrees->GetFloatFeatures();
-        const TConstArrayRef<TCatFeature> catFeatures = fullModel.ModelTrees->GetCatFeatures();
-        TFeaturesLayout featuresLayout(
-            TVector<TFloatFeature>(floatFeatures.begin(), floatFeatures.end()),
-            TVector<TCatFeature>(catFeatures.begin(), catFeatures.end())
-        );
+        TFeaturesLayout featuresLayout = MakeFeaturesLayout(fullModel);
         TVector<TString> featureIds = featuresLayout.GetExternalFeatureIds();
 
         THashMap<ui32, TString> catFeaturesHashToString;

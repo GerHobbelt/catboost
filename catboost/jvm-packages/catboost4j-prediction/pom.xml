@@ -6,7 +6,7 @@
 
     <groupId>ai.catboost</groupId>
     <artifactId>catboost-prediction</artifactId>
-    <version>0.23.1</version>
+    <version>1.2.2</version>
     <packaging>jar</packaging>
     <name>CatBoost model applier</name>
     <description>Java module to apply CatBoost models</description>
@@ -19,6 +19,10 @@
             <distribution>repo</distribution>
         </license>
     </licenses>
+
+    <properties>
+        <buildNative.extraArgs></buildNative.extraArgs>
+    </properties>
 
     <organization>
         <name>CatBoost dev team</name>
@@ -50,34 +54,6 @@
 
     <build>
         <plugins>
-            <plugin>
-                <groupId>org.codehaus.mojo</groupId>
-                <artifactId>exec-maven-plugin</artifactId>
-                <version>1.6.0</version>
-                <executions>
-                    <execution>
-                        <id>Build dynamic library with JNI for model inference</id>
-                        <phase>generate-sources</phase>
-                        <goals>
-                            <goal>exec</goal>
-                        </goals>
-                        <configuration>
-                            <executable>python</executable>
-                            <arguments>
-                                <argument>src/native/build_for_maven.py</argument>
-                                <argument>--build</argument>
-                                <argument>release</argument>
-                                <argument>--no-src-links</argument>
-                                <argument>-DOS_SDK=local</argument>
-                                <argument>-DHAVE_CUDA=no</argument>
-                                <argument>-DUSE_SYSTEM_JDK=yes</argument>
-                                <argument>-DJAVA_HOME=${java.home}</argument>>
-                            </arguments>
-                            <workingDirectory>${user.dir}</workingDirectory>
-                        </configuration>
-                    </execution>
-                </executions>
-            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -130,6 +106,16 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>2.22.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-failsafe-plugin</artifactId>
+                <version>2.22.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-gpg-plugin</artifactId>
                 <version>1.6</version>
                 <executions>
@@ -174,16 +160,116 @@
         </dependency>
 
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.11</version>
+            <groupId>org.junit.vintage</groupId>
+            <artifactId>junit-vintage-engine</artifactId>
+            <version>5.9.2</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-engine</artifactId>
+            <version>5.9.2</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-runner</artifactId>
+            <version>1.7.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter-params</artifactId>
+            <version>5.9.2</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>org.slf4j</groupId>
             <artifactId>slf4j-jdk14</artifactId>
             <version>1.7.25</version>
             <scope>test</scope>
         </dependency>
+
+        <dependency>
+            <groupId>ai.catboost</groupId>
+            <artifactId>catboost-common</artifactId>
+            <version>1.2.2</version>
+        </dependency>
     </dependencies>
+
+    <profiles>
+      <profile>
+         <id>build-native</id>
+         <activation>
+           <property>
+             <name>!prebuilt.native.resources.dir</name>
+           </property>
+         </activation>
+         <build>
+           <plugins>
+              <plugin>
+                  <groupId>org.codehaus.mojo</groupId>
+                  <artifactId>exec-maven-plugin</artifactId>
+                  <version>1.6.0</version>
+                  <executions>
+                      <execution>
+                          <id>Build dynamic library with JNI for model inference</id>
+                          <phase>generate-sources</phase>
+                          <goals>
+                              <goal>exec</goal>
+                          </goals>
+                          <configuration>
+                              <executable>python</executable>
+                              <commandlineArgs>
+                                ${basedir}/../tools/build_native_for_maven.py
+                                --build-output-root-dir=${project.build.directory}/native
+                                --base-dir=${basedir}
+                                --lib-name=catboost4j-prediction
+                                ${buildNative.extraArgs}
+                              </commandlineArgs>
+                              <workingDirectory>${user.dir}</workingDirectory>
+                          </configuration>
+                      </execution>
+                  </executions>
+              </plugin>
+            </plugins>
+          </build>
+      </profile>
+      <profile>
+         <id>prebuilt-native</id>
+         <activation>
+           <property>
+             <name>prebuilt.native.resources.dir</name>
+           </property>
+         </activation>
+         <build>
+           <plugins>
+              <plugin>
+                  <groupId>org.codehaus.mojo</groupId>
+                  <artifactId>exec-maven-plugin</artifactId>
+                  <version>1.6.0</version>
+                  <executions>
+                      <execution>
+                          <id>Copy prebuilt native files</id>
+                          <phase>generate-sources</phase>
+                          <goals>
+                              <goal>exec</goal>
+                          </goals>
+                          <configuration>
+                              <executable>python</executable>
+                              <arguments>
+                                  <argument>${basedir}/../tools/copy_prebuilt_native_files.py</argument>
+                                  <argument>--src-resources-dir=${prebuilt.native.resources.dir}</argument>
+                                  <argument>--dst-basedir=${basedir}</argument>
+                              </arguments>
+                              <workingDirectory>${user.dir}</workingDirectory>
+                          </configuration>
+                      </execution>
+                  </executions>
+              </plugin>
+            </plugins>
+          </build>
+      </profile>
+    </profiles>
 </project>

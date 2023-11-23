@@ -4,8 +4,8 @@
 
 from __future__ import absolute_import
 
-import collections
 import copy
+import hashlib
 import re
 
 try:
@@ -1297,7 +1297,7 @@ class BuiltinObjectType(PyObjectType):
             name = '"%s"' % self.name
             # avoid wasting too much space but limit number of different format strings
             space_for_name = (len(self.name) // 16 + 1) * 16
-        error = '(PyErr_Format(PyExc_TypeError, "Expected %%.%ds, got %%.200s", %s, Py_TYPE(%s)->tp_name), 0)' % (
+        error = '((void)PyErr_Format(PyExc_TypeError, "Expected %%.%ds, got %%.200s", %s, Py_TYPE(%s)->tp_name), 0)' % (
             space_for_name, name, arg)
         return check + '||' + error
 
@@ -1561,6 +1561,7 @@ class PythranExpr(CType):
 class CConstType(BaseType):
 
     is_const = 1
+    subtypes = ['const_base_type']
 
     def __init__(self, const_base_type):
         self.const_base_type = const_base_type
@@ -4043,6 +4044,9 @@ class CTupleType(CType):
         env.use_utility_code(self._convert_from_py_code)
         return True
 
+    def cast_code(self, expr_code):
+        return expr_code
+
 
 def c_tuple_type(components):
     components = tuple(components)
@@ -4737,5 +4741,5 @@ def type_identifier(type):
 def cap_length(s, max_prefix=63, max_len=1024):
     if len(s) <= max_prefix:
         return s
-    else:
-        return '%x__%s__etc' % (abs(hash(s)) % (1<<20), s[:max_len-17])
+    hash_prefix = hashlib.sha256(s.encode('ascii')).hexdigest()[:6]
+    return '%s__%s__etc' % (hash_prefix, s[:max_len-17])

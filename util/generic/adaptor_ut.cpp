@@ -1,12 +1,12 @@
 #include "adaptor.h"
 #include "yexception.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
-struct TOnCopy : yexception {
+struct TOnCopy: yexception {
 };
 
-struct TOnMove : yexception {
+struct TOnMove: yexception {
 };
 
 struct TState {

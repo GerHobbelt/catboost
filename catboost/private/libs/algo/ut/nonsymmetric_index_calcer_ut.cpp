@@ -10,7 +10,7 @@
 #include <catboost/private/libs/options/restrictions.h>
 
 #include <library/cpp/threading/local_executor/local_executor.h>
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <util/folder/dirut.h>
 #include <util/generic/algorithm.h>
@@ -51,7 +51,7 @@ Y_UNIT_TEST_SUITE(NonSymmetricIndexCalcerTest) {
 
                 TPoolQuantizationSchema schema;
                 for (auto featureIdx : xrange(floatFeatureCount)) {
-                    schema.FeatureIndices.push_back(featureIdx);
+                    schema.FloatFeatureIndices.push_back(featureIdx);
                     ui8 borderCount = *MaxElement(quantizedFloatFeatures[featureIdx].begin(), quantizedFloatFeatures[featureIdx].end());
                     schema.Borders.emplace_back();
                     schema.Borders[featureIdx].yresize(borderCount);
@@ -66,10 +66,9 @@ Y_UNIT_TEST_SUITE(NonSymmetricIndexCalcerTest) {
                     for (auto bucketIdx : xrange(bucketCount)) {
                         schema.FeaturesPerfectHash[featureIdx][bucketIdx] = {bucketIdx, 1};
                     }
-                    schema.NanModes.push_back(ENanMode::Forbidden);
                 }
 
-                visitor->Start(metaInfo, objectCount, EObjectsOrder::Undefined, {}, schema);
+                visitor->Start(metaInfo, objectCount, EObjectsOrder::Undefined, {}, schema, /*wholeColumns*/ true);
 
                 for (auto featureIdx : xrange(floatFeatureCount)) {
                     auto holder = TMaybeOwningArrayHolder<const ui8>::CreateNonOwning(quantizedFloatFeatures[featureIdx]);
@@ -94,7 +93,8 @@ Y_UNIT_TEST_SUITE(NonSymmetricIndexCalcerTest) {
         TMaybe<float> targetBorder = catBoostOptions.DataProcessingOptions->TargetBorder;
         return GetTrainingData(
             std::move(dataProviderPtr),
-            true,
+            /*dataCanBeEmpty*/ false,
+            /*isLearn*/ true,
             "learn",
             Nothing(),
             true,

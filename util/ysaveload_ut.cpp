@@ -1,21 +1,19 @@
 #include "ysaveload.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <util/memory/pool.h>
 #include <util/stream/buffer.h>
 #include <util/memory/blob.h>
 #include <util/generic/list.h>
 #include <util/generic/map.h>
-#include <util/generic/set.h>
-#include <util/generic/hash.h>
+#include <util/generic/hash_multi_map.h>
 #include <util/generic/deque.h>
 #include <util/generic/string.h>
 #include <util/generic/vector.h>
 #include <util/generic/buffer.h>
 #include <util/generic/hash_set.h>
 #include <util/generic/maybe.h>
-#include <util/generic/variant.h>
 
 static inline char* AllocateFromPool(TMemoryPool& pool, size_t len) {
     return (char*)pool.Allocate(len);
@@ -24,11 +22,15 @@ static inline char* AllocateFromPool(TMemoryPool& pool, size_t len) {
 class TSaveLoadTest: public TTestBase {
     UNIT_TEST_SUITE(TSaveLoadTest);
     UNIT_TEST(TestSaveLoad)
+    UNIT_TEST(TestSaveLoadEmptyStruct)
     UNIT_TEST(TestNewStyle)
     UNIT_TEST(TestNewNewStyle)
     UNIT_TEST(TestList)
     UNIT_TEST(TestTuple)
     UNIT_TEST(TestVariant)
+    UNIT_TEST(TestOptional)
+    UNIT_TEST(TestInheritNonVirtualClass)
+    UNIT_TEST(TestInheritVirtualClass)
     UNIT_TEST_SUITE_END();
 
     struct TSaveHelper {
@@ -57,7 +59,11 @@ class TSaveLoadTest: public TTestBase {
         TString Str;
         ui32 Int;
 
-        Y_SAVELOAD_DEFINE(Str, Int)
+        Y_SAVELOAD_DEFINE(Str, Int);
+    };
+
+    struct TNewNewStyleEmptyHelper {
+        Y_SAVELOAD_DEFINE();
     };
 
 private:
@@ -374,6 +380,14 @@ private:
         }
     }
 
+    inline void TestSaveLoadEmptyStruct() {
+        TBufferStream S_;
+        TNewNewStyleEmptyHelper h;
+
+        Save(&S_, h);
+        Load(&S_, h);
+    }
+
     void TestList() {
         TBufferStream s;
 
@@ -411,11 +425,11 @@ private:
         TBufferStream s;
         ::Save(&s, v);
         ::Load(&s, v);
-        UNIT_ASSERT_VALUES_EQUAL(Get<T>(v), expected);
+        UNIT_ASSERT_VALUES_EQUAL(std::get<T>(v), expected);
     }
 
     void TestVariant() {
-        TVariant<int, bool, TString, TVector<char>> v(1);
+        std::variant<int, bool, TString, TVector<char>> v(1);
         TestVariantImpl(v, 42);
         TestVariantImpl(v, true);
         TestVariantImpl(v, TString("foo"));
@@ -425,8 +439,80 @@ private:
         TBufferStream s;
         ::Save(&s, v);
 
-        TVariant<char, bool> v2 = false;
+        std::variant<char, bool> v2 = false;
         UNIT_ASSERT_EXCEPTION(::Load(&s, v2), TLoadEOF);
+    }
+
+    template <class T>
+    void TestOptionalImpl(const std::optional<T>& v) {
+        std::optional<T> loaded;
+        TBufferStream s;
+        ::Save(&s, v);
+        ::Load(&s, loaded);
+
+        UNIT_ASSERT_VALUES_EQUAL(v.has_value(), loaded.has_value());
+        if (v.has_value()) {
+            UNIT_ASSERT_VALUES_EQUAL(*v, *loaded);
+        }
+    }
+
+    void TestOptional() {
+        TestOptionalImpl(std::optional<ui64>(42ull));
+        TestOptionalImpl(std::optional<bool>(true));
+        TestOptionalImpl(std::optional<TString>("abacaba"));
+        TestOptionalImpl(std::optional<ui64>(std::nullopt));
+    }
+
+    //  tests serialization of class with three public string members
+    template <class TDerived, class TInterface = TDerived>
+    void TestInheritClassImpl() {
+        TBufferStream s;
+        {
+            TDerived v1;
+            v1.Str1 = "One";
+            v1.Str2 = "Two";
+            v1.Str3 = "Three";
+            ::Save(&s, static_cast<const TInterface&>(v1));
+        }
+        {
+            TDerived v2;
+            ::Load(&s, static_cast<TInterface&>(v2));
+            UNIT_ASSERT_VALUES_EQUAL_C(v2.Str1, "One", TypeName<TDerived>() << " via " << TypeName<TInterface>());
+            UNIT_ASSERT_VALUES_EQUAL_C(v2.Str2, "Two", TypeName<TDerived>() << " via " << TypeName<TInterface>());
+            UNIT_ASSERT_VALUES_EQUAL_C(v2.Str3, "Three", TypeName<TDerived>() << " via " << TypeName<TInterface>());
+        }
+    }
+
+    void TestInheritNonVirtualClass() {
+        struct TBaseNonVirtual {
+            TString Str1;
+            Y_SAVELOAD_DEFINE(Str1);
+        };
+        struct TDerivedNonVirtual: TBaseNonVirtual {
+            TString Str2;
+            TString Str3;
+            Y_SAVELOAD_DEFINE(TNonVirtualSaver<TBaseNonVirtual>{this}, Str2, Str3);
+        };
+        TestInheritClassImpl<TDerivedNonVirtual>();
+    }
+
+    void TestInheritVirtualClass() {
+        struct IInterface {
+            virtual void Save(IOutputStream* out) const = 0;
+            virtual void Load(IInputStream* in) = 0;
+        };
+        struct TBaseVirtual: IInterface {
+            TString Str1;
+            Y_SAVELOAD_DEFINE_OVERRIDE(Str1);
+        };
+        struct TDerivedVirtual: TBaseVirtual {
+            TString Str2;
+            TString Str3;
+            Y_SAVELOAD_DEFINE_OVERRIDE(TNonVirtualSaver<TBaseVirtual>{this}, Str2, Str3);
+        };
+        TestInheritClassImpl<TDerivedVirtual>();
+        TestInheritClassImpl<TDerivedVirtual, TBaseVirtual>();
+        TestInheritClassImpl<TDerivedVirtual, IInterface>();
     }
 };
 

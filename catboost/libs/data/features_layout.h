@@ -2,6 +2,9 @@
 
 #include "feature_index.h"
 
+#include <catboost/libs/column_description/column.h>
+#include <catboost/libs/column_description/feature_tag.h>
+#include <catboost/libs/helpers/exception.h>
 #include <catboost/libs/model/features.h>
 #include <catboost/private/libs/options/enums.h>
 
@@ -79,6 +82,9 @@ struct TDumper<NCB::TFeatureMetaInfo> {
 
 
 namespace NCB {
+    class TFeaturesLayout;
+    using TFeaturesLayoutPtr = TIntrusivePtr<TFeaturesLayout>;
+
     class TFeaturesLayout final : public TAtomicRefCount<TFeaturesLayout> {
     public:
         // needed because of default init in Cython and because of BinSaver
@@ -88,16 +94,36 @@ namespace NCB {
             const ui32 featureCount,
             const TVector<ui32>& catFeatureIndices,
             const TVector<TString>& featureId)
-            : TFeaturesLayout(featureCount, catFeatureIndices, {}, featureId) {}
+            : TFeaturesLayout(featureCount, catFeatureIndices, {}, {}, featureId) {}
         TFeaturesLayout(
             const ui32 featureCount,
             const TVector<ui32>& catFeatureIndices,
             const TVector<ui32>& textFeatureIndices,
+            const TVector<ui32>& embeddingFeatureIndices,
             const TVector<TString>& featureId,
+            const THashMap<TString, TTagDescription>& featureTags = {},
             bool allFeaturesAreSparse = false);
         TFeaturesLayout(
             const TVector<TFloatFeature>& floatFeatures,
             const TVector<TCatFeature>& catFeatures);
+        TFeaturesLayout(
+            TConstArrayRef<TFloatFeature> floatFeatures,
+            TConstArrayRef<TCatFeature> catFeatures,
+            TConstArrayRef<TTextFeature> textFeatures,
+            TConstArrayRef<TEmbeddingFeature> embeddingFeatures);
+
+        // data is moved into - poor substitute to && because SWIG does not support it
+        TFeaturesLayout(TVector<TFeatureMetaInfo>* data);
+
+        // needed for SWIG wrapper deserialization
+        // data is moved into - poor substitute to && because SWIG does not support it
+        void Init(TVector<TFeatureMetaInfo>* data);
+
+        // create from columns info
+        static TFeaturesLayoutPtr CreateFeaturesLayout(
+            TConstArrayRef<TColumn> columns,
+            TMaybe<const TVector<TString>*> featureNames,
+            TMaybe<const THashMap<TString, TTagDescription>*> featureTags = Nothing());
 
         bool EqualTo(const TFeaturesLayout& rhs, bool ignoreSparsity = false) const;
 
@@ -109,7 +135,10 @@ namespace NCB {
             ExternalIdxToMetaInfo,
             FeatureExternalIdxToInternalIdx,
             CatFeatureInternalIdxToExternalIdx,
-            FloatFeatureInternalIdxToExternalIdx)
+            FloatFeatureInternalIdxToExternalIdx,
+            TextFeatureInternalIdxToExternalIdx,
+            EmbeddingFeatureInternalIdxToExternalIdx,
+            TagToExternalIndices);
 
 
         const TFeatureMetaInfo& GetInternalFeatureMetaInfo(
@@ -128,7 +157,18 @@ namespace NCB {
         // needed for python-package
         void SetExternalFeatureIds(TConstArrayRef<TString> featureIds);
 
-        ui32 GetExternalFeatureIdx(ui32 internalFeatureIdx, EFeatureType type) const;
+        ui32 GetExternalFeatureIdx(ui32 internalFeatureIdx, EFeatureType type) const {
+            switch (type) {
+                case EFeatureType::Float:
+                    return FloatFeatureInternalIdxToExternalIdx[internalFeatureIdx];
+                case EFeatureType::Categorical:
+                    return CatFeatureInternalIdxToExternalIdx[internalFeatureIdx];
+                case EFeatureType::Text:
+                    return TextFeatureInternalIdxToExternalIdx[internalFeatureIdx];
+                case EFeatureType::Embedding:
+                    return EmbeddingFeatureInternalIdxToExternalIdx[internalFeatureIdx];
+            }
+        }
 
         ui32 GetInternalFeatureIdx(ui32 externalFeatureIdx) const;
 
@@ -150,8 +190,11 @@ namespace NCB {
                     otherTypesSize = ExternalIdxToMetaInfo.size() - FloatFeatureInternalIdxToExternalIdx.size();
                 } else if constexpr (FeatureType == EFeatureType::Categorical) {
                     otherTypesSize = ExternalIdxToMetaInfo.size() - CatFeatureInternalIdxToExternalIdx.size();
-                } else {
+                } else if constexpr (FeatureType == EFeatureType::Text) {
                     otherTypesSize = ExternalIdxToMetaInfo.size() - TextFeatureInternalIdxToExternalIdx.size();
+                } else {
+                    otherTypesSize
+                        = ExternalIdxToMetaInfo.size() - EmbeddingFeatureInternalIdxToExternalIdx.size();
                 }
                 return TFeatureIdx<FeatureType>(externalFeatureIdx - otherTypesSize);
             } else {
@@ -172,6 +215,8 @@ namespace NCB {
         ui32 GetCatFeatureCount() const;
 
         ui32 GetTextFeatureCount() const;
+
+        ui32 GetEmbeddingFeatureCount() const;
 
         ui32 GetExternalFeatureCount() const;
 
@@ -202,6 +247,10 @@ namespace NCB {
 
         TConstArrayRef<ui32> GetTextFeatureInternalIdxToExternalIdx() const;
 
+        TConstArrayRef<ui32> GetEmbeddingFeatureInternalIdxToExternalIdx() const;
+
+        const THashMap<TString, TVector<ui32>>& GetTagToExternalIndices() const;
+
         bool HasAvailableAndNotIgnoredFeatures() const;
 
         void AddFeature(TFeatureMetaInfo&& featureMetaInfo);
@@ -212,9 +261,63 @@ namespace NCB {
         TVector<ui32> FloatFeatureInternalIdxToExternalIdx;
         TVector<ui32> CatFeatureInternalIdxToExternalIdx;
         TVector<ui32> TextFeatureInternalIdxToExternalIdx;
-    };
+        TVector<ui32> EmbeddingFeatureInternalIdxToExternalIdx;
+        THashMap<TString, TVector<ui32>> TagToExternalIndices;
 
-    using TFeaturesLayoutPtr = TIntrusivePtr<TFeaturesLayout>;
+        template <class TFeatureElement>
+        inline void UpdateFeaturesMetaInfo(
+            TConstArrayRef<TFeatureElement> features,
+            EFeatureType featureType)
+        {
+            const TFeatureMetaInfo defaultIgnoredMetaInfo(
+                EFeatureType::Float,
+                /*name*/ TString(),
+                /*isSparse*/ false,
+                /*isIgnored*/ true
+            );
+            const ui32 internalOrExternalIndexPlaceholder = Max<ui32>();
+            TVector<ui32>& featureInternalIdxToExternalIdx = [&]()->TVector<ui32>& {
+                switch (featureType) {
+                    case EFeatureType::Float:
+                        return FloatFeatureInternalIdxToExternalIdx;
+                    case EFeatureType::Categorical:
+                        return CatFeatureInternalIdxToExternalIdx;
+                    case EFeatureType::Text:
+                        return TextFeatureInternalIdxToExternalIdx;
+                    case EFeatureType::Embedding:
+                        return EmbeddingFeatureInternalIdxToExternalIdx;
+                    default:
+                        CB_ENSURE(false, "Unsupported feature type " << featureType << " for layout");
+                }
+            }();
+            for (const auto& feature : features) {
+                CB_ENSURE(feature.Position.FlatIndex >= 0, "feature.Position.FlatIndex is negative");
+                CB_ENSURE(feature.Position.Index >= 0, "feature.Position.Index is negative");
+                if ((size_t)feature.Position.FlatIndex >= ExternalIdxToMetaInfo.size()) {
+                    CB_ENSURE(
+                        (size_t)feature.Position.FlatIndex < (size_t)Max<ui32>(),
+                        "feature.Position.FlatIndex is greater than maximum allowed index: "
+                        << (Max<ui32>() - 1)
+                    );
+                    ExternalIdxToMetaInfo.resize(feature.Position.FlatIndex + 1, defaultIgnoredMetaInfo);
+                    FeatureExternalIdxToInternalIdx.resize(
+                        feature.Position.FlatIndex + 1,
+                        internalOrExternalIndexPlaceholder
+                    );
+                }
+                ExternalIdxToMetaInfo[feature.Position.FlatIndex] =
+                    TFeatureMetaInfo(featureType, feature.FeatureId);
+                FeatureExternalIdxToInternalIdx[feature.Position.FlatIndex] = feature.Position.Index;
+                if ((size_t)feature.Position.Index >= featureInternalIdxToExternalIdx.size()) {
+                    featureInternalIdxToExternalIdx.resize(
+                        (size_t)feature.Position.Index + 1,
+                        internalOrExternalIndexPlaceholder
+                    );
+                }
+                featureInternalIdxToExternalIdx[feature.Position.Index] = feature.Position.FlatIndex;
+            }
+        }
+    };
 
     void CheckCompatibleForApply(
         const TFeaturesLayout& learnFeaturesLayout,

@@ -147,7 +147,7 @@ public:
                         estimatorId
                     ).TextFeatureId
                 ),
-                EFeatureType::Text
+                estimatedFeaturesContext.FeatureEstimators->GetFeatureEstimator(estimatorId)->GetSourceType()
             );
         } else if (Type == ESplitType::OnlineCtr) {
             for (const int catFeatureIdx : Ctr.Projection.CatFeatures) {
@@ -215,7 +215,7 @@ enum class ESplitEnsembleType {
 };
 
 
-// could have been a TVariant but SAVELOAD is easier this way
+// could have been a std::variant but SAVELOAD is easier this way
 struct TSplitEnsemble {
     bool IsEstimated;  // either online or offline
     bool IsOnlineEstimated;
@@ -514,7 +514,7 @@ struct TSplitTree {
 
 public:
     SAVELOAD(Splits);
-    Y_SAVELOAD_DEFINE(Splits)
+    Y_SAVELOAD_DEFINE(Splits);
 
     void AddSplit(const TSplit& split) {
         Splits.push_back(split);
@@ -651,19 +651,19 @@ public:
     }
 };
 
-inline TVector<TCtr> GetUsedCtrs(const TVariant<TSplitTree, TNonSymmetricTreeStructure>& tree) {
-    if (HoldsAlternative<TSplitTree>(tree)) {
-        return Get<TSplitTree>(tree).GetUsedCtrs();
+inline TVector<TCtr> GetUsedCtrs(const std::variant<TSplitTree, TNonSymmetricTreeStructure>& tree) {
+    if (std::holds_alternative<TSplitTree>(tree)) {
+        return std::get<TSplitTree>(tree).GetUsedCtrs();
     } else {
-        return Get<TNonSymmetricTreeStructure>(tree).GetUsedCtrs();
+        return std::get<TNonSymmetricTreeStructure>(tree).GetUsedCtrs();
     }
 }
 
-inline int GetLeafCount(const TVariant<TSplitTree, TNonSymmetricTreeStructure>& tree) {
-    if (HoldsAlternative<TSplitTree>(tree)) {
-        return Get<TSplitTree>(tree).GetLeafCount();
+inline int GetLeafCount(const std::variant<TSplitTree, TNonSymmetricTreeStructure>& tree) {
+    if (std::holds_alternative<TSplitTree>(tree)) {
+        return std::get<TSplitTree>(tree).GetLeafCount();
     } else {
-        return Get<TNonSymmetricTreeStructure>(tree).GetLeafCount();
+        return std::get<TNonSymmetricTreeStructure>(tree).GetLeafCount();
     }
 }
 

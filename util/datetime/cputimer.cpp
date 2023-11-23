@@ -1,6 +1,5 @@
 #include "cputimer.h"
 
-#include <util/system/compat.h>
 #include <util/system/defaults.h>
 #include <util/system/hp_timer.h>
 #include <util/string/printf.h>
@@ -8,13 +7,10 @@
 #include <util/generic/singleton.h>
 
 #if defined(_unix_)
-#include <unistd.h>
-#include <sched.h>
-#include <sys/types.h>
-#include <sys/resource.h>
-#include <sys/param.h>
+    #include <unistd.h>
+    #include <sched.h>
 #elif defined(_win_)
-#include <util/system/winint.h>
+    #include <util/system/winint.h>
 #endif
 
 TTimer::TTimer(const TStringBuf message) {
@@ -34,10 +30,11 @@ TTimer::~TTimer() {
 static ui64 ManuallySetCyclesPerSecond = 0;
 
 static ui64 GetCyclesPerSecond() {
-    if (ManuallySetCyclesPerSecond != 0)
+    if (ManuallySetCyclesPerSecond != 0) {
         return ManuallySetCyclesPerSecond;
-    else
+    } else {
         return NHPTimer::GetCyclesPerSecond();
+    }
 }
 
 void SetCyclesPerSecond(ui64 cycles) {
@@ -52,18 +49,34 @@ TDuration CyclesToDuration(ui64 cycles) {
     return TDuration::MicroSeconds(cycles * 1000000 / GetCyclesPerSecond());
 }
 
+TDuration CyclesToDurationSafe(ui64 cycles)
+{
+    constexpr ui64 cyclesLimit = std::numeric_limits<ui64>::max() / 1000000;
+    if (cycles <= cyclesLimit) {
+        return CyclesToDuration(cycles);
+    }
+    return TDuration::MicroSeconds(cycles / GetCyclesPerSecond() * 1000000);
+}
+
 ui64 DurationToCycles(TDuration duration) {
     return duration.MicroSeconds() * GetCyclesPerSecond() / 1000000;
 }
 
-TPrecisionTimer::TPrecisionTimer(const char* message)
-    : Start(GetCycleCount())
-    , Message(message)
+ui64 DurationToCyclesSafe(TDuration duration)
+{
+    if (duration.MicroSeconds() <= std::numeric_limits<ui64>::max() / GetCyclesPerSecond()) {
+        return DurationToCycles(duration);
+    }
+    return duration.MicroSeconds() / 1000000 * GetCyclesPerSecond();
+}
+
+TPrecisionTimer::TPrecisionTimer()
+    : Start(::GetCycleCount())
 {
 }
 
-TPrecisionTimer::~TPrecisionTimer() {
-    Cout << Message << ": " << (double)(GetCycleCount() - Start) << Endl;
+ui64 TPrecisionTimer::GetCycleCount() const {
+    return ::GetCycleCount() - Start;
 }
 
 TString FormatCycles(ui64 cycles) {

@@ -14,13 +14,17 @@ class IOutputStream;
 /// Объект, содержащий информацию о HTTP-заголовке.
 class THttpInputHeader {
 public:
+    THttpInputHeader() = delete;
+    THttpInputHeader(const THttpInputHeader&) = default;
+    THttpInputHeader(THttpInputHeader&&) = default;
+    THttpInputHeader& operator=(const THttpInputHeader&) = default;
+    THttpInputHeader& operator=(THttpInputHeader&&) = default;
+
     /// @param[in] header - строка вида 'параметр: значение'.
     THttpInputHeader(TStringBuf header);
     /// @param[in] name - имя параметра.
     /// @param[in] value - значение параметра.
     THttpInputHeader(TString name, TString value);
-
-    ~THttpInputHeader();
 
     /// Возвращает имя параметра.
     inline const TString& Name() const noexcept {
@@ -37,7 +41,7 @@ public:
 
     /// Возвращает строку "имя параметра: значение".
     inline TString ToString() const {
-        return Name_ + AsStringBuf(": ") + Value_;
+        return Name_ + TStringBuf(": ") + Value_;
     }
 
 private:
@@ -47,15 +51,19 @@ private:
 
 /// Контейнер для хранения HTTP-заголовков
 class THttpHeaders {
-    typedef TDeque<THttpInputHeader> THeaders;
+    using THeaders = TDeque<THttpInputHeader>;
 
 public:
-    typedef THeaders::const_iterator TConstIterator;
+    using TConstIterator = THeaders::const_iterator;
 
-    THttpHeaders();
+    THttpHeaders() = default;
+    THttpHeaders(const THttpHeaders&) = default;
+    THttpHeaders& operator=(const THttpHeaders&) = default;
+    THttpHeaders(THttpHeaders&&) = default;
+    THttpHeaders& operator=(THttpHeaders&&) = default;
+
     /// Добавляет каждую строку из потока в контейнер, считая ее правильным заголовком.
     THttpHeaders(IInputStream* stream);
-    ~THttpHeaders();
 
     /// Стандартный итератор.
     inline TConstIterator Begin() const noexcept {
@@ -95,6 +103,11 @@ public:
     /// c таким же параметром. В противном случае, заменяет существующий
     /// заголовок на новый.
     void AddOrReplaceHeader(const THttpInputHeader& header);
+
+    template <typename ValueType>
+    void AddOrReplaceHeader(TString name, const ValueType& value) {
+        AddOrReplaceHeader(THttpInputHeader(std::move(name), ToString(value)));
+    }
 
     // Проверяет, есть ли такой заголовок
     bool HasHeader(TStringBuf header) const;

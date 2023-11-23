@@ -34,7 +34,7 @@ namespace NCB {
     };
 
     using TRawBuilderDataHelper = TBuilderDataHelper<TRawObjectsDataProvider>;
-    using TQuantizedForCPUBuilderDataHelper = TBuilderDataHelper<TQuantizedForCPUObjectsDataProvider>;
+    using TQuantizedBuilderDataHelper = TBuilderDataHelper<TQuantizedObjectsDataProvider>;
 
     struct IDataProviderBuilder {
         virtual ~IDataProviderBuilder() = default;
@@ -51,7 +51,6 @@ namespace NCB {
     };
 
     struct TDataProviderBuilderOptions {
-        bool CpuCompatibleFormat = true;
         bool GpuDistributedFormat = false;
         TPathWithScheme PoolPath = TPathWithScheme();
         ui64 MaxCpuRamUsage = Max<ui64>();
@@ -64,7 +63,7 @@ namespace NCB {
         EDatasetVisitorType visitorType,
         const TDataProviderBuilderOptions& options,
         TDatasetSubset loadSubset,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
     );
 
 
@@ -74,7 +73,7 @@ namespace NCB {
         TDataProviderClosure(
             EDatasetVisitorType visitorType,
             const TDataProviderBuilderOptions& options,
-            NPar::TLocalExecutor* localExecutor
+            NPar::ILocalExecutor* localExecutor
         ) {
             DataProviderBuilder = CreateDataProviderBuilder(
                 visitorType,
@@ -112,7 +111,7 @@ namespace NCB {
     template <class IVisitor>
     void CreateDataProviderBuilderAndVisitor(
         const TDataProviderBuilderOptions& options,
-        NPar::TLocalExecutor* localExecutor,
+        NPar::ILocalExecutor* localExecutor,
         THolder<IDataProviderBuilder>* dataProviderBuilder,
         IVisitor** builderVisitor
     ) {
@@ -122,7 +121,7 @@ namespace NCB {
             localExecutor
         );
         *builderVisitor = dataProviderClosure->template GetVisitor<IVisitor>();
-        *dataProviderBuilder = dataProviderClosure.Release();
+        *dataProviderBuilder = std::move(dataProviderClosure);
     }
 
     /*

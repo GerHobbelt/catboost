@@ -1,9 +1,13 @@
 #include "feature_str.h"
+#include "util.h"
+
+#include <catboost/private/libs/options/enum_helpers.h>
 
 #include <util/generic/algorithm.h>
 #include <util/generic/hash.h>
 #include <util/generic/utility.h>
 #include <util/generic/xrange.h>
+#include <util/string/cast.h>
 #include <util/system/yassert.h>
 
 #include <algorithm>
@@ -43,6 +47,14 @@ TString TFeature::BuildDescription(const NCB::TFeaturesLayout& layout) const {
         result << " type=" << Ctr.Base.CtrType;
     } else if (Type == ESplitType::FloatFeature) {
         result << BuildFeatureDescription(layout, FeatureIdx, EFeatureType::Float);
+    } else if (Type == ESplitType::EstimatedFeature) {
+        result << "{";
+        EFeatureType featureType = EstimatedSourceFeatureTypeToFeatureType(EstimatedFeature.SourceFeatureType);
+        result << BuildFeatureDescription(layout, FeatureIdx, featureType);
+        result << "}";
+        result << " local_id=" << EstimatedFeature.LocalId;
+        result << " calcer_type=" << FeatureCalcerType;
+
     } else {
         Y_ASSERT(Type == ESplitType::OneHotFeature);
         result << BuildFeatureDescription(layout, FeatureIdx, EFeatureType::Categorical);
@@ -211,11 +223,11 @@ TVector<TFeaturePairInteractionInfo> CalcMostInteractingFeatures(const TVector<T
 }
 
 static void DFS(const TFullModel& model, const THashMap<TFeature, int, TFeatureHash>& featureToIdx, ui32 nodeIdx, TVector<std::pair<int, int>>* pathPtr, THashMap<std::pair<int, int>, double>* sumInteractionsPtr) {
-    const int split = model.ModelTrees->GetTreeSplits()[nodeIdx];
+    const int split = model.ModelTrees->GetModelTreeData()->GetTreeSplits()[nodeIdx];
     const auto& binFeatures = model.ModelTrees->GetBinFeatures();
-    const auto& node = model.ModelTrees->GetNonSymmetricStepNodes()[nodeIdx];
+    const auto& node = model.ModelTrees->GetModelTreeData()->GetNonSymmetricStepNodes()[nodeIdx];
 
-    const auto& feature = GetFeature(binFeatures[split]);
+    const auto& feature = GetFeature(model, binFeatures[split]);
     const int featureIdx = featureToIdx.at(feature);
 
     const ui32 leftNodeIdx = nodeIdx + node.LeftSubtreeDiff;
@@ -225,9 +237,9 @@ static void DFS(const TFullModel& model, const THashMap<TFeature, int, TFeatureH
 
     if (leftNodeIdx == nodeIdx || rightNodeIdx == nodeIdx) { // terminal
 
-        const auto leafValues = model.ModelTrees->GetLeafValues();
+        const auto leafValues = model.ModelTrees->GetModelTreeData()->GetLeafValues();
         const int approxDimension = model.ModelTrees->GetDimensionsCount();
-        const int leafValueIndex = model.ModelTrees->GetNonSymmetricNodeIdToLeafId()[nodeIdx];
+        const int leafValueIndex = model.ModelTrees->GetModelTreeData()->GetNonSymmetricNodeIdToLeafId()[nodeIdx];
         double delta = std::accumulate(leafValues.begin() + leafValueIndex,
                                       leafValues.begin() + leafValueIndex + approxDimension, 0.);
 
@@ -270,7 +282,7 @@ TVector<TFeaturePairInteractionInfo> CalcMostInteractingFeatures(const TFullMode
 
     for (size_t treeIdx = 0; treeIdx < model.GetTreeCount(); ++treeIdx) {
 
-        const int treeIdxsStart = model.ModelTrees->GetTreeStartOffsets()[treeIdx];
+        const int treeIdxsStart = model.ModelTrees->GetModelTreeData()->GetTreeStartOffsets()[treeIdx];
 
         TVector<std::pair<int, int>> path;
         THashMap<std::pair<int, int>, double> treeSumInteractions;
@@ -283,7 +295,7 @@ TVector<TFeaturePairInteractionInfo> CalcMostInteractingFeatures(const TFullMode
     return PostProcessSumInteractions(sumInteractions, featureCount, topPairsCount);
 }
 
-TFeature GetFeature(const TModelSplit& split) {
+TFeature GetFeature(const TFullModel& model, const TModelSplit& split) {
     TFeature result;
     result.Type = split.Type;
     switch(result.Type) {
@@ -297,8 +309,20 @@ TFeature GetFeature(const TModelSplit& split) {
             result.Ctr = split.OnlineCtr.Ctr;
             break;
         case ESplitType::EstimatedFeature:
-            CB_ENSURE(false, "Text features is not supported in fstr mode yet");
+            result.EstimatedFeature = TModelEstimatedFeature{
+                split.EstimatedFeature.ModelEstimatedFeature.SourceFeatureId,
+                split.EstimatedFeature.ModelEstimatedFeature.CalcerId,
+                split.EstimatedFeature.ModelEstimatedFeature.LocalId,
+                split.EstimatedFeature.ModelEstimatedFeature.SourceFeatureType
+            };
+            result.FeatureCalcerType = GetEstimatedFeatureCalcerType(
+                model,
+                split.EstimatedFeature.ModelEstimatedFeature
+            );
+            result.FeatureIdx = split.EstimatedFeature.ModelEstimatedFeature.SourceFeatureId;
             break;
+        default:
+            CB_ENSURE(false, "Unsupported split type " << result.Type);
     }
     return result;
 }

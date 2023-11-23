@@ -2,11 +2,12 @@
 
 #include "implementation_type_enum.h"
 
+#include <catboost/libs/eval_result/eval_result.h>
 #include <catboost/libs/model/model.h>
 #include <catboost/private/libs/options/analytical_mode_params.h>
 
 #include <library/cpp/getopt/small/last_getopt_opts.h>
-#include <library/object_factory/object_factory.h>
+#include <library/cpp/object_factory/object_factory.h>
 
 
 namespace NCB {
@@ -22,6 +23,7 @@ namespace NCB {
         NCB::TAnalyticalModeCommonParams* paramsPtr,
         size_t* iterationsLimitPtr,
         size_t* evalPeriodPtr,
+        size_t * virtualEnsemblesCountPtr,
         NLastGetopt::TOpts* parserPtr);
 
     void ReadModelAndUpdateParams(
@@ -34,5 +36,16 @@ namespace NCB {
         const NCB::TAnalyticalModeCommonParams& params,
         size_t iterationsLimit,
         size_t evalPeriod,
+        size_t virtualEnsemblesCount,
         TFullModel&& model);
+
+    TEvalResult Apply(
+        const TFullModel& model,
+        const NCB::TDataProvider& dataset,
+        size_t begin,
+        size_t end,
+        size_t evalPeriod,
+        size_t virtualEnsemblesCount,
+        bool isUncertaintyPrediction,
+        NPar::ILocalExecutor* executor);
 }

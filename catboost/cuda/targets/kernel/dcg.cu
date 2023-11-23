@@ -1,6 +1,6 @@
 #include "dcg.cuh"
 
-#include <library/cuda/wrappers/arch.cuh>
+#include <library/cpp/cuda/wrappers/arch.cuh>
 #include <catboost/cuda/cuda_lib/kernel/kernel.cuh>
 #include <catboost/cuda/cuda_util/kernel/kernel_helpers.cuh>
 
@@ -369,7 +369,7 @@ __global__ void RemoveGroupMeanImpl(
     }
 
     T mean = ShuffleReduce<T>(localThreadIdx, localMean, LogicalWarpSize);
-    mean = __shfl_sync(0xFFFFFF, mean, 0, LogicalWarpSize);
+    mean = __shfl_sync(0xFFFFFFFF, mean, 0, LogicalWarpSize);
 
     for (ui32 i = localThreadIdx; i < groupSize; i += LogicalWarpSize) {
         normalized[i] = __ldg(values + i) - mean;

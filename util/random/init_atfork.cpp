@@ -1,11 +1,11 @@
 #include "init_atfork.h"
 #include "random.h"
-#include "entropy.h"
 
 #include <util/generic/singleton.h>
+#include <util/system/yassert.h>
 
 #if defined(_unix_)
-#include <pthread.h>
+    #include <pthread.h>
 #endif
 
 namespace {
@@ -14,7 +14,7 @@ namespace {
             (void)&AtFork;
 
 #if defined(_unix_)
-            Y_VERIFY(pthread_atfork(nullptr, AtFork, nullptr) == 0, "it happens");
+            Y_ABORT_UNLESS(pthread_atfork(nullptr, AtFork, nullptr) == 0, "it happens");
 #endif
         }
 

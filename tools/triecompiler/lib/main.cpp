@@ -1,7 +1,7 @@
 #include "main.h"
 
 #ifndef CATBOOST_OPENSOURCE
-#include <library/charset/recyr.hh>
+#include <library/cpp/charset/recyr.hh>
 #endif
 
 #include <library/cpp/containers/comptrie/comptrie.h>
@@ -380,7 +380,7 @@ static int VerifyFile(const TOptions& o, const TPacker& packer) {
 
 template <class TRecord, class TPacker>
 static int SelectInput(const TOptions& o, const TPacker& packer) {
-    if (AsStringBuf("-") == o.Infile) {
+    if ("-"sv == o.Infile) {
         TBufferedInput wrapper{&Cin};
         return ProcessFile<TRecord>(wrapper, o, packer);
     }
@@ -410,7 +410,7 @@ static int ProcessInput(const TOptions& o, const TPacker& packer) {
         #ifndef CATBOOST_OPENSOURCE
             return DoMain< TRecord< TString, char, TValue, TUTF8ToYandexRecoder, TFromString<TValue> > >(o, packer);
         #else
-            Y_FAIL("Yandex encoding is not supported in CATBOOST_OPENSOURCE mode");
+            Y_ABORT("Yandex encoding is not supported in CATBOOST_OPENSOURCE mode");
         #endif
         }
     } else {

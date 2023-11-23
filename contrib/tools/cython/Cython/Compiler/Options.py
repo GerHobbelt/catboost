@@ -181,6 +181,8 @@ _directive_defaults = {
     'auto_pickle': None,
     'cdivision': False,  # was True before 0.12
     'cdivision_warnings': False,
+    'c_api_binop_methods': True,
+    'cpow': True,
     'overflowcheck': False,
     'overflowcheck.fold': True,
     'always_allow_keywords': False,
@@ -320,6 +322,7 @@ directive_types = {
     'freelist': int,
     'c_string_type': one_of('bytes', 'bytearray', 'str', 'unicode'),
     'c_string_encoding': normalise_encoding_name,
+    'cpow': bool
 }
 
 for key, val in _directive_defaults.items():

@@ -7,16 +7,10 @@
 
 #include <string>
 
-#include "re2/stringpiece.h"
-#include "util/util.h"
-
 namespace re2 {
 
-string CEscape(const StringPiece& src);
-string PrefixSuccessor(const StringPiece& prefix);
-string StringPrintf(const char* format, ...);
-void SStringPrintf(string* dst, const char* format, ...);
-void StringAppendF(string* dst, const char* format, ...);
+void PrefixSuccessor(std::string* prefix);
 
 }  // namespace re2
+
 #endif  // UTIL_STRUTIL_H_

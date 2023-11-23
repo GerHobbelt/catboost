@@ -11,7 +11,9 @@
 #include <util/generic/maybe.h>
 #include <util/generic/map.h>
 #include <util/generic/ptr.h>
+#include <util/generic/variant.h>
 #include <util/string/cast.h>
+
 
 namespace {
     enum class EMetricAttribute : ui32 {
@@ -19,16 +21,19 @@ namespace {
         /** classification **/
         IsBinaryClassCompatible        = 1 << 0,
         IsMultiClassCompatible         = 1 << 1,
+        IsMultiLabelCompatible         = 1 << 2,
         /** regression **/
-        IsRegression                   = 1 << 2,
-        IsMultiRegression              = 1 << 3,
+        IsRegression                   = 1 << 3,
+        IsMultiRegression              = 1 << 4,
+        IsSurvivalRegression           = 1 << 5,
         /** ranking **/
-        IsGroupwise                    = 1 << 4,
-        IsPairwise                     = 1 << 5,
+        IsGroupwise                    = 1 << 6,
+        IsPairwise                     = 1 << 7,
 
         /* various */
-        IsUserDefined                  = 1 << 6,
-        IsCombination                  = 1 << 7
+        IsUserDefined                  = 1 << 8,
+        IsCombination                  = 1 << 9,
+        HasGpuImplementation           = 1 << 10
     };
 
     using EMetricAttributes = TFlags<EMetricAttribute>;
@@ -50,7 +55,8 @@ namespace {
                       || HasFlags(EMetricAttribute::IsPairwise)
                       || HasFlags(EMetricAttribute::IsUserDefined)
                       || HasFlags(EMetricAttribute::IsCombination)
-                      || HasFlags(EMetricAttribute::IsMultiRegression),
+                      || HasFlags(EMetricAttribute::IsMultiRegression)
+                      || HasFlags(EMetricAttribute::IsSurvivalRegression),
                       "no type (regression, classification, ranking) for [" + ToString(loss) + "]");
         }
 
@@ -62,11 +68,13 @@ namespace {
             CB_ENSURE(HasFlags(EMetricAttribute::IsRegression)
                       || HasFlags(EMetricAttribute::IsBinaryClassCompatible)
                       || HasFlags(EMetricAttribute::IsMultiClassCompatible)
+                      || HasFlags(EMetricAttribute::IsMultiLabelCompatible)
                       || HasFlags(EMetricAttribute::IsGroupwise)
                       || HasFlags(EMetricAttribute::IsPairwise)
                       || HasFlags(EMetricAttribute::IsUserDefined)
                       || HasFlags(EMetricAttribute::IsCombination)
-                      || HasFlags(EMetricAttribute::IsMultiRegression),
+                      || HasFlags(EMetricAttribute::IsMultiRegression)
+                      || HasFlags(EMetricAttribute::IsSurvivalRegression),
                       "no type (regression, classification, ranking) for [" + ToString(loss) + "]");
         }
 
@@ -127,39 +135,67 @@ namespace {
 MakeRegister(LossInfos,
     Registree(Logloss,
         EMetricAttribute::IsBinaryClassCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(CrossEntropy,
         EMetricAttribute::IsBinaryClassCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(CtrFactor,
         EMetricAttribute::IsBinaryClassCompatible
     ),
     Registree(MultiRMSE,
         EMetricAttribute::IsMultiRegression
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    Registree(MultiRMSEWithMissingValues,
+        EMetricAttribute::IsMultiRegression
+    ),
+    Registree(SurvivalAft,
+        EMetricAttribute::IsSurvivalRegression
+    ),
+    Registree(RMSEWithUncertainty,
+        EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(RMSE,
+        EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    Registree(LogCosh,
+        EMetricAttribute::IsRegression),
+    Registree(Cox,
         EMetricAttribute::IsRegression
     ),
     Registree(Lq,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(MAE,
         EMetricAttribute::IsRegression
     ),
     Registree(Quantile,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    Registree(MultiQuantile,
+        EMetricAttribute::IsRegression
     ),
     Registree(Expectile,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(LogLinQuantile,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(MAPE,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(Poisson,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(MSLE,
         EMetricAttribute::IsRegression
@@ -172,37 +208,59 @@ MakeRegister(LossInfos,
     ),
     Registree(Huber,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(MultiClass,
         EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(MultiClassOneVsAll,
         EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    Registree(MultiLogloss,
+        EMetricAttribute::IsMultiLabelCompatible
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    Registree(MultiCrossEntropy,
+        EMetricAttribute::IsMultiLabelCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     RankingRegistree(PairLogit, ERankingType::CrossEntropy,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsGroupwise
         | EMetricAttribute::IsPairwise
+        | EMetricAttribute::HasGpuImplementation
     ),
     RankingRegistree(PairLogitPairwise, ERankingType::CrossEntropy,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsGroupwise
         | EMetricAttribute::IsPairwise
+        | EMetricAttribute::HasGpuImplementation
     ),
     RankingRegistree(YetiRank, ERankingType::Order,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsGroupwise
+        | EMetricAttribute::HasGpuImplementation
     ),
     RankingRegistree(YetiRankPairwise, ERankingType::Order,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsGroupwise
+        | EMetricAttribute::HasGpuImplementation
     ),
     RankingRegistree(QueryRMSE, ERankingType::AbsoluteValue,
         EMetricAttribute::IsGroupwise
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    RankingRegistree(QueryAUC, ERankingType::AbsoluteValue,
+        EMetricAttribute::IsBinaryClassCompatible
+        | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::IsGroupwise
     ),
     RankingRegistree(QuerySoftMax, ERankingType::CrossEntropy,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsGroupwise
+        | EMetricAttribute::HasGpuImplementation
     ),
     RankingRegistree(QueryCrossEntropy, ERankingType::CrossEntropy,
         EMetricAttribute::IsBinaryClassCompatible
@@ -215,10 +273,13 @@ MakeRegister(LossInfos,
     RankingRegistree(StochasticRank, ERankingType::Order,
         EMetricAttribute::IsGroupwise
     ),
+    RankingRegistree(LambdaMart, ERankingType::Order,
+        EMetricAttribute::IsGroupwise
+    ),
     Registree(PythonUserDefinedPerObject,
         EMetricAttribute::IsUserDefined
     ),
-    Registree(PythonUserDefinedMultiRegression,
+    Registree(PythonUserDefinedMultiTarget,
         EMetricAttribute::IsUserDefined
     ),
     Registree(UserPerObjMetric,
@@ -232,6 +293,7 @@ MakeRegister(LossInfos,
     ),
     Registree(NumErrors,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(FairLoss,
         EMetricAttribute::IsRegression
@@ -247,6 +309,8 @@ MakeRegister(LossInfos,
     Registree(Accuracy,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::IsMultiLabelCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(BalancedAccuracy,
         EMetricAttribute::IsBinaryClassCompatible
@@ -260,30 +324,45 @@ MakeRegister(LossInfos,
     Registree(Precision,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::IsMultiLabelCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(Recall,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::IsMultiLabelCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(F1,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::IsMultiLabelCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(TotalF1,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    Registree(F,
+        EMetricAttribute::IsBinaryClassCompatible
+        | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::IsMultiLabelCompatible
     ),
     Registree(MCC,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(ZeroOneLoss,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::HasGpuImplementation
     ),
     Registree(HammingLoss,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsMultiClassCompatible
+        | EMetricAttribute::IsMultiLabelCompatible
     ),
     Registree(HingeLoss,
         EMetricAttribute::IsBinaryClassCompatible
@@ -348,8 +427,20 @@ MakeRegister(LossInfos,
         EMetricAttribute::IsBinaryClassCompatible
         | EMetricAttribute::IsGroupwise
     ),
+    RankingRegistree(MRR, ERankingType::Order,
+        EMetricAttribute::IsBinaryClassCompatible
+        | EMetricAttribute::IsGroupwise
+    ),
+    RankingRegistree(ERR, ERankingType::Order,
+        EMetricAttribute::IsBinaryClassCompatible
+        | EMetricAttribute::IsGroupwise
+    ),
     Registree(Tweedie,
         EMetricAttribute::IsRegression
+        | EMetricAttribute::HasGpuImplementation
+    ),
+    Registree(Focal,
+        EMetricAttribute::IsBinaryClassCompatible
     )
 )
 
@@ -409,6 +500,7 @@ bool ShouldSkipCalcOnTrainByDefault(ELossFunction loss) {
         loss == ELossFunction::YetiRank ||
         loss == ELossFunction::YetiRankPairwise ||
         loss == ELossFunction::AUC ||
+        loss == ELossFunction::QueryAUC ||
         loss == ELossFunction::PFound ||
         loss == ELossFunction::NDCG ||
         loss == ELossFunction::DCG ||
@@ -431,27 +523,53 @@ bool IsCvStratifiedObjective(ELossFunction loss) {
 
 static const TVector<ELossFunction> RegressionObjectives = {
     ELossFunction::RMSE,
+    ELossFunction::LogCosh,
+    ELossFunction::RMSEWithUncertainty,
     ELossFunction::MAE,
     ELossFunction::Quantile,
+    ELossFunction::MultiQuantile,
     ELossFunction::LogLinQuantile,
     ELossFunction::Expectile,
     ELossFunction::MAPE,
     ELossFunction::Poisson,
     ELossFunction::Lq,
     ELossFunction::Huber,
-    ELossFunction::Tweedie
+    ELossFunction::Tweedie,
+    ELossFunction::Cox
 };
 
 static const TVector<ELossFunction> MultiRegressionObjectives = {
     ELossFunction::MultiRMSE,
-    ELossFunction::PythonUserDefinedMultiRegression
+    ELossFunction::MultiRMSEWithMissingValues,
+    ELossFunction::PythonUserDefinedMultiTarget
+};
+
+static const TVector<ELossFunction> SurvivalRegressionObjectives = {
+    ELossFunction::SurvivalAft
+};
+
+static const TVector<ELossFunction> MultiTargetObjectives = {
+    ELossFunction::MultiRMSE,
+    ELossFunction::MultiRMSEWithMissingValues,
+    ELossFunction::PythonUserDefinedMultiTarget,
+    ELossFunction::SurvivalAft,
+    ELossFunction::MultiLogloss,
+    ELossFunction::MultiCrossEntropy
 };
 
 static const TVector<ELossFunction> ClassificationObjectives = {
     ELossFunction::Logloss,
     ELossFunction::CrossEntropy,
     ELossFunction::MultiClass,
-    ELossFunction::MultiClassOneVsAll
+    ELossFunction::MultiClassOneVsAll,
+    ELossFunction::MultiLogloss,
+    ELossFunction::MultiCrossEntropy,
+    ELossFunction::Focal
+};
+
+static const TVector<ELossFunction> MultiLabelObjectives = {
+    ELossFunction::MultiLogloss,
+    ELossFunction::MultiCrossEntropy
 };
 
 static const TVector<ELossFunction> RankingObjectives = {
@@ -460,9 +578,11 @@ static const TVector<ELossFunction> RankingObjectives = {
     ELossFunction::YetiRank,
     ELossFunction::YetiRankPairwise,
     ELossFunction::QueryRMSE,
+    ELossFunction::QueryAUC,
     ELossFunction::QuerySoftMax,
     ELossFunction::QueryCrossEntropy,
     ELossFunction::StochasticFilter,
+    ELossFunction::LambdaMart,
     ELossFunction::StochasticRank,
     ELossFunction::UserPerObjMetric,
     ELossFunction::UserQuerywiseMetric,
@@ -474,6 +594,7 @@ static const TVector<ELossFunction> Objectives = []() {
     TVector<const TVector<ELossFunction>*> objectiveLists = {
         &RegressionObjectives,
         &MultiRegressionObjectives,
+        &SurvivalRegressionObjectives,
         &ClassificationObjectives,
         &RankingObjectives
     };
@@ -497,6 +618,7 @@ ERankingType GetRankingType(ELossFunction loss) {
 
 static bool IsFromAucFamily(ELossFunction loss) {
     return loss == ELossFunction::AUC
+        || loss == ELossFunction::QueryAUC
         || loss == ELossFunction::NormalizedGini;
 }
 
@@ -521,7 +643,8 @@ bool IsMultiClassCompatibleMetric(TStringBuf lossFunction) {
 bool IsClassificationMetric(ELossFunction loss) {
     auto info = GetInfo(loss);
     return info->HasFlags(EMetricAttribute::IsBinaryClassCompatible)
-        || info->HasFlags(EMetricAttribute::IsMultiClassCompatible);
+        || info->HasFlags(EMetricAttribute::IsMultiClassCompatible)
+        || info->HasFlags(EMetricAttribute::IsMultiLabelCompatible);
 }
 
 bool IsBinaryClassOnlyMetric(ELossFunction loss) {
@@ -554,8 +677,61 @@ bool IsMultiRegressionObjective(TStringBuf loss) {
     return IsMultiRegressionObjective(ParseLossType(loss));
 }
 
+bool IsSurvivalRegressionObjective(ELossFunction loss) {
+    return IsIn(SurvivalRegressionObjectives, loss);
+}
+
+bool IsSurvivalRegressionObjective(TStringBuf loss) {
+    return IsSurvivalRegressionObjective(ParseLossType(loss));
+}
+
+bool IsMultiLabelObjective(ELossFunction loss) {
+    return IsIn(MultiLabelObjectives, loss);
+}
+
+bool IsMultiLabelObjective(TStringBuf loss) {
+    return IsMultiLabelObjective(ParseLossType(loss));
+}
+
+bool IsMultiTargetObjective(ELossFunction loss) {
+    return IsIn(MultiTargetObjectives, loss);
+}
+
+bool IsMultiTargetObjective(TStringBuf loss) {
+    return IsMultiTargetObjective(ParseLossType(loss));
+}
+
 bool IsMultiRegressionMetric(ELossFunction loss) {
     return GetInfo(loss)->HasFlags(EMetricAttribute::IsMultiRegression);
+}
+
+bool IsSurvivalRegressionMetric(ELossFunction loss) {
+    return GetInfo(loss)->HasFlags(EMetricAttribute::IsSurvivalRegression);
+}
+
+bool IsMultiLabelMetric(ELossFunction loss) {
+    return GetInfo(loss)->HasFlags(EMetricAttribute::IsMultiLabelCompatible);
+}
+
+bool IsMultiLabelOnlyMetric(ELossFunction loss) {
+    auto info = GetInfo(loss);
+    return info->HasFlags(EMetricAttribute::IsMultiLabelCompatible)
+        && info->MissesFlags(EMetricAttribute::IsBinaryClassCompatible)
+        && info->MissesFlags(EMetricAttribute::IsMultiClassCompatible);
+}
+
+bool IsMultiTargetMetric(ELossFunction loss) {
+    auto info = GetInfo(loss);
+    return info->HasFlags(EMetricAttribute::IsMultiRegression)
+        || info->HasFlags(EMetricAttribute::IsSurvivalRegression)
+        || info->HasFlags(EMetricAttribute::IsMultiLabelCompatible);
+}
+
+bool IsMultiTargetOnlyMetric(ELossFunction loss) {
+    auto info = GetInfo(loss);
+    return IsMultiTargetMetric(loss)
+        && info->MissesFlags(EMetricAttribute::IsBinaryClassCompatible)
+        && info->MissesFlags(EMetricAttribute::IsMultiClassCompatible);
 }
 
 bool IsRegressionMetric(ELossFunction loss) {
@@ -578,6 +754,20 @@ bool IsRankingMetric(ELossFunction loss) {
 
 bool IsUserDefined(ELossFunction loss) {
     return GetInfo(loss)->HasFlags(EMetricAttribute::IsUserDefined);
+}
+
+bool IsUserDefined(TStringBuf metricName) {
+    ELossFunction lossType = ParseLossType(metricName);
+    return IsUserDefined(lossType);
+}
+
+bool HasGpuImplementation(ELossFunction loss) {
+    return GetInfo(loss)->HasFlags(EMetricAttribute::HasGpuImplementation);
+}
+
+bool HasGpuImplementation(TStringBuf metricName) {
+    ELossFunction lossType = ParseLossType(metricName);
+    return HasGpuImplementation(lossType);
 }
 
 bool IsClassificationObjective(const TStringBuf lossDescription) {
@@ -603,6 +793,11 @@ bool IsGroupwiseMetric(TStringBuf metricName) {
 bool IsPairwiseMetric(TStringBuf lossFunction) {
     const ELossFunction lossType = ParseLossType(lossFunction);
     return IsPairwiseMetric(lossType);
+}
+
+bool IsRankingMetric(TStringBuf metricName) {
+    const ELossFunction lossType = ParseLossType(metricName);
+    return IsRankingMetric(lossType);
 }
 
 bool IsPlainMode(EBoostingType boostingType) {
@@ -640,10 +835,13 @@ bool AreZeroWeightsAfterBootstrap(EBootstrapType type) {
 
 bool IsEmbeddingFeatureEstimator(EFeatureCalcerType estimatorType) {
     return (
-        estimatorType == EFeatureCalcerType::CosDistanceWithClassCenter ||
-        estimatorType == EFeatureCalcerType::GaussianHomoscedasticModel ||
-        estimatorType == EFeatureCalcerType::GaussianHeteroscedasticModel
+        estimatorType == EFeatureCalcerType::LDA ||
+        estimatorType == EFeatureCalcerType::KNN
     );
+}
+
+bool IsClassificationOnlyEstimator(EFeatureCalcerType estimatorType) {
+    return (estimatorType == EFeatureCalcerType::NaiveBayes || estimatorType == EFeatureCalcerType::BM25);
 }
 
 bool IsBuildingFullBinaryTree(EGrowPolicy growPolicy) {
@@ -696,4 +894,29 @@ bool IsInternalFeatureImportanceType(EFstrType type) {
         type == EFstrType::InternalFeatureImportance ||
         type == EFstrType::InternalInteraction
     );
+}
+
+bool IsUncertaintyPredictionType(EPredictionType type) {
+    return (
+        type == EPredictionType::TotalUncertainty ||
+        type == EPredictionType::VirtEnsembles
+    );
+}
+
+EEstimatedSourceFeatureType FeatureTypeToEstimatedSourceFeatureType(EFeatureType featureType) {
+    if (featureType == EFeatureType::Text) {
+        return EEstimatedSourceFeatureType::Text;
+    } else {
+        CB_ENSURE(featureType == EFeatureType::Embedding);
+        return EEstimatedSourceFeatureType::Embedding;
+    }
+}
+
+EFeatureType EstimatedSourceFeatureTypeToFeatureType(EEstimatedSourceFeatureType featureType) {
+    if (featureType == EEstimatedSourceFeatureType::Text) {
+        return EFeatureType::Text;
+    } else {
+        CB_ENSURE(featureType == EEstimatedSourceFeatureType::Embedding);
+        return EFeatureType::Embedding;
+    }
 }

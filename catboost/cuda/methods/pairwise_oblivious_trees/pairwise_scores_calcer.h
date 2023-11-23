@@ -12,7 +12,7 @@ namespace NCatboostCuda {
                                                                    const TPairwiseOptimizationSubsets& subsets,
                                                                    const NCatboostOptions::TObliviousTreeLearnerOptions& treeConfig,
                                                                    TRandom& random) {
-        return new TComputePairwiseScoresHelper(policy,
+        return MakeHolder<TComputePairwiseScoresHelper>(policy,
                                                 dataSet,
                                                 subsets,
                                                 random,
@@ -73,7 +73,7 @@ namespace NCatboostCuda {
 
         void Compute();
 
-        TBestSplitResult FindOptimalSplit(bool needBestSolution);
+        TBestSplitResult FindOptimalSplit(bool needBestSolution, double scoreBeforeSplit);
 
     private:
         const TCompressedDataSet<TLayoutPolicy>& Features;

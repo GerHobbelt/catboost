@@ -33,13 +33,14 @@ def _find_c_source(base_path):
     return None
 
 
-def _find_dep_file_path(main_file, file_path):
+def _find_dep_file_path(main_file, file_path, relative_path_search=False):
     abs_path = os.path.abspath(file_path)
-    if file_path.endswith('.pxi') and not os.path.exists(abs_path):
-        # include files are looked up relative to the main source file
-        pxi_file_path = os.path.join(os.path.dirname(main_file), file_path)
-        if os.path.exists(pxi_file_path):
-            abs_path = os.path.abspath(pxi_file_path)
+    if not os.path.exists(abs_path) and (file_path.endswith('.pxi') or
+                                         relative_path_search):
+        # files are looked up relative to the main source file
+        rel_file_path = os.path.join(os.path.dirname(main_file), file_path)
+        if os.path.exists(rel_file_path):
+            abs_path = os.path.abspath(rel_file_path)
     # search sys.path for external locations if a valid file hasn't been found
     if not os.path.exists(abs_path):
         for sys_path in sys.path:
@@ -220,7 +221,8 @@ class Plugin(CoveragePlugin):
             self._c_files_map = {}
 
         for filename, code in code_lines.items():
-            abs_path = _find_dep_file_path(c_file, filename)
+            abs_path = _find_dep_file_path(c_file, filename,
+                                           relative_path_search=True)
             self._c_files_map[abs_path] = (c_file, filename, code)
 
         if sourcefile not in self._c_files_map:
@@ -424,6 +426,7 @@ class OpenFile(object):
 # ======================= Redefine some methods ===============================
 
 if standalone():
+    import itertools
     import json
 
     CYTHON_INCLUDE_MAP = {'undef': True}
@@ -463,13 +466,17 @@ if standalone():
                 # target file was included and should be sought inside another pyx file
                 base_path = CYTHON_INCLUDE_MAP[base_path]
 
-        for suffix in ['.pyx.c', '.pyx.cpp'] + C_FILE_EXTENSIONS:
+        # TODO (', '.py3', '.py2') -> ('.py3', '.py2'), when https://a.yandex-team.ru/review/3511262 is merged
+        suffixes = [''.join(x) for x in itertools.product(('.pyx',), ('', '.py3', '.py2'), ('.cpp', '.c'))]
+        suffixes += C_FILE_EXTENSIONS
+
+        for suffix in suffixes:
             if exists(base_path + suffix):
                 return base_path + suffix
 
         return None
 
 
-    def _find_dep_file_path(main_file, file_path):
+    def _find_dep_file_path(main_file, file_path, relative_path_search=False):
         # file_path is already arcadia root relative
         return canonical_filename(file_path)

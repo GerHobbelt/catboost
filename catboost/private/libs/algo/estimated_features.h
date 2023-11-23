@@ -12,7 +12,7 @@
 
 
 namespace NPar {
-    class TLocalExecutor;
+    class ILocalExecutor;
 }
 
 namespace NCatboostOptions {
@@ -33,13 +33,13 @@ namespace NCB {
 
         // calculate online features if defined, offline - otherwise
         TMaybe<TConstArrayRef<ui32>> learnPermutation,
-        NPar::TLocalExecutor* localExecutor,
+        NPar::ILocalExecutor* localExecutor,
         TRestorableFastRng64* rand
     );
 
     struct TCombinedEstimatedFeaturesContext {
         TFeatureEstimatorsPtr FeatureEstimators;
-        TConstArrayRef<TEstimatedFeatureId> OfflineEstimatedFeaturesLayout;
-        TConstArrayRef<TEstimatedFeatureId> OnlineEstimatedFeaturesLayout;
+        TVector<TEstimatedFeatureId> OfflineEstimatedFeaturesLayout;
+        TVector<TEstimatedFeatureId> OnlineEstimatedFeaturesLayout;
     };
 }

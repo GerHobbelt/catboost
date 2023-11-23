@@ -170,7 +170,7 @@ namespace NBitMapPrivate {
 
         template <typename TOtherChunk>
         TFixedStorage(const TOtherChunk* data, size_t size) {
-            Y_VERIFY(Size * sizeof(TChunk) >= size * sizeof(TOtherChunk), "Exceeding bitmap storage capacity");
+            Y_ABORT_UNLESS(Size * sizeof(TChunk) >= size * sizeof(TOtherChunk), "Exceeding bitmap storage capacity");
             CopyData(Data, Size, data, size);
         }
 
@@ -546,7 +546,7 @@ public:
     TThis& Reset(size_t start, size_t end) {
         Y_ASSERT(start <= end);
         if (start < end && (start >> DivCount) < Mask.GetChunkCapacity()) {
-            UpdateRange<TResetOp>(start, end);
+            UpdateRange<TResetOp>(start, Min(end, Mask.GetBitCapacity()));
         }
         return *this;
     }
@@ -616,7 +616,7 @@ public:
     }
 
     Y_FORCE_INLINE void Reserve(size_t bitCount) {
-        Y_VERIFY(Mask.ExpandBitSize(bitCount), "Exceeding bitmap storage capacity");
+        Y_ABORT_UNLESS(Mask.ExpandBitSize(bitCount), "Exceeding bitmap storage capacity");
     }
 
     Y_FORCE_INLINE size_t ValueBitCount() const {
@@ -628,8 +628,7 @@ public:
                    : 0;
     }
 
-    Y_PURE_FUNCTION Y_FORCE_INLINE
-    bool Empty() const {
+    Y_PURE_FUNCTION Y_FORCE_INLINE bool Empty() const {
         for (size_t i = 0; i < Mask.GetChunkCapacity(); ++i)
             if (Mask.Data[i])
                 return false;
@@ -968,7 +967,7 @@ public:
     void Load(IInputStream* inp) {
         ui8 chunkSize = 0;
         ::Load(inp, chunkSize);
-        Y_VERIFY(size_t(chunkSize) == sizeof(TChunk), "Chunk size is not the same");
+        Y_ABORT_UNLESS(size_t(chunkSize) == sizeof(TChunk), "Chunk size is not the same");
 
         ui64 bitCount64 = 0;
         ::Load(inp, bitCount64);
@@ -1094,7 +1093,8 @@ public:
     {
     }
 
-    TBitMap(const TBitMap<BitCount, TChunkType>&) = default;
+    TBitMap(const TBitMap&) = default;
+    TBitMap& operator=(const TBitMap&) = default;
 
     template <class T>
     TBitMap(const TBitMapOps<T>& bitmap)

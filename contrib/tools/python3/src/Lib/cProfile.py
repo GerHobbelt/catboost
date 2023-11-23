@@ -7,6 +7,7 @@
 __all__ = ["run", "runctx", "Profile"]
 
 import _lsprof
+import io
 import profile as _pyprofile
 
 # ____________________________________________________________
@@ -103,24 +104,19 @@ class Profile(_lsprof.Profiler):
         return self
 
     # This method is more useful to profile a single function call.
-    def runcall(*args, **kw):
-        if len(args) >= 2:
-            self, func, *args = args
-        elif not args:
-            raise TypeError("descriptor 'runcall' of 'Profile' object "
-                            "needs an argument")
-        elif 'func' in kw:
-            func = kw.pop('func')
-            self, *args = args
-        else:
-            raise TypeError('runcall expected at least 1 positional argument, '
-                            'got %d' % (len(args)-1))
-
+    def runcall(self, func, /, *args, **kw):
         self.enable()
         try:
             return func(*args, **kw)
         finally:
             self.disable()
+
+    def __enter__(self):
+        self.enable()
+        return self
+
+    def __exit__(self, *exc_info):
+        self.disable()
 
 # ____________________________________________________________
 
@@ -145,7 +141,7 @@ def main():
         help="Save stats to <outfile>", default=None)
     parser.add_option('-s', '--sort', dest="sort",
         help="Sort order when printing to stdout, based on pstats.Stats class",
-        default=-1,
+        default=2,
         choices=sorted(pstats.Stats.sort_arg_dict_default))
     parser.add_option('-m', dest="module", action="store_true",
         help="Profile a library module", default=False)
@@ -157,6 +153,11 @@ def main():
     (options, args) = parser.parse_args()
     sys.argv[:] = args
 
+    # The script that we're profiling may chdir, so capture the absolute path
+    # to the output file at startup.
+    if options.outfile is not None:
+        options.outfile = os.path.abspath(options.outfile)
+
     if len(args) > 0:
         if options.module:
             code = "run_module(modname, run_name='__main__')"
@@ -167,7 +168,7 @@ def main():
         else:
             progname = args[0]
             sys.path.insert(0, os.path.dirname(progname))
-            with open(progname, 'rb') as fp:
+            with io.open_code(progname) as fp:
                 code = compile(fp.read(), progname, 'exec')
             globs = {
                 '__file__': progname,
@@ -175,7 +176,12 @@ def main():
                 '__package__': None,
                 '__cached__': None,
             }
-        runctx(code, globs, None, options.outfile, options.sort)
+        try:
+            runctx(code, globs, None, options.outfile, options.sort)
+        except BrokenPipeError as exc:
+            # Prevent "Exception ignored" during interpreter shutdown.
+            sys.stdout = None
+            sys.exit(exc.errno)
     else:
         parser.print_usage()
     return parser

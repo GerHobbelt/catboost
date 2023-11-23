@@ -52,6 +52,11 @@ namespace NCatboostOptions {
         TString BordersFile;
 
         NCB::TPathWithScheme FeatureNamesPath;
+        NCB::TPathWithScheme PoolMetaInfoPath;
+
+        bool HostsAlreadyContainLoadedData = false;
+
+        TString PrecomputedMetadataFile;
 
         TPoolLoadParams() = default;
 
@@ -63,9 +68,15 @@ namespace NCatboostOptions {
             CvParams, ColumnarPoolFormatParams, LearnSetPath, TestSetPaths,
             PairsFilePath, TestPairsFilePath, GroupWeightsFilePath, TestGroupWeightsFilePath,
             TimestampsFilePath, TestTimestampsFilePath, BaselineFilePath, TestBaselineFilePath,
-            ClassLabels, IgnoredFeatures, BordersFile, FeatureNamesPath
+            ClassLabels, IgnoredFeatures, BordersFile, FeatureNamesPath, PoolMetaInfoPath,
+            HostsAlreadyContainLoadedData, PrecomputedMetadataFile
         );
     };
+
+    void ValidatePoolParams(
+        const NCB::TPathWithScheme& poolPath,
+        const NCB::TDsvFormatOptions& dsvFormat
+    );
 
     void ValidatePoolParams(
         const NCB::TPathWithScheme& poolPath,

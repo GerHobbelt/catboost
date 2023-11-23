@@ -16,12 +16,16 @@ namespace NCatboostCuda {
         Gather(orderdPoint, point, cachedData.FuncValueOrder);
 
         QueryCrossEntropy<TMapping>(alpha,
-                                    cachedData.FuncValueTarget,
-                                    cachedData.FuncValueWeights,
-                                    orderdPoint,
+                                    DefaultScale,
+                                    ApproxScaleSize,
+                                    cachedData.FuncValueTarget.AsConstBuf(),
+                                    cachedData.FuncValueWeights.AsConstBuf(),
+                                    orderdPoint.AsConstBuf(),
                                     cachedData.FuncValueQids,
                                     cachedData.FuncValueFlags,
                                     cachedData.FuncValueQidOffsets,
+                                    ApproxScale.AsConstBuf(),
+                                    cachedData.TrueClassCount,
                                     &funcValue,
                                     nullptr,
                                     nullptr,
@@ -47,7 +51,8 @@ namespace NCatboostCuda {
             MakeQidsForLLMax(&CachedMetadata.FuncValueOrder,
                              &CachedMetadata.FuncValueQids,
                              &CachedMetadata.FuncValueQidOffsets,
-                             &CachedMetadata.FuncValueFlags);
+                             &CachedMetadata.FuncValueFlags,
+                             &CachedMetadata.TrueClassCount);
             CachedMetadata.FuncValueTarget = TStripeBuffer<float>::CopyMapping(CachedMetadata.FuncValueOrder);
             CachedMetadata.FuncValueWeights = TStripeBuffer<float>::CopyMapping(CachedMetadata.FuncValueOrder);
             Gather(CachedMetadata.FuncValueTarget, GetTarget().GetTargets(), CachedMetadata.FuncValueOrder);
@@ -59,7 +64,8 @@ namespace NCatboostCuda {
     void TQueryCrossEntropy<NCudaLib::TStripeMapping>::MakeQidsForLLMax(TStripeBuffer<ui32>* order,
                                                                         TStripeBuffer<ui32>* orderQids,
                                                                         TStripeBuffer<ui32>* orderQidOffsets,
-                                                                        TStripeBuffer<bool>* flags) const {
+                                                                        TStripeBuffer<bool>* flags,
+                                                                        TStripeBuffer<ui32>* trueClassCount) const {
         const auto& samplesGrouping = TParent::GetSamplesGrouping();
         double meanQuerySize = GetMeanQuerySize();
         const auto& qids = GetQueriesSampler().GetPerDocQids(samplesGrouping);
@@ -70,15 +76,25 @@ namespace NCatboostCuda {
                             orderQidOffsets);
 
         flags->Reset(order->GetMapping());
+        trueClassCount->Reset(order->GetMapping());
 
         MakeIsSingleClassQueryFlags(GetTarget().GetTargets(),
                                     order->ConstCopyView(),
                                     orderQidOffsets->ConstCopyView(),
                                     meanQuerySize,
-                                    flags);
+                                    flags,
+                                    trueClassCount);
+        auto unorderedFlags = TStripeBuffer<bool>::CopyMapping(*flags);
+        unorderedFlags.Copy(*flags);
 
         RadixSort(*flags,
                   *order,
+                  false,
+                  0,
+                  1);
+
+        RadixSort(unorderedFlags,
+                  *trueClassCount,
                   false,
                   0,
                   1);
@@ -98,12 +114,16 @@ namespace NCatboostCuda {
         const auto& cachedData = GetCachedMetadata();
 
         QueryCrossEntropy<TMapping>(Alpha,
-                                    cachedData.FuncValueTarget,
-                                    cachedData.FuncValueWeights,
+                                    DefaultScale,
+                                    ApproxScaleSize,
+                                    cachedData.FuncValueTarget.AsConstBuf(),
+                                    cachedData.FuncValueWeights.AsConstBuf(),
                                     orderedPoint,
                                     cachedData.FuncValueQids,
                                     cachedData.FuncValueFlags,
                                     cachedData.FuncValueQidOffsets,
+                                    ApproxScale.AsConstBuf(),
+                                    cachedData.TrueClassCount,
                                     score,
                                     der,
                                     pointDer2,
@@ -111,21 +131,24 @@ namespace NCatboostCuda {
                                     groupSumDer2);
     }
 
+    template <typename TMapping>
+    static TCudaBuffer<ui64, TMapping> CalcMatrixOffsets(
+        const TCudaBuffer<ui32, TMapping>& queryOffsets,
+        const TCudaBuffer<bool, TMapping>& queryFlags
+    ) {
+        auto matrixSizes = TCudaBuffer<ui32, TMapping>::CopyMapping(queryOffsets);
+        ComputeQueryLogitMatrixSizes(queryOffsets, queryFlags, &matrixSizes);
+        auto matrixOffsets = TCudaBuffer<ui64, TMapping>::CopyMapping(queryOffsets);
+        ScanVector(matrixSizes, matrixOffsets);
+
+        return matrixOffsets;
+    }
+
     void TQueryCrossEntropy<NCudaLib::TStripeMapping>::CreateSecondDerMatrix(
         NCudaLib::TCudaBuffer<uint2, NCudaLib::TStripeMapping>* pairs) const {
         const auto& cachedData = GetCachedMetadata();
 
-        auto matrixOffsets = TCudaBuffer<ui32, TMapping>::CopyMapping(cachedData.FuncValueQidOffsets);
-
-        {
-            auto tmp = TCudaBuffer<ui32, TMapping>::CopyMapping(matrixOffsets);
-            ComputeQueryLogitMatrixSizes(cachedData.FuncValueQidOffsets,
-                                         cachedData.FuncValueFlags,
-                                         &tmp);
-
-            ScanVector(tmp,
-                       matrixOffsets);
-        }
+        auto matrixOffsets = CalcMatrixOffsets(cachedData.FuncValueQidOffsets, cachedData.FuncValueFlags);
 
         {
             auto guard = NCudaLib::GetProfiler().Profile("Make pairs");
@@ -147,16 +170,15 @@ namespace NCatboostCuda {
         const auto& samplesGrouping = TParent::GetSamplesGrouping();
 
         auto& sampledDocs = target->Docs;
-        auto& pairDer2 = target->PairDer2OrWeights;
-        auto& pairs = target->Pairs;
+        auto& pairDer2 = target->PairDer2OrWeights; // size can exceed 32-bits
+        auto& pairs = target->Pairs; // size can exceed 32-bits
 
         double queriesSampleRate = 1.0;
         if (bootstrapConfig.GetBootstrapType() == EBootstrapType::Bernoulli) {
             queriesSampleRate = bootstrapConfig.GetTakenFraction();
-        }
-
-        if (bootstrapConfig.GetBootstrapType() == EBootstrapType::Poisson) {
-            ythrow TCatBoostException() << "Poisson bootstrap is not supported for LLMax";
+        } else {
+            CB_ENSURE(bootstrapConfig.GetBootstrapType() == EBootstrapType::No,
+                bootstrapConfig.GetBootstrapType() << " bootstrap is not supported for LLMax");
         }
 
         if (queriesSampleRate < 1.0 || HasBigQueries()) {
@@ -181,11 +203,13 @@ namespace NCatboostCuda {
             TCudaBuffer<ui32, TMapping> sampledQids;
             TCudaBuffer<ui32, TMapping> sampledQidOffsets;
             TCudaBuffer<bool, TMapping> sampledFlags;
+            TCudaBuffer<ui32, TMapping> sampledTrueClassCount;
 
             MakeQidsForLLMax(&sampledDocs,
                              &sampledQids,
                              &sampledQidOffsets,
-                             &sampledFlags);
+                             &sampledFlags,
+                             &sampledTrueClassCount);
 
             TStripeBuffer<float> groupDer2 = TStripeBuffer<float>::CopyMapping(sampledQidOffsets);
 
@@ -207,12 +231,16 @@ namespace NCatboostCuda {
                 }
 
                 QueryCrossEntropy<TMapping>(Alpha,
-                                            sampledTarget,
-                                            sampledWeights,
-                                            sampledPoint,
+                                            DefaultScale,
+                                            ApproxScaleSize,
+                                            sampledTarget.AsConstBuf(),
+                                            sampledWeights.AsConstBuf(),
+                                            sampledPoint.AsConstBuf(),
                                             sampledQids,
                                             sampledFlags,
                                             sampledQidOffsets,
+                                            ApproxScale.AsConstBuf(),
+                                            sampledTrueClassCount,
                                             nullptr,
                                             &sampledGradient,
                                             &sampledDer2,
@@ -220,17 +248,7 @@ namespace NCatboostCuda {
                                             &groupDer2);
             }
 
-            auto matrixOffsets = TCudaBuffer<ui32, TMapping>::CopyMapping(sampledQidOffsets);
-
-            {
-                auto tmp = TCudaBuffer<ui32, TMapping>::CopyMapping(matrixOffsets);
-                ComputeQueryLogitMatrixSizes(sampledQidOffsets,
-                                             sampledFlags,
-                                             &tmp);
-
-                ScanVector(tmp,
-                           matrixOffsets);
-            }
+            auto matrixOffsets = CalcMatrixOffsets(sampledQidOffsets, sampledFlags);
 
             {
                 auto guard = NCudaLib::GetProfiler().Profile("Make pairs");

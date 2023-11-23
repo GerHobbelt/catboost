@@ -23,12 +23,15 @@ namespace NCB {
         const TPathWithScheme& timestampsFilePath, // can be uninited
         const TPathWithScheme& baselineFilePath, // can be uninited
         const TPathWithScheme& featureNamesPath, // can be uninited
+        const TPathWithScheme& poolMetaInfoPath, // can be uninited
         const NCatboostOptions::TColumnarPoolFormatParams& columnarPoolFormatParams,
         const TVector<ui32>& ignoredFeatures,
         EObjectsOrder objectsOrder,
         TDatasetSubset loadSubset,
+        bool loadSampleIds,
+        bool forceUnitAutoPairWeights,
         TMaybe<TVector<NJson::TJsonValue>*> classLabels,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
     ) {
         CB_ENSURE_INTERNAL(!baselineFilePath.Inited() || classLabels, "ClassLabels must be specified if baseline file is specified");
         if (classLabels) {
@@ -47,6 +50,7 @@ namespace NCB {
                     baselineFilePath,
                     timestampsFilePath,
                     featureNamesPath,
+                    poolMetaInfoPath,
                     classLabels ? **classLabels : TVector<NJson::TJsonValue>(),
                     columnarPoolFormatParams.DsvFormat,
                     MakeCdProviderFromFile(columnarPoolFormatParams.CdFilePath),
@@ -54,6 +58,9 @@ namespace NCB {
                     objectsOrder,
                     10000, // TODO: make it a named constant
                     loadSubset,
+                    /*LoadColumnsAsString*/ loadSampleIds,
+                    /*LoadSampleIds*/ loadSampleIds,
+                    forceUnitAutoPairWeights,
                     localExecutor
                 }
             }
@@ -89,11 +96,14 @@ namespace NCB {
         const TPathWithScheme& timestampsFilePath, // can be uninited
         const TPathWithScheme& baselineFilePath, // can be uninited
         const TPathWithScheme& featureNamesPath, // can be uninited
+        const TPathWithScheme& poolMetaInfoPath, // can be uninited
         const NCatboostOptions::TColumnarPoolFormatParams& columnarPoolFormatParams,
         const TVector<ui32>& ignoredFeatures,
         EObjectsOrder objectsOrder,
         int threadCount,
         bool verbose,
+        bool loadSampleIds,
+        bool forceUnitAutoPairWeights,
         TMaybe<TVector<NJson::TJsonValue>*> classLabels
     ) {
         NPar::TLocalExecutor localExecutor;
@@ -109,10 +119,13 @@ namespace NCB {
             timestampsFilePath,
             baselineFilePath,
             featureNamesPath,
+            poolMetaInfoPath,
             columnarPoolFormatParams,
             ignoredFeatures,
             objectsOrder,
             TDatasetSubset::MakeColumns(),
+            loadSampleIds,
+            forceUnitAutoPairWeights,
             classLabels,
             &localExecutor
         );
@@ -122,18 +135,21 @@ namespace NCB {
 
 
     TDataProviderPtr ReadDataset(
-        THolder<ILineDataReader> poolReader,
+        THolder<ILineDataReader>&& poolReader,
         const TPathWithScheme& pairsFilePath, // can be uninited
         const TPathWithScheme& groupWeightsFilePath, // can be uninited
         const TPathWithScheme& timestampsFilePath, // can be uninited
         const TPathWithScheme& baselineFilePath, // can be uninited
         const TPathWithScheme& featureNamesPath, // can be uninited
+        const TPathWithScheme& poolMetaInfoPath, // can be uninited
         const TDsvFormatOptions& poolFormat,
         const TVector<TColumn>& columnsDescription, // TODO(smirnovpavel): TVector<EColumn>
         const TVector<ui32>& ignoredFeatures,
         EObjectsOrder objectsOrder,
+        bool loadSampleIds,
+        bool forceUnitAutoPairWeights,
         TMaybe<TVector<NJson::TJsonValue>*> classLabels,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
     ) {
         const auto loadSubset = TDatasetSubset::MakeColumns();
         THolder<IDataProviderBuilder> dataProviderBuilder = CreateDataProviderBuilder(
@@ -157,6 +173,7 @@ namespace NCB {
                     baselineFilePath,
                     timestampsFilePath,
                     featureNamesPath,
+                    poolMetaInfoPath,
                     classLabels ? **classLabels : TVector<NJson::TJsonValue>(),
                     poolFormat,
                     MakeCdProviderFromArray(columnsDescription),
@@ -164,6 +181,9 @@ namespace NCB {
                     objectsOrder,
                     10000, // TODO: make it a named constant
                     loadSubset,
+                    /*LoadColumnsAsString*/ loadSampleIds,
+                    loadSampleIds,
+                    forceUnitAutoPairWeights,
                     localExecutor
                 }
             }
@@ -177,9 +197,11 @@ namespace NCB {
         const NCatboostOptions::TPoolLoadParams& loadOptions,
         EObjectsOrder objectsOrder,
         bool readTestData,
-        TDatasetSubset trainDatasetSubset,
+        TDatasetSubset learnDatasetSubset,
+        TConstArrayRef<TDatasetSubset> testDatasetSubsets,
+        bool forceUnitAutoPairWeights,
         TMaybe<TVector<NJson::TJsonValue>*> classLabels,
-        NPar::TLocalExecutor* const executor,
+        NPar::ILocalExecutor* const executor,
         TProfileInfo* const profile
     ) {
         if (readTestData) {
@@ -201,10 +223,13 @@ namespace NCB {
                 loadOptions.TimestampsFilePath,
                 loadOptions.BaselineFilePath,
                 loadOptions.FeatureNamesPath,
+                loadOptions.PoolMetaInfoPath,
                 loadOptions.ColumnarPoolFormatParams,
                 loadOptions.IgnoredFeatures,
                 objectsOrder,
-                trainDatasetSubset,
+                learnDatasetSubset,
+                /*loadSampleIds*/ false,
+                forceUnitAutoPairWeights,
                 classLabels,
                 executor
             );
@@ -236,10 +261,13 @@ namespace NCB {
                     testTimestampsFilePath,
                     testBaselineFilePath,
                     loadOptions.FeatureNamesPath,
+                    loadOptions.PoolMetaInfoPath,
                     loadOptions.ColumnarPoolFormatParams,
                     loadOptions.IgnoredFeatures,
                     objectsOrder,
-                    TDatasetSubset::MakeColumns(),
+                    testDatasetSubsets[testIdx],
+                    /*loadSampleIds*/ false,
+                    forceUnitAutoPairWeights,
                     classLabels,
                     executor
                 );
@@ -251,6 +279,18 @@ namespace NCB {
         }
 
         return dataProviders;
+    }
+
+    TPrecomputedOnlineCtrData ReadPrecomputedOnlineCtrMetaData(
+        const NCatboostOptions::TPoolLoadParams& loadOptions
+    ) {
+        CATBOOST_DEBUG_LOG << "Loading precomputed data metadata..." << Endl;
+
+        TPrecomputedOnlineCtrData result;
+        result.Meta = TPrecomputedOnlineCtrMetaData::DeserializeFromJson(
+            TIFStream(loadOptions.PrecomputedMetadataFile).ReadAll()
+        );
+        return result;
     }
 
 } // NCB

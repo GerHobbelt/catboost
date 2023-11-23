@@ -9,7 +9,6 @@
 #include <string>
 #include <vector>
 
-#include "util/util.h"
 #include "re2/testing/regexp_generator.h"
 #include "re2/testing/string_generator.h"
 
@@ -42,12 +41,12 @@ class ExhaustiveTester : public RegexpGenerator {
  public:
   ExhaustiveTester(int maxatoms,
                    int maxops,
-                   const std::vector<string>& alphabet,
-                   const std::vector<string>& ops,
+                   const std::vector<std::string>& alphabet,
+                   const std::vector<std::string>& ops,
                    int maxstrlen,
-                   const std::vector<string>& stralphabet,
-                   const string& wrapper,
-                   const string& topwrapper)
+                   const std::vector<std::string>& stralphabet,
+                   const std::string& wrapper,
+                   const std::string& topwrapper)
     : RegexpGenerator(maxatoms, maxops, alphabet, ops),
       strgen_(maxstrlen, stralphabet),
       wrapper_(wrapper),
@@ -60,7 +59,7 @@ class ExhaustiveTester : public RegexpGenerator {
   int failures() { return failures_; }
 
   // Needed for RegexpGenerator interface.
-  void HandleRegexp(const string& regexp);
+  void HandleRegexp(const std::string& regexp);
 
   // Causes testing to generate random input strings.
   void RandomStrings(int32_t seed, int32_t count) {
@@ -71,8 +70,8 @@ class ExhaustiveTester : public RegexpGenerator {
 
  private:
   StringGenerator strgen_;
-  string wrapper_;      // Regexp wrapper - either empty or has one %s.
-  string topwrapper_;   // Regexp top-level wrapper.
+  std::string wrapper_;      // Regexp wrapper - either empty or has one %s.
+  std::string topwrapper_;   // Regexp top-level wrapper.
   int regexps_;   // Number of HandleRegexp calls
   int tests_;     // Number of regexp tests.
   int failures_;  // Number of tests failed.
@@ -87,18 +86,18 @@ class ExhaustiveTester : public RegexpGenerator {
 
 // Runs an exhaustive test on the given parameters.
 void ExhaustiveTest(int maxatoms, int maxops,
-                    const std::vector<string>& alphabet,
-                    const std::vector<string>& ops,
+                    const std::vector<std::string>& alphabet,
+                    const std::vector<std::string>& ops,
                     int maxstrlen,
-                    const std::vector<string>& stralphabet,
-                    const string& wrapper,
-                    const string& topwrapper);
+                    const std::vector<std::string>& stralphabet,
+                    const std::string& wrapper,
+                    const std::string& topwrapper);
 
 // Runs an exhaustive test using the given parameters and
 // the basic egrep operators.
-void EgrepTest(int maxatoms, int maxops, const string& alphabet,
-               int maxstrlen, const string& stralphabet,
-               const string& wrapper);
+void EgrepTest(int maxatoms, int maxops, const std::string& alphabet,
+               int maxstrlen, const std::string& stralphabet,
+               const std::string& wrapper);
 
 }  // namespace re2
 

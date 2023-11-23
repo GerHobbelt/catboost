@@ -14,6 +14,7 @@ __all__ = ['Popen']
 #
 #
 
+# Exit code used by Popen.terminate()
 TERMINATE = 0x10000
 WINEXE = (sys.platform == 'win32' and getattr(sys, 'frozen', False))
 WINSERVICE = sys.executable.lower().endswith("pythonservice.exe")
@@ -22,8 +23,7 @@ WINSERVICE = sys.executable.lower().endswith("pythonservice.exe")
 def _path_eq(p1, p2):
     return p1 == p2 or os.path.normcase(p1) == os.path.normcase(p2)
 
-WINENV = (hasattr(sys, '_base_executable') and
-          not _path_eq(sys.executable, sys._base_executable))
+WINENV = not _path_eq(sys.executable, sys._base_executable)
 
 
 def _close_handles(*handles):
@@ -45,25 +45,30 @@ class Popen(object):
     def __init__(self, process_obj):
         prep_data = spawn.get_preparation_data(process_obj._name)
 
-        # read end of pipe will be "stolen" by the child process
+        # read end of pipe will be duplicated by the child process
         # -- see spawn_main() in spawn.py.
+        #
+        # bpo-33929: Previously, the read end of pipe was "stolen" by the child
+        # process, but it leaked a handle if the child process had been
+        # terminated before it could steal the handle from the parent process.
         rhandle, whandle = _winapi.CreatePipe(None, 0)
         wfd = msvcrt.open_osfhandle(whandle, 0)
         cmd = spawn.get_command_line(parent_pid=os.getpid(),
                                      pipe_handle=rhandle)
-        cmd = ' '.join('"%s"' % x for x in cmd)
 
         python_exe = spawn.get_executable()
 
         # bpo-35797: When running in a venv, we bypass the redirect
         # executor and launch our base Python.
         if WINENV and _path_eq(python_exe, sys.executable):
-            python_exe = sys._base_executable
+            cmd[0] = python_exe = sys._base_executable
             env = os.environ.copy()
             env["__PYVENV_LAUNCHER__"] = sys.executable
         else:
             env = os.environ.copy()
         env['Y_PYTHON_ENTRY_POINT'] = ':main'
+
+        cmd = ' '.join('"%s"' % x for x in cmd)
 
         with open(wfd, 'wb', closefd=True) as to_child:
             # start process
@@ -81,7 +86,8 @@ class Popen(object):
             self.returncode = None
             self._handle = hp
             self.sentinel = int(hp)
-            self.finalizer = util.Finalize(self, _winapi.CloseHandle, (self.sentinel,))
+            self.finalizer = util.Finalize(self, _close_handles,
+                                           (self.sentinel, int(rhandle)))
 
             # send information to child
             set_spawning_popen(self)
@@ -118,9 +124,15 @@ class Popen(object):
         if self.returncode is None:
             try:
                 _winapi.TerminateProcess(int(self._handle), TERMINATE)
-            except OSError:
-                if self.wait(timeout=1.0) is None:
+            except PermissionError:
+                # ERROR_ACCESS_DENIED (winerror 5) is received when the
+                # process already died.
+                code = _winapi.GetExitCodeProcess(int(self._handle))
+                if code == _winapi.STILL_ACTIVE:
                     raise
+                self.returncode = code
+            else:
+                self.returncode = -signal.SIGTERM
 
     kill = terminate
 

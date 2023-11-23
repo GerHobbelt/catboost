@@ -1,13 +1,14 @@
 # coding: utf-8
 
-import sys
 import codecs
 import errno
 import logging
 import os
-import shutil
-import stat
 import random
+import shutil
+import six
+import stat
+import sys
 
 import library.python.func
 import library.python.strings
@@ -127,9 +128,7 @@ def remove_dir(path):
 
 
 def fix_path_encoding(path):
-    if isinstance(path, unicode):
-        return path.encode(sys.getfilesystemencoding())
-    return path
+    return library.python.strings.to_str(path, library.python.strings.fs_encoding())
 
 
 # File/directory remove
@@ -199,12 +198,17 @@ def hardlink(src, lnk):
 
 @errorfix_win
 def hardlink_or_copy(src, lnk):
-
     def should_fallback_to_copy(exc):
         if WindowsError is not None and isinstance(exc, WindowsError) and exc.winerror == 1142:  # too many hardlinks
             return True
-        # cross-device hardlink or too many hardlinks
-        if isinstance(exc, OSError) and (exc.errno == errno.EXDEV or exc.errno == errno.EMLINK or exc.errno == errno.EINVAL or exc.errno == errno.EACCES):
+        # cross-device hardlink or too many hardlinks, or some known WSL error
+        if isinstance(exc, OSError) and exc.errno in (
+            errno.EXDEV,
+            errno.EMLINK,
+            errno.EINVAL,
+            errno.EACCES,
+            errno.EPERM,
+        ):
             return True
         return False
 
@@ -213,7 +217,7 @@ def hardlink_or_copy(src, lnk):
     except Exception as e:
         logger.debug('Failed to hardlink %s to %s with error %s, will copy it', src, lnk, repr(e))
         if should_fallback_to_copy(e):
-            shutil.copy2(src, lnk)
+            copy2(src, lnk, follow_symlinks=False)
         else:
             raise
 
@@ -228,6 +232,19 @@ def symlink(src, lnk):
         library.python.windows.run_disabled(src, lnk)
     else:
         os.symlink(src, lnk)
+
+
+# shutil.copy2 with follow_symlinks=False parameter (Unix only)
+def copy2(src, lnk, follow_symlinks=True):
+    if six.PY3:
+        shutil.copy2(src, lnk, follow_symlinks=follow_symlinks)
+        return
+
+    if follow_symlinks or not os.path.islink(src):
+        shutil.copy2(src, lnk)
+        return
+
+    symlink(os.readlink(src), lnk)
 
 
 # Recursively hardlink directory
@@ -277,13 +294,24 @@ def read_file(path, binary=True):
         return f.read()
 
 
+# Text file read
+# Throws OSError
+@errorfix_win
+def read_text(path):
+    return read_file(path, binary=False)
+
+
 # Decoding file read
 # Throws OSError
 @errorfix_win
 def read_file_unicode(path, binary=True, enc='utf-8'):
     if not binary:
-        with open(path, 'r') as f:
-            return library.python.strings.to_unicode(f.read(), enc)
+        if six.PY2:
+            with open(path, 'r') as f:
+                return library.python.strings.to_unicode(f.read(), enc)
+        else:
+            with open(path, 'r', encoding=enc) as f:
+                return f.read()
     # codecs.open is always binary
     with codecs.open(path, 'r', encoding=enc, errors=library.python.strings.ENCODING_ERRORS_POLICY) as f:
         return f.read()
@@ -291,7 +319,9 @@ def read_file_unicode(path, binary=True, enc='utf-8'):
 
 @errorfix_win
 def open_file(*args, **kwargs):
-    return library.python.windows.open_file(*args, **kwargs) if library.python.windows.on_win() else open(*args, **kwargs)
+    return (
+        library.python.windows.open_file(*args, **kwargs) if library.python.windows.on_win() else open(*args, **kwargs)
+    )
 
 
 # Atomic file write
@@ -307,6 +337,13 @@ def write_file(path, data, binary=True):
             data = data.encode('UTF-8')
         f.write(data)
     replace_file(tmp_path, path)
+
+
+# Atomic text file write
+# Throws OSError
+@errorfix_win
+def write_text(path, data):
+    write_file(path, data, binary=False)
 
 
 # File size
@@ -340,8 +377,15 @@ def get_tree_size(path, recursive=False, raise_all_errors=False):
 
 
 # Directory copy ported from Python 3
-def copytree3(src, dst, symlinks=False, ignore=None,
-              copy_function=shutil.copy2, ignore_dangling_symlinks=False, dirs_exist_ok=False):
+def copytree3(
+    src,
+    dst,
+    symlinks=False,
+    ignore=None,
+    copy_function=shutil.copy2,
+    ignore_dangling_symlinks=False,
+    dirs_exist_ok=False,
+):
     """Recursively copy a directory tree.
 
     The copytree3 is a port of shutil.copytree function from python-3.2.
@@ -436,3 +480,36 @@ def copytree3(src, dst, symlinks=False, ignore=None,
 def walk_relative(path, topdown=True, onerror=None, followlinks=False):
     for dirpath, dirnames, filenames in os.walk(path, topdown=topdown, onerror=onerror, followlinks=followlinks):
         yield os.path.relpath(dirpath, path), dirnames, filenames
+
+
+def supports_clone():
+    if 'darwin' in sys.platform:
+        import platform
+
+        return list(map(int, platform.mac_ver()[0].split('.'))) >= [10, 13]
+    return False
+
+
+def commonpath(paths):
+    assert paths
+    if len(paths) == 1:
+        return next(iter(paths))
+
+    split_paths = [path.split(os.sep) for path in paths]
+    smin = min(split_paths)
+    smax = max(split_paths)
+
+    common = smin
+    for i, c in enumerate(smin):
+        if c != smax[i]:
+            common = smin[:i]
+            break
+
+    return os.path.sep.join(common)
+
+
+def set_execute_bits(filename):
+    stm = os.stat(filename).st_mode
+    exe = stm | 0o111
+    if stm != exe:
+        os.chmod(filename, exe)

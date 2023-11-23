@@ -1,11 +1,11 @@
 #include "zlib.h"
 
 #include <util/memory/addstorage.h>
+#include <util/generic/scope.h>
 #include <util/generic/utility.h>
 
-#include <contrib/libs/zlib/zlib.h>
+#include <zlib.h>
 
-#include <cstdio>
 #include <cstring>
 
 namespace {
@@ -125,6 +125,8 @@ public:
                     } else {
                         return size - Z()->avail_out;
                     }
+
+                    [[fallthrough]];
                 }
 
                 case Z_OK: {
@@ -207,7 +209,7 @@ public:
 
         // Create exactly the same files on all platforms by fixing OS field in the header.
         if (p.Type == ZLib::GZip) {
-            GZHeader_ = new gz_header{};
+            GZHeader_ = MakeHolder<gz_header>();
             GZHeader_->os = 3; // UNIX
             deflateSetHeader(Z(), GZHeader_.Get());
         }

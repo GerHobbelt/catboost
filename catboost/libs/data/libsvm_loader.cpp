@@ -1,15 +1,17 @@
 #include "libsvm_loader.h"
 
 #include "features_layout.h"
+#include "sampler.h"
 
 #include <catboost/libs/column_description/cd_parser.h>
+#include <catboost/libs/helpers/mem_usage.h>
+#include <catboost/libs/helpers/sparse_array.h>
 #include <catboost/private/libs/data_util/exists_checker.h>
 #include <catboost/private/libs/data_util/line_data_reader.h>
 #include <catboost/private/libs/labels/helpers.h>
-#include <catboost/libs/helpers/mem_usage.h>
-#include <catboost/libs/helpers/sparse_array.h>
+#include <catboost/private/libs/options/pool_metainfo_options.h>
 
-#include <library/object_factory/object_factory.h>
+#include <library/cpp/object_factory/object_factory.h>
 
 #include <util/generic/algorithm.h>
 #include <util/generic/maybe.h>
@@ -19,6 +21,7 @@
 #include <util/generic/xrange.h>
 #include <util/stream/file.h>
 #include <util/string/split.h>
+#include <util/system/compiler.h>
 #include <util/system/guard.h>
 #include <util/system/types.h>
 
@@ -44,14 +47,16 @@ static TVector<TString> GetFeatureNames(
                 "Feature #" << featureIdx << ": name from columns description (\""
                 << featureNamesFromColumnsDescription[featureIdx]
                 << "\") is not equal to name from feature names file (\""
-                << externalFeatureNames[featureIdx] << "\")");
+                << externalFeatureNames[featureIdx] << "\")"
+            );
         }
         for (; featureIdx < featureNamesFromColumnsDescription.size(); ++featureIdx) {
             CB_ENSURE(
                 featureNamesFromColumnsDescription[featureIdx].empty(),
                 "Feature #" << featureIdx << ": name specified in columns description (\""
                 << featureNamesFromColumnsDescription[featureIdx]
-                << "\") but not present in feature names file");
+                << "\") but not present in feature names file"
+            );
         }
 
         return externalFeatureNames;
@@ -74,25 +79,49 @@ namespace NCB {
     TLibSvmDataLoader::TLibSvmDataLoader(TLineDataLoaderPushArgs&& args)
         : TAsyncProcDataLoaderBase<TString>(std::move(args.CommonArgs))
         , LineDataReader(std::move(args.Reader))
-        , BaselineReader(Args.BaselineFilePath, ClassLabelsToStrings(args.CommonArgs.ClassLabels))
     {
-        CB_ENSURE(!Args.PairsFilePath.Inited() || CheckExists(Args.PairsFilePath),
-                  "TLibSvmDataLoader:PairsFilePath does not exist");
-        CB_ENSURE(!Args.GroupWeightsFilePath.Inited() || CheckExists(Args.GroupWeightsFilePath),
-                  "TLibSvmDataLoader:GroupWeightsFilePath does not exist");
-        CB_ENSURE(!Args.BaselineFilePath.Inited() || CheckExists(Args.BaselineFilePath),
-                  "TLibSvmDataLoader:BaselineFilePath does not exist");
-        CB_ENSURE(!Args.TimestampsFilePath.Inited() || CheckExists(Args.TimestampsFilePath),
-                  "TLibSvmDataLoader:TimestampsFilePath does not exist");
-        CB_ENSURE(!Args.FeatureNamesPath.Inited() || CheckExists(Args.FeatureNamesPath),
-                  "TLibSvmDataLoader:FeatureNamesPath does not exist");
+        if (Args.BaselineFilePath.Inited()) {
+            CB_ENSURE(
+                CheckExists(Args.BaselineFilePath),
+                "TCBDsvDataLoader:BaselineFilePath does not exist"
+            );
+
+            BaselineReader = GetProcessor<IBaselineReader, TBaselineReaderArgs>(
+                Args.BaselineFilePath,
+                TBaselineReaderArgs{
+                    Args.BaselineFilePath,
+                    ClassLabelsToStrings(Args.ClassLabels),
+                    Args.DatasetSubset.Range
+                }
+            );
+        }
+
+        CB_ENSURE(
+            !Args.PairsFilePath.Inited() || CheckExists(Args.PairsFilePath),
+            "TLibSvmDataLoader:PairsFilePath does not exist");
+        CB_ENSURE(
+            !Args.GroupWeightsFilePath.Inited() || CheckExists(Args.GroupWeightsFilePath),
+            "TLibSvmDataLoader:GroupWeightsFilePath does not exist"
+        );
+        CB_ENSURE(
+            !Args.TimestampsFilePath.Inited() || CheckExists(Args.TimestampsFilePath),
+            "TLibSvmDataLoader:TimestampsFilePath does not exist"
+        );
+        CB_ENSURE(
+            !Args.FeatureNamesPath.Inited() || CheckExists(Args.FeatureNamesPath),
+            "TLibSvmDataLoader:FeatureNamesPath does not exist"
+        );
+        CB_ENSURE(
+            !Args.PoolMetaInfoPath.Inited() || CheckExists(Args.PoolMetaInfoPath),
+            "TLibSvmDataLoader:PoolMetaInfoPath does not exist"
+        );
 
         TString firstLine;
         CB_ENSURE(LineDataReader->ReadLine(&firstLine), "TLibSvmDataLoader: no data rows");
 
         DataMetaInfo.TargetType = ERawTargetType::Float;
         DataMetaInfo.TargetCount = 1;
-        DataMetaInfo.BaselineCount = BaselineReader.GetBaselineCount().GetOrElse(0);
+        DataMetaInfo.BaselineCount = BaselineReader ? BaselineReader->GetBaselineCount() : 0;
         DataMetaInfo.HasGroupId = DataHasGroupId(firstLine);
         DataMetaInfo.HasGroupWeight = Args.GroupWeightsFilePath.Inited();
         DataMetaInfo.HasPairs = Args.PairsFilePath.Inited();
@@ -107,12 +136,15 @@ namespace NCB {
         }
 
         const TVector<TString> featureNames = GetFeatureNames(featureNamesFromColumns, Args.FeatureNamesPath);
+        const auto poolMetaInfoOptions = NCatboostOptions::LoadPoolMetaInfoOptions(Args.PoolMetaInfoPath);
 
         auto featuresLayout = MakeIntrusive<TFeaturesLayout>(
             (ui32)featureNames.size(),
             catFeatures,
             /*textFeatures*/ TVector<ui32>{},
+            /*embeddingFeatures*/ TVector<ui32>{},
             featureNames,
+            poolMetaInfoOptions.Tags.Get(),
             /*allFeaturesAreSparse*/ true
         );
 
@@ -125,7 +157,7 @@ namespace NCB {
         DataMetaInfo.FeaturesLayout = std::move(featuresLayout);
 
         AsyncRowProcessor.ReadBlockAsync(GetReadFunc());
-        if (BaselineReader.Inited()) {
+        if (BaselineReader) {
             AsyncBaselineRowProcessor.ReadBlockAsync(GetReadBaselineFunc());
         }
     }
@@ -161,7 +193,7 @@ namespace NCB {
 
         const auto& featuresLayout = *DataMetaInfo.FeaturesLayout;
         for (auto catFeatureExternalIdx : featuresLayout.GetCatFeatureInternalIdxToExternalIdx()) {
-            visitor->AddCatFeatureDefaultValue(catFeatureExternalIdx, AsStringBuf("0"));
+            visitor->AddCatFeatureDefaultValue(catFeatureExternalIdx, TStringBuf("0"));
         }
     }
 
@@ -212,7 +244,7 @@ namespace NCB {
                         TStringBuf right;
                         token.Split(':', left, right);
 
-                        CB_ENSURE(left == AsStringBuf("qid"), "line does not contain 'qid' field");
+                        CB_ENSURE(left == "qid"sv, "line does not contain 'qid' field");
                         TGroupId groupId;
                         CB_ENSURE(TryFromString(right, groupId), "'qid' value must be integer");
                         visitor->AddGroupId(lineIdx, groupId);
@@ -223,6 +255,10 @@ namespace NCB {
 
                     for (; lineIterator != lineEndIterator; ++lineIterator, ++tokenCount) {
                         token = (*lineIterator).Token();
+                        // allow extra space at the end of line
+                        if (token.empty() && std::next(lineIterator) == lineEndIterator) {
+                            continue;
+                        }
 
                         TStringBuf left;
                         TStringBuf right;
@@ -255,7 +291,7 @@ namespace NCB {
                                 floatFeatureIndices.push_back(*floatFeatureIdx);
                                 floatFeatureValues.yresize(floatFeatureIndices.size());
 
-                                if (!TryParseFloatFeatureValue(right, &floatFeatureValues.back())) {
+                                if (!TryFloatFromString(right, /*parseNonFinite*/true, &floatFeatureValues.back())) {
                                     CB_ENSURE(
                                         false,
                                         "Feature value \"" << right << "\" cannot be parsed as float."
@@ -301,18 +337,14 @@ namespace NCB {
 
         AsyncRowProcessor.ProcessBlock(parseBlock);
 
-        if (BaselineReader.Inited()) {
-            auto parseBaselineBlock = [&](TString &line, int inBlockIdx) {
-
-                auto addBaselineFunc = [&visitor, inBlockIdx](ui32 baselineIdx, float baseline) {
-                    visitor->AddBaseline(inBlockIdx, baselineIdx, baseline);
-                };
-                const auto lineIdx = AsyncBaselineRowProcessor.GetLinesProcessed() + inBlockIdx + 1;
-
-                BaselineReader.Parse(addBaselineFunc, line, lineIdx);
+        if (BaselineReader) {
+            auto setBaselineBlock = [&](TObjectBaselineData &data, int inBlockIdx) {
+                for (auto baselineIdx : xrange(data.Baseline.size())) {
+                    visitor->AddBaseline(inBlockIdx, baselineIdx, data.Baseline[baselineIdx]);
+                }
             };
 
-            AsyncBaselineRowProcessor.ProcessBlock(parseBaselineBlock);
+            AsyncBaselineRowProcessor.ProcessBlock(setBaselineBlock);
         }
     }
 
@@ -359,7 +391,7 @@ namespace NCB {
             return false;
         }
 
-        if ((*lineIterator).Token().Before(':') == AsStringBuf("qid")) {
+        if ((*lineIterator).Token().Before(':') == "qid"sv) {
             return true;
         }
 
@@ -390,6 +422,7 @@ namespace NCB {
             switch (column.Type) {
                 case EColumn::Categ:
                     catFeatures->push_back(columnIdx - featuresStartColumn);
+                    [[fallthrough]];
                 case EColumn::Num:
                     featureNames->push_back(column.Id);
                     break;
@@ -407,6 +440,32 @@ namespace NCB {
         TExistsCheckerFactory::TRegistrator<TFSExistsChecker> LibSvmExistsCheckerReg("libsvm");
         TLineDataReaderFactory::TRegistrator<TFileLineDataReader> LibSvmLineDataReaderReg("libsvm");
         TDatasetLoaderFactory::TRegistrator<TLibSvmDataLoader> LibSvmDataLoaderReg("libsvm");
+        TDatasetLineDataLoaderFactory::TRegistrator<TLibSvmDataLoader> LibSvmLineDataLoader("libsvm");
+    }
+
+
+    class TLibSvmDatasetSampler final : public IDataProviderSampler {
+    public:
+        TLibSvmDatasetSampler(TDataProviderSampleParams&& params)
+            : Params(std::move(params))
+        {}
+
+        TDataProviderPtr SampleByIndices(TConstArrayRef<ui32> indices) override {
+            return LinesFileSampleByIndices(Params, indices);
+        }
+
+        TDataProviderPtr SampleBySampleIds(TConstArrayRef<TString> sampleIds) override {
+            Y_UNUSED(sampleIds);
+
+            CB_ENSURE(false, "libsvm format has no sampleIds, so sampling by them is not supported");
+            return TDataProviderPtr();
+        }
+
+    private:
+        TDataProviderSampleParams Params;
+    };
+
+    namespace {
+        TDataProviderSamplerFactory::TRegistrator<TLibSvmDatasetSampler> CBDsvDatasetSampler("libsvm");
     }
 }
-

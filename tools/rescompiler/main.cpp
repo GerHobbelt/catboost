@@ -45,11 +45,15 @@ int main(int argc, char** argv) {
     out << "#include <library/cpp/resource/registry.h>\n\n";
 
     while (*argv) {
-        if (AsStringBuf("-") == *argv) {
+        if ("-"sv == *argv) {
             TVector<TString> items = StringSplitter(TString(*(argv + 1))).Split('=').Limit(2).ToList<TString>();
             GenOne(TString(items[1]), TString(items[0]), out);
         } else {
-            GenOne(TUnbufferedFileInput(*argv).ReadAll(), *(argv + 1), out);
+            const char* key = *(argv + 1);
+            if (*key == '-') {
+                ++key;
+            }
+            GenOne(TUnbufferedFileInput(*argv).ReadAll(), key, out);
         }
         argv += 2;
     }

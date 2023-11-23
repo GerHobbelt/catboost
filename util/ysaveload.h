@@ -8,6 +8,13 @@
 #include <util/generic/algorithm.h>
 #include <util/stream/output.h>
 #include <util/stream/input.h>
+#include <util/system/compiler.h>
+
+#ifndef __NVCC__
+    // cuda is compiled in C++14 mode at the time
+    #include <optional>
+    #include <variant>
+#endif
 
 template <typename T>
 class TSerializeTypeTraits {
@@ -59,7 +66,7 @@ static inline void LoadPodType(IInputStream* rh, T& t) {
     const size_t res = rh->Load(&t, sizeof(T));
 
     if (Y_UNLIKELY(res != sizeof(T))) {
-        ::NPrivate::ThrowLoadEOFException(sizeof(T), res, AsStringBuf("pod type"));
+        ::NPrivate::ThrowLoadEOFException(sizeof(T), res, TStringBuf("pod type"));
     }
 }
 
@@ -74,7 +81,7 @@ static inline void LoadPodArray(IInputStream* rh, T* arr, size_t count) {
     const size_t res = rh->Load(arr, len);
 
     if (Y_UNLIKELY(res != len)) {
-        ::NPrivate::ThrowLoadEOFException(len, res, AsStringBuf("pod array"));
+        ::NPrivate::ThrowLoadEOFException(len, res, TStringBuf("pod array"));
     }
 }
 
@@ -365,6 +372,10 @@ template <>
 class TSerializer<TUtf16String>: public TVectorSerializer<TUtf16String> {
 };
 
+template <class TChar>
+class TSerializer<std::basic_string<TChar>>: public TVectorSerializer<std::basic_string<TChar>> {
+};
+
 template <class T, class A>
 class TSerializer<TDeque<T, A>>: public TVectorSerializer<TDeque<T, A>> {
 };
@@ -434,7 +445,7 @@ struct TTupleSerializer {
 };
 
 template <typename... TArgs>
-struct TSerializer<std::tuple<TArgs...>> : TTupleSerializer<std::tuple<TArgs...>> {
+struct TSerializer<std::tuple<TArgs...>>: TTupleSerializer<std::tuple<TArgs...>> {
 };
 
 template <>
@@ -482,11 +493,11 @@ public:
         : TBase(s)
     {
         Y_UNUSED(cnt);
-        P_ = TBase::S_.begin();
+        P_ = this->S_.begin();
     }
 
     inline void Insert(const TValue& v) {
-        P_ = TBase::S_.insert(P_, v);
+        P_ = this->S_.insert(P_, v);
     }
 
 private:
@@ -630,6 +641,29 @@ public:
     }
 };
 
+#ifndef __NVCC__
+
+template <typename T>
+struct TSerializer<std::optional<T>> {
+    static inline void Save(IOutputStream* os, const std::optional<T>& v) {
+        ::Save(os, v.has_value());
+        if (v.has_value()) {
+            ::Save(os, *v);
+        }
+    }
+
+    static inline void Load(IInputStream* is, std::optional<T>& v) {
+        v.reset();
+
+        bool hasValue;
+        ::Load(is, hasValue);
+
+        if (hasValue) {
+            ::Load(is, v.emplace());
+        }
+    }
+};
+
 namespace NPrivate {
     template <class Variant, class T, size_t I>
     void LoadVariantAlternative(IInputStream* is, Variant& v) {
@@ -640,14 +674,14 @@ namespace NPrivate {
 }
 
 template <typename... Args>
-struct TSerializer<TVariant<Args...>> {
-    using TVar = TVariant<Args...>;
+struct TSerializer<std::variant<Args...>> {
+    using TVar = std::variant<Args...>;
 
     static_assert(sizeof...(Args) < 256, "We use ui8 to store tag");
 
     static void Save(IOutputStream* os, const TVar& v) {
         ::Save<ui8>(os, v.index());
-        Visit([os](const auto& data) {
+        std::visit([os](const auto& data) {
             ::Save(os, data);
         }, v);
     }
@@ -664,11 +698,13 @@ struct TSerializer<TVariant<Args...>> {
 private:
     template <size_t... Is>
     static void LoadImpl(IInputStream* is, TVar& v, ui8 index, std::index_sequence<Is...>) {
-        using TLoader = void(*)(IInputStream*, TVar& v);
+        using TLoader = void (*)(IInputStream*, TVar & v);
         constexpr TLoader loaders[] = {::NPrivate::LoadVariantAlternative<TVar, Args, Is>...};
         loaders[index](is, v);
     }
 };
+
+#endif
 
 template <class T>
 static inline void SaveLoad(IOutputStream* out, const T& t) {
@@ -690,11 +726,44 @@ static inline void LoadMany(S* s, Ts&... t) {
     ApplyToMany([&](auto& v) { Load(s, v); }, t...);
 }
 
-#define Y_SAVELOAD_DEFINE(...)                 \
-    inline void Save(IOutputStream* s) const { \
-        ::SaveMany(s, __VA_ARGS__);            \
-    }                                          \
-                                               \
-    inline void Load(IInputStream* s) {        \
-        ::LoadMany(s, __VA_ARGS__);            \
+#define Y_SAVELOAD_DEFINE(...)                                    \
+    inline void Save(IOutputStream* s) const {                    \
+        [s](auto&&... args) {                                     \
+            ::SaveMany(s, std::forward<decltype(args)>(args)...); \
+        }(__VA_ARGS__);                                           \
+    }                                                             \
+                                                                  \
+    inline void Load(IInputStream* s) {                           \
+        [s](auto&&... args) {                                     \
+            ::LoadMany(s, std::forward<decltype(args)>(args)...); \
+        }(__VA_ARGS__);                                           \
+    }                                                             \
+    Y_SEMICOLON_GUARD
+
+#define Y_SAVELOAD_DEFINE_OVERRIDE(...)                           \
+    void Save(IOutputStream* s) const override {                  \
+        [s](auto&&... args) {                                     \
+            ::SaveMany(s, std::forward<decltype(args)>(args)...); \
+        }(__VA_ARGS__);                                           \
+    }                                                             \
+                                                                  \
+    void Load(IInputStream* s) override {                         \
+        [s](auto&&... args) {                                     \
+            ::LoadMany(s, std::forward<decltype(args)>(args)...); \
+        }(__VA_ARGS__);                                           \
+    }                                                             \
+    Y_SEMICOLON_GUARD
+
+template <class T>
+struct TNonVirtualSaver {
+    const T* Data;
+    void Save(IOutputStream* out) const {
+        Data->T::Save(out);
     }
+};
+
+template <typename S, typename T, typename... R>
+inline void LoadMany(S* s, TNonVirtualSaver<T> t, R&... r) {
+    const_cast<T*>(t.Data)->T::Load(s);
+    ::LoadMany(s, r...);
+}

@@ -46,7 +46,7 @@ public:
     void InitCtrHelper(
         const NCatboostOptions::TCatFeatureParams& catFeatureParams,
         const NCB::TFeaturesLayout& layout,
-        NCB::TMaybeData<TConstArrayRef<float>> target,
+        NCB::TMaybeData<TConstArrayRef<TConstArrayRef<float>>> targets,
         ELossFunction loss,
         const TMaybe<TCustomObjectiveDescriptor>& objectiveDescriptor,
         bool allowConstLabel);
@@ -67,7 +67,7 @@ public:
         return TargetClassifiers;
     }
 
-    Y_SAVELOAD_DEFINE(TargetClassifiers, SimpleCtrs, PerFeatureCtrs, TreeCtrs)
+    Y_SAVELOAD_DEFINE(TargetClassifiers, SimpleCtrs, PerFeatureCtrs, TreeCtrs);
 
 private:
     TVector<TTargetClassifier> TargetClassifiers;

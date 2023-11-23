@@ -3,6 +3,7 @@
 #include "export_helpers.h"
 
 #include <catboost/libs/model/ctr_helpers.h>
+#include <catboost/libs/model/enums.h>
 #include <catboost/libs/model/static_ctr_provider.h>
 
 #include <library/cpp/resource/resource.h>
@@ -22,10 +23,11 @@ namespace NCB {
 
     void TCatboostModelToPythonConverter::WriteCTRStructs() {
         Out << NResource::Find("catboost_model_export_python_ctr_structs");
-    };
+    }
 
     static void WriteModelCTRs(IOutputStream& out, const TFullModel& model, TIndent& indent) {
-        const TVector<TModelCtr>& neededCtrs = model.ModelTrees->GetUsedModelCtrs();
+        auto applyData = model.ModelTrees->GetApplyData();
+        const auto& neededCtrs = applyData->UsedModelCtrs;
         if (neededCtrs.empty()) {
             return;
         }
@@ -34,11 +36,11 @@ namespace NCB {
         out << indent++ << "model_ctrs = catboost_model_ctrs_container(" << '\n';
 
         const TStaticCtrProvider* ctrProvider = dynamic_cast<TStaticCtrProvider*>(model.CtrProvider.Get());
-        Y_VERIFY(ctrProvider, "Unsupported CTR provider");
+        CB_ENSURE(ctrProvider, "Unsupported CTR provider");
 
         TVector<TCompressedModelCtr> compressedModelCtrs = CompressModelCtrs(neededCtrs);
 
-        out << indent << "used_model_ctrs_count = " << model.ModelTrees->GetUsedModelCtrs().size() << "," << '\n';
+        out << indent << "used_model_ctrs_count = " << applyData->UsedModelCtrs.size() << "," << '\n';
         out << indent++ << "compressed_model_ctrs = [" << '\n';
 
         comma.ResetCount(compressedModelCtrs.size());
@@ -142,9 +144,9 @@ namespace NCB {
 
 
     void TCatboostModelToPythonConverter::WriteModelCatFeatures(const TFullModel& model, const THashMap<ui32, TString>* catFeaturesHashToString) {
-        CB_ENSURE(model.ModelTrees->GetDimensionsCount() == 1, "Export of MultiClassification model to Python is not supported.");
+        auto applyData = model.ModelTrees->GetApplyData();
 
-        if (!model.ModelTrees->GetUsedModelCtrs().empty()) {
+        if (!applyData->UsedModelCtrs.empty()) {
             WriteCTRStructs();
         }
 
@@ -160,13 +162,17 @@ namespace NCB {
                 str << feature.Position.Index << ", ";
             }
         }
-        str.pop_back();
-        Out << ++indent << str << "\n";
+        if (!str.empty()) {
+            str.pop_back();
+            Out << ++indent << str << "\n";
+        } else {
+            ++indent;
+        }
         Out << --indent << "]\n";
         Out << indent << "float_feature_count = " << model.ModelTrees->GetNumFloatFeatures() << '\n';
         Out << indent << "cat_feature_count = " << model.ModelTrees->GetNumCatFeatures() << '\n';
         Out << indent << "binary_feature_count = " << model.ModelTrees->GetEffectiveBinaryFeaturesBucketsCount() << '\n';
-        Out << indent << "tree_count = " << model.ModelTrees->GetTreeSizes().size() << '\n';
+        Out << indent << "tree_count = " << model.ModelTrees->GetModelTreeData()->GetTreeSizes().size() << '\n';
 
         Out << indent++ << "float_feature_borders = [" << '\n';
         comma.ResetCount(model.ModelTrees->GetFloatFeatures().size());
@@ -180,9 +186,9 @@ namespace NCB {
         }
         Out << --indent << "]" << '\n';
 
-        Out << indent << "tree_depth = [" << OutputArrayInitializer(model.ModelTrees->GetTreeSizes()) << "]" << '\n';
+        Out << indent << "tree_depth = [" << OutputArrayInitializer(model.ModelTrees->GetModelTreeData()->GetTreeSizes()) << "]" << '\n';
 
-        const TVector<TRepackedBin>& bins = model.ModelTrees->GetRepackedBins();
+        const auto bins = model.ModelTrees->GetRepackedBins();
         Out << indent << "tree_split_border = [" << OutputArrayInitializer([&bins](size_t i) { return (int)bins[i].SplitIdx; }, bins.size()) << "]" << '\n';
         Out << indent << "tree_split_feature_index = [" << OutputArrayInitializer([&bins](size_t i) { return (int)bins[i].FeatureIndex; }, bins.size()) << "]" << '\n';
         Out << indent << "tree_split_xor_mask = [" << OutputArrayInitializer([&bins](size_t i) { return (int)bins[i].XorMask; }, bins.size()) << "]" << '\n';
@@ -212,22 +218,20 @@ namespace NCB {
         }
         Out << --indent << "]" << '\n';
 
-        int leafValueCount = 0;
-        for (const auto& treeSize : model.ModelTrees->GetTreeSizes()) {
-            leafValueCount += treeSize * model.ModelTrees->GetDimensionsCount();
-        }
-        Out << '\n';
         Out << indent << "## Aggregated array of leaf values for trees. Each tree is represented by a separate line:" << '\n';
-        Out << indent << "leaf_values = [" << OutputLeafValues(model, indent) << indent << "]" << '\n';
+        Out << indent << "leaf_values = [" << OutputLeafValues(model, indent, EModelType::Python) << indent << "]" << '\n';
         Out << indent << "scale = " << model.GetScaleAndBias().Scale << '\n';
-        Out << indent << "bias = " << model.GetScaleAndBias().Bias << '\n';
+        Out << indent << "biases = [" << OutputArrayInitializer(model.GetScaleAndBias().GetBiasRef()) << "]" << '\n';
+        Out << indent << "dimension = " << model.ModelTrees->GetDimensionsCount() << '\n';
 
-        if (!model.ModelTrees->GetUsedModelCtrs().empty()) {
+        if (!applyData->UsedModelCtrs.empty()) {
             WriteModelCTRs(Out, model, indent);
             Out << '\n' << '\n';
             Out << NResource::Find("catboost_model_export_python_ctr_calcer") << '\n';
         }
         indent--;
+        Out << "\n\n";
+
         Out << indent++ << "cat_features_hashes = {" << '\n';
         if (catFeaturesHashToString != nullptr) {
             TSet<int> ordered_keys;
@@ -239,11 +243,11 @@ namespace NCB {
             }
         }
         Out << --indent << "}" << '\n';
-        Out << '\n';
+        Out << "\n\n";
     };
 
     void TCatboostModelToPythonConverter::WriteApplicatorCatFeatures() {
-        Out << NResource::Find("catboost_model_export_python_model_applicator") << '\n';
+        Out << NResource::Find("catboost_model_export_python_model_applicator");
     };
 
 }

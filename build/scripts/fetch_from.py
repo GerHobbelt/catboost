@@ -15,8 +15,6 @@ import urllib2
 
 import retry
 
-INFRASTRUCTURE_ERROR = 12
-
 
 def make_user_agent():
     return 'fetch_from: {host}'.format(host=socket.gethostname())
@@ -30,6 +28,7 @@ def add_common_arguments(parser):
     parser.add_argument('--rename', action='append', default=[], metavar='FILE', help='rename FILE to the corresponding output')
     parser.add_argument('--executable', action='store_true', help='make outputs executable')
     parser.add_argument('--log-path')
+    parser.add_argument('-v', '--verbose', action='store_true', default=os.environ.get('YA_VERBOSE_FETCHER'), help='increase stderr verbosity')
     parser.add_argument('outputs', nargs='*', default=[])
 
 
@@ -54,6 +53,7 @@ def hardlink_or_copy(src, dst):
                 sys.stderr.write("Can't make hardlink (errno={}) - fallback to copy: {} -> {}\n".format(e.errno, src, dst))
                 shutil.copy(src, dst)
             else:
+                sys.stderr.write("src: {} dst: {}\n".format(src, dst))
                 raise
 
 
@@ -106,6 +106,8 @@ def setup_logging(args, base_name):
     args.abs_log_path = os.path.abspath(log_file_name)
     makedirs(os.path.dirname(args.abs_log_path))
     logging.basicConfig(filename=args.abs_log_path, level=logging.DEBUG)
+    if args.verbose:
+        logging.getLogger().addHandler(logging.StreamHandler(sys.stderr))
 
 
 def is_temporary(e):
@@ -113,7 +115,15 @@ def is_temporary(e):
     def is_broken(e):
         return isinstance(e, urllib2.HTTPError) and e.code in (410, 404)
 
-    return not is_broken(e) and isinstance(e, (BadChecksumFetchError, IncompleteFetchError, urllib2.URLError, socket.timeout, socket.error))
+    if is_broken(e):
+        return False
+
+    if isinstance(e, (BadChecksumFetchError, IncompleteFetchError, urllib2.URLError, socket.error)):
+        return True
+
+    import error
+
+    return error.is_temporary_error(e)
 
 
 def uniq_string_generator(size=6, chars=string.ascii_lowercase + string.digits):
@@ -137,7 +147,7 @@ def report_to_snowden(value):
     try:
         inner()
     except Exception as e:
-        logging.error(e)
+        logging.warning('report_to_snowden failed: %s', e)
 
 
 def copy_stream(read, *writers, **kwargs):
@@ -190,25 +200,32 @@ def size_printer(display_name, size):
         now = dt.datetime.now()
         if last_stamp[0] + dt.timedelta(seconds=10) < now:
             if size:
-                print >>sys.stderr, "##status##{} - [[imp]]{:.1f}%[[rst]]".format(display_name, 100.0 * sz[0] / size)
+                print >>sys.stderr, "##status##{} - [[imp]]{:.1f}%[[rst]]".format(display_name, 100.0 * sz[0] / size if size else 0)
             last_stamp[0] = now
 
     return printer
 
 
-def fetch_url(url, unpack, resource_file_name, expected_md5=None, expected_sha1=None, tries=10):
+def fetch_url(url, unpack, resource_file_name, expected_md5=None, expected_sha1=None, tries=10, writers=None):
     logging.info('Downloading from url %s name %s and expected md5 %s', url, resource_file_name, expected_md5)
     tmp_file_name = uniq_string_generator()
 
     request = urllib2.Request(url, headers={'User-Agent': make_user_agent()})
     req = retry.retry_func(lambda: urllib2.urlopen(request, timeout=30), tries=tries, delay=5, backoff=1.57079)
     logging.debug('Headers: %s', req.headers.headers)
-    expected_file_size = int(req.headers['Content-Length'])
+    expected_file_size = int(req.headers.get('Content-Length', 0))
     real_md5 = hashlib.md5()
     real_sha1 = hashlib.sha1()
 
     with open(tmp_file_name, 'wb') as fp:
-        copy_stream(req.read, fp.write, real_md5.update, real_sha1.update, size_printer(resource_file_name, expected_file_size))
+        copy_stream(
+            req.read,
+            fp.write,
+            real_md5.update,
+            real_sha1.update,
+            size_printer(resource_file_name, expected_file_size),
+            *([] if writers is None else writers)
+        )
 
     real_md5 = real_md5.hexdigest()
     real_file_size = os.path.getsize(tmp_file_name)
@@ -222,9 +239,10 @@ def fetch_url(url, unpack, resource_file_name, expected_md5=None, expected_sha1=
         with tarfile.open(tmp_file_name, mode="r|gz") as tar:
             tar.extractall(tmp_dir)
         tmp_file_name = os.path.join(tmp_dir, resource_file_name)
-        real_md5 = md5file(tmp_file_name)
+        if expected_md5:
+            real_md5 = md5file(tmp_file_name)
 
-    logging.info('File size %s (expected %s)', real_file_size, expected_file_size)
+    logging.info('File size %s (expected %s)', real_file_size, expected_file_size or "UNKNOWN")
     logging.info('File md5 %s (expected %s)', real_md5, expected_md5)
     logging.info('File sha1 %s (expected %s)', real_sha1, expected_sha1)
 
@@ -262,7 +280,7 @@ def fetch_url(url, unpack, resource_file_name, expected_md5=None, expected_sha1=
             )
         )
 
-    if expected_file_size != real_file_size:
+    if expected_file_size and expected_file_size != real_file_size:
         report_to_snowden({'headers': req.headers.headers, 'file_size': real_file_size})
 
         raise IncompleteFetchError(
@@ -295,11 +313,18 @@ def process(fetched_file, file_name, args, remove=True):
     assert len(args.rename) <= len(args.outputs), (
         'too few outputs to rename', args.rename, 'into', args.outputs)
 
-    # Forbid changes to the loaded resource
-    chmod(fetched_file, 0o444)
+    fetched_file_is_dir = os.path.isdir(fetched_file)
+    if fetched_file_is_dir and not args.untar_to:
+        raise ResourceIsDirectoryError('Resource may be directory only with untar_to option: ' + fetched_file)
 
-    if not os.path.isfile(fetched_file):
-        raise ResourceIsDirectoryError('Resource must be a file, not a directory: %s' % fetched_file)
+    # make all read only
+    if fetched_file_is_dir:
+        for root, _, files in os.walk(fetched_file):
+            for filename in files:
+                chmod(os.path.join(root, filename), 0o444)
+    else:
+        chmod(fetched_file, 0o444)
+
 
     if args.copy_to:
         hardlink_or_copy(fetched_file, args.copy_to)
@@ -316,19 +341,28 @@ def process(fetched_file, file_name, args, remove=True):
 
     if args.untar_to:
         ensure_dir(args.untar_to)
-        # Extract only requested files
-        try:
-            with tarfile.open(fetched_file, mode='r:*') as tar:
-                inputs = set(map(os.path.normpath, args.rename + args.outputs[len(args.rename):]))
-                members = [entry for entry in tar if os.path.normpath(os.path.join(args.untar_to, entry.name)) in inputs]
-                tar.extractall(args.untar_to, members=members)
-            # Forbid changes to the loaded resource data
-            for root, _, files in os.walk(args.untar_to):
-                for filename in files:
-                    chmod(os.path.join(root, filename), 0o444)
-        except tarfile.ReadError as e:
-            logging.exception(e)
-            raise ResourceUnpackingError('File {} cannot be untared'.format(fetched_file))
+        inputs = set(map(os.path.normpath, args.rename + args.outputs[len(args.rename):]))
+        if fetched_file_is_dir:
+            for member in inputs:
+                base, name = member.split('/', 1)
+                src = os.path.normpath(os.path.join(fetched_file, name))
+                dst = os.path.normpath(os.path.join(args.untar_to, member))
+                hardlink_or_copy(src, dst)
+        else:
+           # Extract only requested files
+            try:
+                with tarfile.open(fetched_file, mode='r:*') as tar:
+                    members = [entry for entry in tar if os.path.normpath(os.path.join(args.untar_to, entry.name)) in inputs]
+                    tar.extractall(args.untar_to, members=members)
+            except tarfile.ReadError as e:
+                logging.exception(e)
+                raise ResourceUnpackingError('File {} cannot be untared'.format(fetched_file))
+
+        # Forbid changes to the loaded resource data
+        for root, _, files in os.walk(args.untar_to):
+             for filename in files:
+                 chmod(os.path.join(root, filename), 0o444)
+
 
     for src, dst in zip(args.rename, args.outputs):
         if src == 'RESOURCE':
@@ -356,4 +390,7 @@ def process(fetched_file, file_name, args, remove=True):
             remove = False
 
     if remove:
-        os.remove(fetched_file)
+        if fetched_file_is_dir:
+            shutil.rmtree(fetched_file)
+        else:
+            os.remove(fetched_file)

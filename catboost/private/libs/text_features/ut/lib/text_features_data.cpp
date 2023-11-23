@@ -1,7 +1,6 @@
 #include "text_features_data.h"
 
 #include <catboost/private/libs/options/runtime_text_options.h>
-#include <catboost/private/libs/text_processing/embedding.h>
 #include <catboost/private/libs/text_processing/text_column_builder.h>
 
 #include <util/generic/array_ref.h>
@@ -47,7 +46,7 @@ TIntrusivePtr<TBagOfWordsCalcer> NCBTest::CreateBoW(const TDictionaryPtr& dictio
 }
 
 static void CreateCalcersAndDependencies(
-    TConstArrayRef<TTokenizedTextFeature> tokenizedFeatures,
+    TMap<ui32, TTokenizedTextFeature>* tokenizedFeatures,
     TConstArrayRef<TDigitizer> digitizers,
     TConstArrayRef<ui32> target,
     ui32 textFeatureCount,
@@ -59,17 +58,17 @@ static void CreateCalcersAndDependencies(
     const ui32 classesCount = 2;
 
     perFeatureDigitizers->resize(textFeatureCount);
-    perTokenizedFeatureCalcers->resize(tokenizedFeatures.size());
+    perTokenizedFeatureCalcers->resize(tokenizedFeatures->size());
 
-    for (ui32 tokenizedFeatureIdx : xrange(tokenizedFeatures.size())) {
-        const auto& featureDescription = runtimeTextOptions.GetTokenizedFeatureDescription(tokenizedFeatureIdx);
+    for (const auto& [tokenizedFeatureIdx, tokenizedFeature] : *tokenizedFeatures) {
+        const ui32 shiftedTokenizedIdx = tokenizedFeatureIdx - textFeatureCount;
+        const auto& featureDescription = runtimeTextOptions.GetTokenizedFeatureDescription(shiftedTokenizedIdx);
 
-        const auto& dictionary = digitizers[tokenizedFeatureIdx].Dictionary;
+        const auto& dictionary = digitizers[shiftedTokenizedIdx].Dictionary;
         const ui32 textFeatureIdx = featureDescription.TextFeatureId;
-        perFeatureDigitizers->at(textFeatureIdx).push_back(tokenizedFeatureIdx);
+        perFeatureDigitizers->at(textFeatureIdx).push_back(shiftedTokenizedIdx);
 
-        auto& featureCalcers = (*perTokenizedFeatureCalcers)[tokenizedFeatureIdx];
-        const auto& tokenizedFeature = tokenizedFeatures[tokenizedFeatureIdx];
+        auto& featureCalcers = (*perTokenizedFeatureCalcers)[shiftedTokenizedIdx];
 
         for (const auto& featureCalcer: featureDescription.FeatureEstimators.Get()) {
             const EFeatureCalcerType calcerType = featureCalcer.CalcerType;
@@ -94,7 +93,7 @@ static void CreateCalcersAndDependencies(
 
 void NCBTest::CreateTextDataForTest(
     TVector<TTextFeature>* features,
-    TVector<TTokenizedTextFeature>* tokenizedFeatures,
+    TMap<ui32, TTokenizedTextFeature>* tokenizedFeatures,
     TVector<TDigitizer>* digitizers,
     TVector<TTextFeatureCalcerPtr>* calcers,
     TVector<TVector<ui32>>* perFeatureDigitizers,
@@ -109,7 +108,7 @@ void NCBTest::CreateTextDataForTest(
 
     TRuntimeTextOptions runtimeTextOptions(xrange(features->size()), options);
     CreateCalcersAndDependencies(
-        MakeConstArrayRef(*tokenizedFeatures),
+        tokenizedFeatures,
         MakeConstArrayRef(*digitizers),
         MakeConstArrayRef(target),
         features->size(),
@@ -122,7 +121,7 @@ void NCBTest::CreateTextDataForTest(
 
 TIntrusivePtr<NCB::TTextProcessingCollection> NCBTest::CreateTextProcessingCollectionForTest() {
     TVector<TTextFeature> features;
-    TVector<TTokenizedTextFeature> tokenizedFeatures;
+    TMap<ui32, TTokenizedTextFeature> tokenizedFeatures;
     TVector<TDigitizer> digitizers;
     TVector<TTextFeatureCalcerPtr> calcers;
     TVector<TVector<ui32>> perFeatureDigitizers;

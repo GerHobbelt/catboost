@@ -9,19 +9,20 @@
 #include <util/charset/wide.h>
 
 #if defined(_android_)
-#include <util/system/dynlib.h>
-#include <util/system/guard.h>
-#include <util/system/mutex.h>
-#include <android/log.h>
+    #include <util/system/dynlib.h>
+    #include <util/system/guard.h>
+    #include <util/system/mutex.h>
+    #include <android/log.h>
 #endif
 
 #include <cerrno>
-#include <string>
-#include <string_view>
 #include <cstdio>
+#include <filesystem>
+#include <string_view>
+#include <optional>
 
 #if defined(_win_)
-#include <io.h>
+    #include <io.h>
 #endif
 
 constexpr size_t MAX_UTF8_BYTES = 4; // UTF-8-encoded code point takes between 1 and 4 bytes
@@ -115,6 +116,11 @@ void Out<std::u32string_view>(IOutputStream& o, const std::u32string_view& p) {
 }
 
 template <>
+void Out<std::filesystem::path>(IOutputStream& o, const std::filesystem::path& p) {
+    o.Write(p.string());
+}
+
+template <>
 void Out<TStringBuf>(IOutputStream& o, const TStringBuf& p) {
     o.Write(p.data(), p.length());
 }
@@ -132,7 +138,7 @@ void Out<TUtf32StringBuf>(IOutputStream& o, const TUtf32StringBuf& p) {
 template <>
 void Out<const wchar16*>(IOutputStream& o, const wchar16* w) {
     if (w) {
-        WriteString(o, w, TCharTraits<wchar16>::GetLength(w));
+        WriteString(o, w, std::char_traits<wchar16>::length(w));
     } else {
         o.Write("(null)");
     }
@@ -141,7 +147,7 @@ void Out<const wchar16*>(IOutputStream& o, const wchar16* w) {
 template <>
 void Out<const wchar32*>(IOutputStream& o, const wchar32* w) {
     if (w) {
-        WriteString(o, w, TCharTraits<wchar32>::GetLength(w));
+        WriteString(o, w, std::char_traits<wchar32>::length(w));
     } else {
         o.Write("(null)");
     }
@@ -201,6 +207,15 @@ DEF_CONV_NUM(float, 512)
 DEF_CONV_NUM(double, 512)
 DEF_CONV_NUM(long double, 512)
 
+#if !defined(_YNDX_LIBCXX_ENABLE_VECTOR_BOOL_COMPRESSION) || (_YNDX_LIBCXX_ENABLE_VECTOR_BOOL_COMPRESSION == 1)
+// TODO: acknowledge std::bitset::reference for both libc++ and libstdc++
+template <>
+void Out<typename std::vector<bool>::reference>(IOutputStream& o, const std::vector<bool>::reference& bit) {
+    return Out<bool>(o, static_cast<bool>(bit));
+}
+#endif
+
+#ifndef TSTRING_IS_STD_STRING
 template <>
 void Out<TBasicCharRef<TString>>(IOutputStream& o, const TBasicCharRef<TString>& c) {
     o << static_cast<char>(c);
@@ -215,6 +230,7 @@ template <>
 void Out<TBasicCharRef<TUtf32String>>(IOutputStream& o, const TBasicCharRef<TUtf32String>& c) {
     o << static_cast<wchar32>(c);
 }
+#endif
 
 template <>
 void Out<const void*>(IOutputStream& o, const void* t) {
@@ -230,8 +246,25 @@ using TNullPtr = decltype(nullptr);
 
 template <>
 void Out<TNullPtr>(IOutputStream& o, TTypeTraits<TNullPtr>::TFuncParam) {
-    o << AsStringBuf("nullptr");
+    o << TStringBuf("nullptr");
 }
+
+#define DEF_OPTIONAL(TYPE)                                                               \
+    template <>                                                                          \
+    void Out<std::optional<TYPE>>(IOutputStream & o, const std::optional<TYPE>& value) { \
+        if (value) {                                                                     \
+            o << *value;                                                                 \
+        } else {                                                                         \
+            o << "(NULL)";                                                               \
+        }                                                                                \
+    }
+
+DEF_OPTIONAL(ui32);
+DEF_OPTIONAL(i64);
+DEF_OPTIONAL(ui64);
+DEF_OPTIONAL(std::string);
+DEF_OPTIONAL(TString);
+DEF_OPTIONAL(TStringBuf);
 
 #if defined(_android_)
 namespace {

@@ -59,23 +59,23 @@ public:
         : TCompactTrie{d, len, TPacker{}} {
     }
 
-    TCompactTrie(const TBlob& data, TPacker packer);
-    explicit TCompactTrie(const TBlob& data)
-        : TCompactTrie{data, TPacker{}} {
+    TCompactTrie(TBlob data, TPacker packer);
+    explicit TCompactTrie(TBlob data)
+        : TCompactTrie{std::move(data), TPacker{}} {
     }
 
     // Skipper should be initialized with &Packer, not with &other.Packer, so you have to redefine these.
     TCompactTrie(const TCompactTrie& other);
-    TCompactTrie(TCompactTrie&& other);
+    TCompactTrie(TCompactTrie&& other) noexcept;
     TCompactTrie& operator=(const TCompactTrie& other);
-    TCompactTrie& operator=(TCompactTrie&& other);
+    TCompactTrie& operator=(TCompactTrie&& other) noexcept;
 
     explicit operator bool() const {
         return !IsEmpty();
     }
 
     void Init(const char* d, size_t len, TPacker packer = TPacker());
-    void Init(const TBlob& data, TPacker packer = TPacker());
+    void Init(TBlob data, TPacker packer = TPacker());
 
     bool IsInitialized() const;
     bool IsEmpty() const;
@@ -104,7 +104,7 @@ public:
 
     const TBlob& Data() const {
         return DataHolder;
-    };
+    }
 
     const NCompactTrie::ILeafSkipper& GetSkipper() const {
         return Skipper;
@@ -166,7 +166,7 @@ public:
         TKey GetKey() const;
         size_t GetKeySize() const;
         TData GetValue() const;
-        void GetValue(TData& to) const;
+        void GetValue(TData& data) const;
         const char* GetValuePtr() const;
 
     private:
@@ -195,7 +195,7 @@ public:
 
 protected:
     explicit TCompactTrie(const char* emptyValue);
-    TCompactTrie(const TBlob& data, const char* emptyValue, TPacker packer = TPacker());
+    TCompactTrie(TBlob data, const char* emptyValue, TPacker packer = TPacker());
 
     bool LookupLongestPrefix(const TSymbol* key, size_t keylen, size_t& prefixLen, const char*& valuepos, bool& hasNext) const;
     bool LookupLongestPrefix(const TSymbol* key, size_t keylen, size_t& prefixLen, const char*& valuepos) const {
@@ -222,16 +222,13 @@ public:
 // TCompactTrie
 
 template <class T, class D, class S>
-TCompactTrie<T, D, S>::TCompactTrie(const TBlob& data, TPacker packer)
-    : DataHolder(data)
-    , Packer(packer)
+TCompactTrie<T, D, S>::TCompactTrie(TBlob data, TPacker packer)
 {
-    Init(data, packer);
+    Init(std::move(data), packer);
 }
 
 template <class T, class D, class S>
 TCompactTrie<T, D, S>::TCompactTrie(const char* d, size_t len, TPacker packer)
-    : Packer(packer)
 {
     Init(d, len, packer);
 }
@@ -243,8 +240,8 @@ TCompactTrie<T, D, S>::TCompactTrie(const char* emptyValue)
 }
 
 template <class T, class D, class S>
-TCompactTrie<T, D, S>::TCompactTrie(const TBlob& data, const char* emptyValue, TPacker packer)
-    : DataHolder(data)
+TCompactTrie<T, D, S>::TCompactTrie(TBlob data, const char* emptyValue, TPacker packer)
+    : DataHolder(std::move(data))
     , EmptyValue(emptyValue)
     , Packer(packer)
 {
@@ -259,7 +256,7 @@ TCompactTrie<T, D, S>::TCompactTrie(const TCompactTrie& other)
 }
 
 template <class T, class D, class S>
-TCompactTrie<T, D, S>::TCompactTrie(TCompactTrie&& other)
+TCompactTrie<T, D, S>::TCompactTrie(TCompactTrie&& other) noexcept
     : DataHolder(std::move(other.DataHolder))
     , EmptyValue(std::move(other.EmptyValue))
     , Packer(std::move(other.Packer))
@@ -277,7 +274,7 @@ TCompactTrie<T, D, S>& TCompactTrie<T, D, S>::operator=(const TCompactTrie& othe
 }
 
 template <class T, class D, class S>
-TCompactTrie<T, D, S>& TCompactTrie<T, D, S>::operator=(TCompactTrie&& other) {
+TCompactTrie<T, D, S>& TCompactTrie<T, D, S>::operator=(TCompactTrie&& other) noexcept {
     if (this != &other) {
         DataHolder = std::move(other.DataHolder);
         EmptyValue = std::move(other.EmptyValue);
@@ -292,10 +289,10 @@ void TCompactTrie<T, D, S>::Init(const char* d, size_t len, TPacker packer) {
 }
 
 template <class T, class D, class S>
-void TCompactTrie<T, D, S>::Init(const TBlob& data, TPacker packer) {
+void TCompactTrie<T, D, S>::Init(TBlob data, TPacker packer) {
     using namespace NCompactTrie;
 
-    DataHolder = data;
+    DataHolder = std::move(data);
     Packer = packer;
 
     const char* datapos = DataHolder.AsCharPtr();
@@ -494,13 +491,12 @@ bool TCompactTrie<T, D, S>::LookupLongestPrefix(const TSymbol* key, size_t keyle
         return found;
 
     const char* const dataend = datapos + len;
-    char flags = MT_NEXT;
 
     const T* keyend = key + keylen;
     while (key != keyend) {
         T label = *(key++);
         for (i64 i = (i64)ExtraBits<TSymbol>(); i >= 0; i -= 8) {
-            flags = LeapByte(datapos, dataend, (char)(label >> i));
+            const char flags = LeapByte(datapos, dataend, (char)(label >> i));
             if (!datapos) {
                 return found; // no such arc
             }

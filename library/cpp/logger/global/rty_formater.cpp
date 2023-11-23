@@ -12,7 +12,7 @@ namespace {
     constexpr size_t LocalTimeSBufferSize = sizeof("2017-07-24 12:20:34.313 +0300");
 
     size_t PrintLocalTimeS(const TInstant instant, char* const begin, const char* const end) {
-        Y_VERIFY(static_cast<size_t>(end - begin) >= LocalTimeSBufferSize);
+        Y_ABORT_UNLESS(static_cast<size_t>(end - begin) >= LocalTimeSBufferSize);
 
         struct tm tm;
         instant.LocalTime(&tm);
@@ -22,7 +22,7 @@ namespace {
         pos += strftime(pos, end - pos, "%Y-%m-%d %H:%M:%S.", &tm);
         pos += sprintf(pos, "%03" PRIu32, instant.MilliSecondsOfSecond());
         pos += strftime(pos, end - pos, " %z", &tm);
-        Y_VERIFY(LocalTimeSBufferSize - 1 == pos - begin); // together with Y_VERIFY above this also implies pos<=end
+        Y_ABORT_UNLESS(LocalTimeSBufferSize - 1 == pos - begin); // together with Y_ABORT_UNLESS above this also implies pos<=end
         return (pos - begin);
     }
 }
@@ -62,16 +62,33 @@ namespace NLoggingImpl {
     }
 }
 
+namespace {
+    class TRtyLoggerFormatter : public ILoggerFormatter {
+    public:
+        void Format(const TLogRecordContext& context, TLogElement& elem) const override {
+            elem << context.CustomMessage << ": " << NLoggingImpl::GetLocalTimeS() << " "
+                 << NLoggingImpl::StripFileName(context.SourceLocation.File) << ":" << context.SourceLocation.Line;
+            if (context.Priority > TLOG_RESOURCES && !ExitStarted()) {
+                elem << NLoggingImpl::GetSystemResources();
+            }
+            elem << " ";
+        }
+    };
+}
+
+ILoggerFormatter* CreateRtyLoggerFormatter() {
+    return new TRtyLoggerFormatter();
+}
+
 bool TRTYMessageFormater::CheckLoggingContext(TLog& /*logger*/, const TLogRecordContext& /*context*/) {
     return true;
 }
 
 TSimpleSharedPtr<TLogElement> TRTYMessageFormater::StartRecord(TLog& logger, const TLogRecordContext& context, TSimpleSharedPtr<TLogElement> earlier) {
-    if (!earlier)
+    if (!earlier) {
         earlier.Reset(new TLogElement(&logger));
-    (*earlier) << context.CustomMessage << ": " << NLoggingImpl::GetLocalTimeS() << " " << NLoggingImpl::StripFileName(context.SourceLocation.File) << ":" << context.SourceLocation.Line;
-    if (context.Priority > TLOG_RESOURCES && !ExitStarted())
-        (*earlier) << NLoggingImpl::GetSystemResources();
-    (*earlier) << " ";
+    }
+
+    TLoggerFormatterOperator::Get()->Format(context, *earlier);
     return earlier;
 }

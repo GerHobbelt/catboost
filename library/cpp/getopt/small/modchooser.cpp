@@ -1,21 +1,19 @@
 #include "completer.h"
 #include "completer_command.h"
-#include "completion_generator.h"
 #include "last_getopt.h"
 #include "modchooser.h"
 
 #include <library/cpp/colorizer/colors.h>
 
+#include <util/folder/path.h>
 #include <util/stream/output.h>
-#include <util/stream/format.h>
 #include <util/generic/yexception.h>
 #include <util/generic/ptr.h>
 #include <util/string/builder.h>
-#include <util/string/join.h>
 
 class PtrWrapper: public TMainClass {
 public:
-    explicit PtrWrapper(const TMainFunctionPtr main)
+    explicit PtrWrapper(const TMainFunctionPtr& main)
         : Main(main)
     {
     }
@@ -30,7 +28,7 @@ private:
 
 class PtrvWrapper: public TMainClass {
 public:
-    explicit PtrvWrapper(const TMainFunctionPtrV main)
+    explicit PtrvWrapper(const TMainFunctionPtrV& main)
         : Main(main)
     {
     }
@@ -89,12 +87,12 @@ void TModChooser::AddMode(const TString& mode, const TMainFunctionRawPtrV func, 
 }
 
 void TModChooser::AddMode(const TString& mode, const TMainFunctionPtr func, const TString& description, bool hidden, bool noCompletion) {
-    Wrappers.push_back(new PtrWrapper(func));
+    Wrappers.push_back(MakeHolder<PtrWrapper>(func));
     AddMode(mode, Wrappers.back().Get(), description, hidden, noCompletion);
 }
 
 void TModChooser::AddMode(const TString& mode, const TMainFunctionPtrV func, const TString& description, bool hidden, bool noCompletion) {
-    Wrappers.push_back(new PtrvWrapper(func));
+    Wrappers.push_back(MakeHolder<PtrvWrapper>(func));
     AddMode(mode, Wrappers.back().Get(), description, hidden, noCompletion);
 }
 
@@ -103,16 +101,16 @@ void TModChooser::AddMode(const TString& mode, TMainClass* func, const TString& 
         ythrow yexception() << "TMode '" << mode << "' already exists in TModChooser.";
     }
 
-    Modes[mode] = UnsortedModes.emplace_back(new TMode(mode, func, description, hidden, noCompletion)).Get();
+    Modes[mode] = UnsortedModes.emplace_back(MakeHolder<TMode>(mode, func, description, hidden, noCompletion)).Get();
 }
 
 void TModChooser::AddMode(const TString& mode, TMainClassV* func, const TString& description, bool hidden, bool noCompletion) {
-    Wrappers.push_back(new ClassWrapper(func));
+    Wrappers.push_back(MakeHolder<ClassWrapper>(func));
     AddMode(mode, Wrappers.back().Get(), description, hidden, noCompletion);
 }
 
 void TModChooser::AddGroupModeDescription(const TString& description, bool hidden, bool noCompletion) {
-    UnsortedModes.push_back(new TMode(nullptr, nullptr, description.data(), hidden, noCompletion));
+    UnsortedModes.push_back(MakeHolder<TMode>(TString(), nullptr, description.data(), hidden, noCompletion));
 }
 
 void TModChooser::SetDefaultMode(const TString& mode) {
@@ -170,7 +168,7 @@ int TModChooser::Run(const int argc, const char** argv) const {
     TString modeName;
     if (argc == 1) {
         if (DefaultMode.empty()) {
-            PrintHelp(argv[0]);
+            PrintHelp(argv[0], HelpAlwaysToStdErr);
             return 0;
         } else {
             modeName = DefaultMode;
@@ -181,7 +179,7 @@ int TModChooser::Run(const int argc, const char** argv) const {
     }
 
     if (modeName == "-h" || modeName == "--help" || modeName == "-?") {
-        PrintHelp(argv[0]);
+        PrintHelp(argv[0], HelpAlwaysToStdErr);
         return 0;
     }
     if (VersionHandler && (modeName == "-v" || modeName == "--version")) {
@@ -200,13 +198,13 @@ int TModChooser::Run(const int argc, const char** argv) const {
 
     if (modeIter == Modes.end()) {
         Cerr << "Unknown mode " << modeName.Quote() << "." << Endl;
-        PrintHelp(argv[0]);
+        PrintHelp(argv[0], true);
         return 1;
     }
 
     if (shiftArgs) {
         TString firstArg;
-        TVector<const char*> nargv(Reserve(argc - 1));
+        TVector<const char*> nargv(Reserve(argc));
 
         if (PrintShortCommandInUsage) {
             firstArg = modeIter->second->Name;
@@ -219,19 +217,26 @@ int TModChooser::Run(const int argc, const char** argv) const {
         for (int i = 2; i < argc; ++i) {
             nargv.push_back(argv[i]);
         }
+        // According to the standard, "argv[argc] shall be a null pointer" (5.1.2.2.1).
+        // http://www.open-std.org/JTC1/SC22/WG14/www/docs/n1336
+        nargv.push_back(nullptr);
 
-        return (*modeIter->second->Main)(nargv.size(), nargv.data());
+        return (*modeIter->second->Main)(nargv.size() - 1, nargv.data());
     } else {
         return (*modeIter->second->Main)(argc, argv);
     }
 }
 
 int TModChooser::Run(const TVector<TString>& argv) const {
-    TVector<const char*> nargv(Reserve(argv.size()));
+    TVector<const char*> nargv(Reserve(argv.size() + 1));
     for (auto& arg : argv) {
         nargv.push_back(arg.c_str());
     }
-    return Run(nargv.size(), nargv.data());
+    // According to the standard, "argv[argc] shall be a null pointer" (5.1.2.2.1).
+    // http://www.open-std.org/JTC1/SC22/WG14/www/docs/n1336
+    nargv.push_back(nullptr);
+
+    return Run(nargv.size() - 1, nargv.data());
 }
 
 size_t TModChooser::TMode::CalculateFullNameLen() const {
@@ -270,11 +275,14 @@ TString TModChooser::TMode::FormatFullName(size_t pad) const {
     return name;
 }
 
-void TModChooser::PrintHelp(const TString& progName) const {
-    Cerr << Description << Endl << Endl;
-    Cerr << NColorizer::StdErr().BoldColor() << "Usage" << NColorizer::StdErr().OldColor() << ": " << progName << " MODE [MODE_OPTIONS]" << Endl;
-    Cerr << Endl;
-    Cerr << NColorizer::StdErr().BoldColor() << "Modes" << NColorizer::StdErr().OldColor() << ":" << Endl;
+void TModChooser::PrintHelp(const TString& progName, bool toStdErr) const {
+    auto baseName = TFsPath(progName).Basename();
+    auto& out = toStdErr ? Cerr : Cout;
+    const auto& colors = toStdErr ? NColorizer::StdErr() : NColorizer::StdOut();
+    out << Description << Endl << Endl;
+    out << colors.BoldColor() << "Usage" << colors.OldColor() << ": " << baseName << " MODE [MODE_OPTIONS]" << Endl;
+    out << Endl;
+    out << colors.BoldColor() << "Modes" << colors.OldColor() << ":" << Endl;
     size_t maxModeLen = 0;
     for (const auto& [name, mode] : Modes) {
         if (name != mode->Name)
@@ -286,10 +294,10 @@ void TModChooser::PrintHelp(const TString& progName) const {
         for (const auto& unsortedMode : UnsortedModes)
             if (!unsortedMode->Hidden) {
                 if (unsortedMode->Name.size()) {
-                    Cerr << "  " << unsortedMode->FormatFullName(maxModeLen + 4) << unsortedMode->Description << Endl;
+                    out << "  " << unsortedMode->FormatFullName(maxModeLen + 4) << unsortedMode->Description << Endl;
                 } else {
-                    Cerr << SeparationString << Endl;
-                    Cerr << unsortedMode->Description << Endl;
+                    out << SeparationString << Endl;
+                    out << unsortedMode->Description << Endl;
                 }
             }
     } else {
@@ -298,19 +306,18 @@ void TModChooser::PrintHelp(const TString& progName) const {
                 continue;  // this is an alias
 
             if (!mode.second->Hidden) {
-                Cerr << "  " << mode.second->FormatFullName(maxModeLen + 4) << mode.second->Description << Endl;
+                out << "  " << mode.second->FormatFullName(maxModeLen + 4) << mode.second->Description << Endl;
             }
         }
     }
 
-    Cerr << Endl;
-    Cerr << "To get help for specific mode type '" << progName << " MODE " << ModesHelpOption << "'" << Endl;
+    out << Endl;
+    out << "To get help for specific mode type '" << baseName << " MODE " << ModesHelpOption << "'" << Endl;
     if (VersionHandler)
-        Cerr << "To print program version type '" << progName << " --version'" << Endl;
+        out << "To print program version type '" << baseName << " --version'" << Endl;
     if (!SvnRevisionOptionDisabled) {
-        Cerr << "To print svn revision type --svnrevision" << Endl;
+        out << "To print svn revision type '" << baseName << " --svnrevision'" << Endl;
     }
-    return;
 }
 
 TVersionHandlerPtr TModChooser::GetVersionHandler() const {

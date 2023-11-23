@@ -1,13 +1,23 @@
-from .core import FeaturesData, EFstrType, Pool, CatBoost, CatBoostClassifier, CatBoostRegressor, CatBoostError, cv, train, sum_models, _have_equal_features, to_regressor, to_classifier, MultiRegressionCustomMetric, MultiRegressionCustomObjective  # noqa
+from .core import (
+    FeaturesData, EFstrType, EShapCalcType, EFeaturesSelectionAlgorithm, EFeaturesSelectionGrouping,
+    Pool, CatBoost, CatBoostClassifier, CatBoostRegressor, CatBoostRanker, CatBoostError, cv, sample_gaussian_process, train,
+    sum_models, _have_equal_features, to_regressor, to_classifier, to_ranker, MultiRegressionCustomMetric,
+    MultiRegressionCustomObjective, MultiTargetCustomMetric, MultiTargetCustomObjective
+)  # noqa
 from .version import VERSION as __version__  # noqa
-__all__ = ['FeaturesData', 'EFstrType', 'Pool', 'CatBoost', 'CatBoostClassifier', 'CatBoostRegressor', 'CatBoostError', 'CatboostError', 'cv', 'train', 'sum_models', '_have_equal_features', \
-           'to_regressor', 'to_classifier', 'MultiRegressionCustomMetric', 'MultiRegressionCustomObjective']
+__all__ = [
+    'FeaturesData', 'EFstrType', 'EShapCalcType', 'EFeaturesSelectionAlgorithm', 'EFeaturesSelectionGrouping',
+    'Pool', 'CatBoost', 'CatBoostClassifier', 'CatBoostRegressor', 'CatBoostRanker', 'CatboostError',
+    'cv', 'sample_gaussian_process', 'train', 'sum_models', '_have_equal_features',
+    'to_regressor', 'to_classifier', 'to_ranker', 'MultiRegressionCustomMetric', 'MultiRegressionCustomObjective',
+    'MultiTargetCustomMetric', 'MultiTargetCustomObjective'
+]
 
 # API compatibility alias.
 CatboostError = CatBoostError
 
 try:
-    from .widget import MetricVisualizer  # noqa
-    __all__.append('MetricVisualizer')
-except:
+    from .widget import MetricVisualizer, MetricsPlotter, XGBPlottingCallback, lgbm_plotting_callback  # noqa
+    __all__.extend(['MetricVisualizer', 'MetricsPlotter', 'XGBPlottingCallback', 'lgbm_plotting_callback'])
+except Exception:
     pass

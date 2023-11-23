@@ -18,15 +18,12 @@
 
 #include <string>
 
-#include "util/test.h"
+#include "absl/base/macros.h"
+#include "absl/strings/str_format.h"
+#include "gtest/gtest.h"
 #include "util/logging.h"
-#include "util/strutil.h"
 #include "util/utf.h"
-#include "re2/stringpiece.h"
 #include "re2/regexp.h"
-
-// Cause a link error if this file is used outside of testing.
-DECLARE_string(test_tmpdir);
 
 namespace re2 {
 
@@ -57,9 +54,9 @@ static const char* kOpcodeNames[] = {
 
 // Create string representation of regexp with explicit structure.
 // Nothing pretty, just for testing.
-static void DumpRegexpAppending(Regexp* re, string* s) {
-  if (re->op() < 0 || re->op() >= arraysize(kOpcodeNames)) {
-    StringAppendF(s, "op%d", re->op());
+static void DumpRegexpAppending(Regexp* re, std::string* s) {
+  if (re->op() < 0 || re->op() >= ABSL_ARRAYSIZE(kOpcodeNames)) {
+    *s += absl::StrFormat("op%d", re->op());
   } else {
     switch (re->op()) {
       default:
@@ -132,19 +129,19 @@ static void DumpRegexpAppending(Regexp* re, string* s) {
       DumpRegexpAppending(re->sub()[0], s);
       break;
     case kRegexpRepeat:
-      s->append(StringPrintf("%d,%d ", re->min(), re->max()));
+      s->append(absl::StrFormat("%d,%d ", re->min(), re->max()));
       DumpRegexpAppending(re->sub()[0], s);
       break;
     case kRegexpCharClass: {
-      string sep;
+      std::string sep;
       for (CharClass::iterator it = re->cc()->begin();
            it != re->cc()->end(); ++it) {
         RuneRange rr = *it;
         s->append(sep);
         if (rr.lo == rr.hi)
-          s->append(StringPrintf("%#x", rr.lo));
+          s->append(absl::StrFormat("%#x", rr.lo));
         else
-          s->append(StringPrintf("%#x-%#x", rr.lo, rr.hi));
+          s->append(absl::StrFormat("%#x-%#x", rr.lo, rr.hi));
         sep = " ";
       }
       break;
@@ -153,15 +150,12 @@ static void DumpRegexpAppending(Regexp* re, string* s) {
   s->append("}");
 }
 
-string Regexp::Dump() {
-  string s;
+std::string Regexp::Dump() {
+  // Make sure that we are being called from a unit test.
+  // Should cause a link error if used outside of testing.
+  CHECK(!::testing::TempDir().empty());
 
-  // Make sure being called from a unit test.
-  if (FLAGS_test_tmpdir.empty()) {
-    LOG(ERROR) << "Cannot use except for testing.";
-    return s;
-  }
-
+  std::string s;
   DumpRegexpAppending(this, &s);
   return s;
 }

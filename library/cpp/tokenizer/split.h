@@ -1,7 +1,7 @@
 #pragma once
 
-#include <library/enumbitset/enumbitset.h>
-#include <library/langmask/langmask.h>
+#include <library/cpp/enumbitset/enumbitset.h>
+#include <library/cpp/langmask/langmask.h>
 #include <library/cpp/token/nlptypes.h>
 
 #include <util/generic/bitmap.h>
@@ -15,10 +15,10 @@ public:
     static const THandledMask NOT_PUNCT;
 
 public:
-    TTokenizerSplitParams(){};
+    TTokenizerSplitParams(){}
 
     TTokenizerSplitParams(const THandledMask& mask)
-        : HandledMask(mask){};
+        : HandledMask(mask){}
 
 public:
     /// Token types to handle, not used in SplitIntoSentences

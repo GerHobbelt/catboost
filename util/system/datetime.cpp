@@ -5,17 +5,16 @@
 
 #include <util/datetime/systime.h>
 
-#include <time.h>
-#include <errno.h>
-#include <string.h>
+#include <ctime>
+#include <cerrno>
 
 #ifdef _darwin_
-#   include <AvailabilityMacros.h>
-#   if defined(MAC_OS_X_VERSION_10_12) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
-#       define Y_HAS_CLOCK_GETTIME
-#   endif
+    #include <AvailabilityMacros.h>
+    #if defined(MAC_OS_X_VERSION_10_12) && MAC_OS_X_VERSION_MIN_REQUIRED >= MAC_OS_X_VERSION_10_12
+        #define Y_HAS_CLOCK_GETTIME
+    #endif
 #elif defined(_linux_) || defined(_freebsd_) || defined(_cygwin_)
-#   define Y_HAS_CLOCK_GETTIME
+    #define Y_HAS_CLOCK_GETTIME
 #endif
 
 static ui64 ToMicroSeconds(const struct timeval& tv) {
@@ -39,7 +38,7 @@ ui64 MicroSeconds() noexcept {
     return ToMicroSeconds(tv);
 }
 
-ui64 ThreadCPUUserTime() noexcept{
+ui64 ThreadCPUUserTime() noexcept {
 #if defined(_win_)
     FILETIME creationTime, exitTime, kernelTime, userTime;
     GetThreadTimes(GetCurrentThread(), &creationTime, &exitTime, &kernelTime, &userTime);
@@ -100,5 +99,5 @@ extern const bool HaveRdtscp = NX86::HaveRDTSCP();
 #endif
 
 #ifdef Y_HAS_CLOCK_GETTIME
-#undef Y_HAS_CLOCK_GETTIME
+    #undef Y_HAS_CLOCK_GETTIME
 #endif

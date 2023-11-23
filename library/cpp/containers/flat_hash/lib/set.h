@@ -11,10 +11,10 @@ namespace NPrivate {
 
 struct TSimpleKeyGetter {
     template <class T>
-    static constexpr auto& Apply(T& t) noexcept { return t; };
+    static constexpr auto& Apply(T& t) noexcept { return t; }
 
     template <class T>
-    static constexpr const auto& Apply(const T& t) noexcept { return t; };
+    static constexpr const auto& Apply(const T& t) noexcept { return t; }
 };
 
 }  // namespace NPrivate
@@ -83,6 +83,12 @@ public:
     template <class... Rest>
     TSet(std::initializer_list<value_type> il, size_type initSize = INIT_SIZE, Rest&&... rest)
         : TBase(initSize, std::forward<Rest>(rest)...)
+    {
+        insert(il.begin(), il.end());
+    }
+
+    TSet(std::initializer_list<value_type> il, size_type initSize = INIT_SIZE)
+        : TBase(initSize)
     {
         insert(il.begin(), il.end());
     }

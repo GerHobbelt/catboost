@@ -1,8 +1,4 @@
-#include <library/cpp/unittest/registar.h>
-
-#ifdef _unix_
-#include <sys/resource.h>
-#endif
+#include <library/cpp/testing/unittest/registar.h>
 
 #include "filemap.h"
 #include "info.h"
@@ -11,10 +7,6 @@
 #include "tempfile.h"
 
 #include <util/generic/size_literals.h>
-#include <util/system/fs.h>
-
-#include <cstring>
-#include <cstdio>
 
 Y_UNIT_TEST_SUITE(MincoreSuite) {
     static const char* FileName_("./mappped_file");

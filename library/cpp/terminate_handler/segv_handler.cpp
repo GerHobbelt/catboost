@@ -7,6 +7,7 @@
 #include <signal.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <unistd.h>
 #endif
 
 #include "segv_handler.h"
@@ -28,6 +29,6 @@ static void SegvHandler(int sig) {
 void InstallSegvHandler() {
 #ifndef _win_
     sig_t r = signal(SIGSEGV, &SegvHandler);
-    Y_VERIFY(r != SIG_ERR, "signal failed: %s", strerror(errno));
+    Y_ABORT_UNLESS(r != SIG_ERR, "signal failed: %s", strerror(errno));
 #endif // !_win_
 }

@@ -12,10 +12,10 @@ namespace NPrivate {
 
 struct TMapKeyGetter {
     template <class T>
-    static constexpr auto& Apply(T& t) noexcept { return t.first; };
+    static constexpr auto& Apply(T& t) noexcept { return t.first; }
 
     template <class T>
-    static constexpr const auto& Apply(const T& t) noexcept { return t.first; };
+    static constexpr const auto& Apply(const T& t) noexcept { return t.first; }
 };
 
 }  // namespace NPrivate
@@ -92,6 +92,12 @@ public:
     template <class... Rest>
     TMap(std::initializer_list<value_type> il, size_type initSize = INIT_SIZE, Rest&&... rest)
         : TBase(initSize, std::forward<Rest>(rest)...)
+    {
+        insert(il.begin(), il.end());
+    }
+
+    TMap(std::initializer_list<value_type> il, size_type initSize = INIT_SIZE)
+        : TBase(initSize)
     {
         insert(il.begin(), il.end());
     }

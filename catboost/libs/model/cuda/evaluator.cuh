@@ -1,4 +1,4 @@
-#include <library/cuda/wrappers/cuda_vec.h>
+#include <library/cpp/cuda/wrappers/cuda_vec.h>
 
 #include <catboost/libs/model/fwd.h>
 
@@ -30,6 +30,11 @@ struct TGPUModelData : public TThrRefBase {
     TCudaVec<TCudaEvaluatorLeafType> ModelLeafs;
     TCudaVec<ui32> FloatFeatureForBucketIdx;
     TVector<bool> UsedInModel;
+
+    size_t ApproxDimension = 0;
+
+    TCudaVec<double> Bias;
+    double Scale = 0.0;
 };
 
 struct TGPUDataInput {

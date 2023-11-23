@@ -1,6 +1,6 @@
 #include "float16.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 #include <util/generic/bitops.h>
 #include <util/generic/cast.h>
 #include <util/stream/format.h>
@@ -227,6 +227,12 @@ Y_UNIT_TEST_SUITE(Intrisincs) {
     Y_UNIT_TEST(MaxValues) {
         UNIT_ASSERT_VALUES_EQUAL(65504.0f, Max<TFloat16>());
         UNIT_ASSERT_VALUES_EQUAL(-65504.0f, -Max<TFloat16>());
+    }
+
+    Y_UNIT_TEST(StdNumericLimits) {
+        UNIT_ASSERT_VALUES_EQUAL(0.00006103515625f, std::numeric_limits<TFloat16>::min());
+        UNIT_ASSERT_VALUES_EQUAL(65504.0f, std::numeric_limits<TFloat16>::max());
+        UNIT_ASSERT_VALUES_EQUAL(-65504.0f, std::numeric_limits<TFloat16>::lowest());
     }
 }
 

@@ -13,7 +13,7 @@
 #include <catboost/private/libs/quantization/grid_creator.h>
 #include <catboost/private/libs/quantization/utils.h>
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 using namespace std;
 using namespace NCatboostCuda;
@@ -255,8 +255,7 @@ Y_UNIT_TEST_SUITE(BinarizationsTests) {
                                                           builder,
                                                           *dataProvider,
                                                           id,
-                                                          /*skipExclusiveFeatureBundles*/false,
-                                                          &NPar::LocalExecutor());
+                                                          /*skipExclusiveFeatureBundles*/false);
             writer.Write(features);
             builder.Finish();
         }

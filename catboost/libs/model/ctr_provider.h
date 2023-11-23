@@ -5,6 +5,8 @@
 #include "features.h"
 #include "ctr_value_table.h"
 
+#include <catboost/libs/helpers/exception.h>
+
 #include <library/cpp/json/json_value.h>
 
 #include <util/generic/array_ref.h>
@@ -22,12 +24,12 @@ public:
     virtual ~ICtrProvider() {
     }
 
-    virtual bool HasNeededCtrs(const TVector<TModelCtr>& neededCtrs) const = 0;
+    virtual bool HasNeededCtrs(TConstArrayRef<TModelCtr> neededCtrs) const = 0;
 
     virtual void CalcCtrs(
-        const TVector<TModelCtr>& neededCtrs,
-        const TConstArrayRef<ui8>& binarizedFeatures, // vector of binarized float & one hot features
-        const TConstArrayRef<ui32>& hashedCatFeatures,
+        const TConstArrayRef<TModelCtr> neededCtrs,
+        const TConstArrayRef<ui8> binarizedFeatures, // vector of binarized float & one hot features
+        const TConstArrayRef<ui32> hashedCatFeatures,
         size_t docCount,
         TArrayRef<float> result) = 0;
 
@@ -44,18 +46,18 @@ public:
     virtual void DropUnusedTables(TConstArrayRef<TModelCtrBase> usedModelCtrBase) = 0;
 
     virtual void Save(IOutputStream* ) const {
-        Y_FAIL("Serialization not allowed");
+        CB_ENSURE(false, "Serialization not allowed");
     };
 
     virtual void Load(IInputStream* ) {
-        Y_FAIL("Deserialization not allowed");
+        CB_ENSURE(false, "Deserialization not allowed");
     };
 
     // can use this later for complex model deserialization logic
     virtual TString ModelPartIdentifier() const = 0;
 
     virtual TIntrusivePtr<ICtrProvider> Clone() const {
-        Y_FAIL("Cloning not supported");
+        CB_ENSURE(false, "Cloning not supported");
     }
 };
 
@@ -122,7 +124,8 @@ inline void CalcHashes(
 enum class ECtrTableMergePolicy {
     FailIfCtrIntersects,
     LeaveMostDiversifiedTable,
-    IntersectingCountersAverage
+    IntersectingCountersAverage,
+    KeepAllTables
 };
 
 TIntrusivePtr<ICtrProvider> MergeCtrProvidersData(

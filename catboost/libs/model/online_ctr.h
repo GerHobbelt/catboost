@@ -53,7 +53,7 @@ public:
         return MultiHash(FloatFeature, Split);
     }
 
-    Y_SAVELOAD_DEFINE(FloatFeature, Split)
+    Y_SAVELOAD_DEFINE(FloatFeature, Split);
 
     /* make sure floating-point values do not contain negative zeros -
      * flatbuffers serializer will deserialize them as positive zeros
@@ -66,57 +66,6 @@ public:
 template <>
 struct THash<TFloatSplit> {
     inline size_t operator()(const TFloatSplit& split) const {
-        return split.GetHash();
-    }
-};
-
-struct TEstimatedFeatureSplit {
-    int SourceFeatureId = 0;
-    NCB::TGuid CalcerId;
-    int LocalId = 0;
-    float Split = 0.f;
-
-public:
-    TEstimatedFeatureSplit() = default;
-    TEstimatedFeatureSplit(
-        int sourceFeatureId,
-        NCB::TGuid calcerId,
-        int localId,
-        float split
-    )
-        : SourceFeatureId(sourceFeatureId)
-        , CalcerId(calcerId)
-        , LocalId(localId)
-        , Split(split)
-    {}
-
-    bool operator==(const TEstimatedFeatureSplit& other) const {
-        return std::tie(SourceFeatureId, CalcerId, LocalId, Split)
-            == std::tie(other.SourceFeatureId, other.CalcerId, other.LocalId, other.Split);
-    }
-
-    bool operator<(const TEstimatedFeatureSplit& other) const {
-        return std::tie(SourceFeatureId, CalcerId, LocalId, Split)
-            < std::tie(other.SourceFeatureId, other.CalcerId, other.LocalId, other.Split);
-    }
-
-    ui64 GetHash() const {
-        return MultiHash(SourceFeatureId, CalcerId, LocalId, Split);
-    }
-
-    Y_SAVELOAD_DEFINE(SourceFeatureId, CalcerId, LocalId, Split)
-
-    /* make sure floating-point values do not contain negative zeros -
-     * flatbuffers serializer will deserialize them as positive zeros
-     */
-    void Canonize() {
-        CanonizeFloatForFbs(&Split);
-    }
-};
-
-template <>
-struct THash<TEstimatedFeatureSplit> {
-    inline size_t operator()(const TEstimatedFeatureSplit& split) const {
         return split.GetHash();
     }
 };
@@ -182,7 +131,7 @@ public:
         OneHotFeatures.clear();
     }
 
-    Y_SAVELOAD_DEFINE(CatFeatures, BinFeatures, OneHotFeatures)
+    Y_SAVELOAD_DEFINE(CatFeatures, BinFeatures, OneHotFeatures);
 
     bool IsSingleCatFeature() const {
         return BinFeatures.empty() && OneHotFeatures.empty() && CatFeatures.ysize() == 1;
@@ -219,15 +168,54 @@ struct THash<TFeatureCombination> {
     }
 };
 
-struct TModelCtrBase {
+struct TModelCtrBaseMergeKey {
     TFeatureCombination Projection;
     ECtrType CtrType = ECtrType::Borders;
+
+public:
+    bool operator==(const TModelCtrBaseMergeKey& other) const {
+        return std::tie(Projection, CtrType) ==
+               std::tie(other.Projection, other.CtrType);
+    }
+
+    bool operator!=(const TModelCtrBaseMergeKey& other) const {
+        return !(*this == other);
+    }
+
+    bool operator<(const TModelCtrBaseMergeKey& other) const {
+        return std::tie(Projection, CtrType) <
+               std::tie(other.Projection, other.CtrType);
+    }
+
+    Y_SAVELOAD_DEFINE(Projection, CtrType);
+
+    size_t GetHash() const {
+        return MultiHash(Projection.GetHash(), CtrType);
+    }
+
+    /* make sure floating-point values do not contain negative zeros -
+     * flatbuffers serializer will deserialize them as positive zeros
+     */
+    void Canonize() {
+        Projection.Canonize();
+    }
+};
+
+template <>
+struct THash<TModelCtrBaseMergeKey> {
+    size_t operator()(const TModelCtrBaseMergeKey& ctr) const noexcept {
+        return ctr.GetHash();
+    }
+};
+
+
+struct TModelCtrBase : public TModelCtrBaseMergeKey {
     int TargetBorderClassifierIdx = 0;
 
 public:
     bool operator==(const TModelCtrBase& other) const {
-        return std::tie(Projection, CtrType, TargetBorderClassifierIdx) ==
-               std::tie(other.Projection, other.CtrType, other.TargetBorderClassifierIdx);
+        return std::tie((const TModelCtrBaseMergeKey&)(*this), TargetBorderClassifierIdx) ==
+               std::tie((const TModelCtrBaseMergeKey&)other, other.TargetBorderClassifierIdx);
     }
 
     bool operator!=(const TModelCtrBase& other) const {
@@ -235,14 +223,20 @@ public:
     }
 
     bool operator<(const TModelCtrBase& other) const {
-        return std::tie(Projection, CtrType, TargetBorderClassifierIdx) <
-               std::tie(other.Projection, other.CtrType, other.TargetBorderClassifierIdx);
+        return std::tie((const TModelCtrBaseMergeKey&)(*this), TargetBorderClassifierIdx) <
+               std::tie((const TModelCtrBaseMergeKey&)other, other.TargetBorderClassifierIdx);
     }
 
-    Y_SAVELOAD_DEFINE(Projection, CtrType, TargetBorderClassifierIdx);
+    inline void Save(IOutputStream* s) const {
+        ::SaveMany(s, (const TModelCtrBaseMergeKey&)(*this), TargetBorderClassifierIdx);
+    }
+
+    inline void Load(IInputStream* s) {
+        ::LoadMany(s, (TModelCtrBaseMergeKey&)(*this), TargetBorderClassifierIdx);
+    }
 
     size_t GetHash() const {
-        return MultiHash(Projection.GetHash(), CtrType, TargetBorderClassifierIdx);
+        return MultiHash(TModelCtrBaseMergeKey::GetHash(), TargetBorderClassifierIdx);
     }
 
     flatbuffers::Offset<NCatBoostFbs::TModelCtrBase> FBSerialize(TModelPartsCachingSerializer& serializer) const;
@@ -252,7 +246,7 @@ public:
      * flatbuffers serializer will deserialize them as positive zeros
      */
     void Canonize() {
-        Projection.Canonize();
+        TModelCtrBaseMergeKey::Canonize();
     }
 };
 

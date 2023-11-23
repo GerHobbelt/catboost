@@ -31,6 +31,7 @@ namespace NFs {
     bool Remove(const TString& path);
 
     /// Remove a file or directory with contents
+    /// Does nothing if path does not exist
     ///
     /// @param[in] path  Path to file or directory
     /// @throws
@@ -136,7 +137,7 @@ namespace NFs {
     ///
     /// @param[in] path          Path for new cwd
     /// Note: is not threadsafe
-    void SetCurrentWorkingDirectory(TString path);
+    void SetCurrentWorkingDirectory(const TString& path);
 
     /// Checks if file exists
     ///
@@ -153,4 +154,4 @@ namespace NFs {
     }
 }
 
-Y_DECLARE_OPERATORS_FOR_FLAGS(NFs::EFilePermissions)
+Y_DECLARE_OPERATORS_FOR_FLAGS(NFs::EFilePermissions);

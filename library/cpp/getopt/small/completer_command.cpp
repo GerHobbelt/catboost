@@ -64,7 +64,7 @@ namespace NLastGetopt {
             "completions to `~/.zfunc`:"
             "\n"
             "\n"
-            "    $ mkdir -p ~/.zfunc"
+            "    $ mkdir -m755 -p ~/.zfunc"
             "\n"
             "    $ {command} {completion} zsh > ~/.zfunc/_{command}"
             "\n"
@@ -160,6 +160,6 @@ namespace NLastGetopt {
     };
 
     THolder<TMainClassArgs> MakeCompletionMod(const TModChooser* modChooser, TString command, TString modName) {
-        return new TCompleterMode(modChooser, std::move(command), std::move(modName));
+        return MakeHolder<TCompleterMode>(modChooser, std::move(command), std::move(modName));
     }
 }

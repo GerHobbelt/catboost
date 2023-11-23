@@ -13,8 +13,8 @@ enum ENumberFormatFlag {
     HF_FULL = 0x01, /**< Output number with leading zeros. */
     HF_ADDX = 0x02, /**< Output '0x' or '0b' before hex/bin digits. */
 };
-Y_DECLARE_FLAGS(ENumberFormat, ENumberFormatFlag)
-Y_DECLARE_OPERATORS_FOR_FLAGS(ENumberFormat)
+Y_DECLARE_FLAGS(ENumberFormat, ENumberFormatFlag);
+Y_DECLARE_OPERATORS_FOR_FLAGS(ENumberFormat);
 
 enum ESizeFormat {
     SF_QUANTITY, /**< Base 1000, usual suffixes. 1100 gets turned into "1.1K". */
@@ -23,17 +23,33 @@ enum ESizeFormat {
 
 namespace NFormatPrivate {
     template <size_t Value>
-    struct TLog2 : std::integral_constant<size_t, TLog2<Value / 2>::value + 1> {};
+    struct TLog2: std::integral_constant<size_t, TLog2<Value / 2>::value + 1> {};
 
     template <>
-    struct TLog2<1> : std::integral_constant<size_t, 0> {};
+    struct TLog2<1>: std::integral_constant<size_t, 0> {};
 
-    static inline void WriteChars(IOutputStream& os, char c, size_t count) {
+    template <typename T>
+    inline void StreamWrite(T& stream, const char* s, size_t size) {
+        stream.write(s, size);
+    }
+
+    template <>
+    inline void StreamWrite(IOutputStream& stream, const char* s, size_t size) {
+        stream.Write(s, size);
+    }
+
+    template <>
+    inline void StreamWrite(TStringStream& stream, const char* s, size_t size) {
+        stream.Write(s, size);
+    }
+
+    template <typename T>
+    static inline void WriteChars(T& os, char c, size_t count) {
         if (count == 0)
             return;
         TTempBuf buf(count);
         memset(buf.Data(), c, count);
-        os.Write(buf.Data(), count);
+        StreamWrite(os, buf.Data(), count);
     }
 
     template <typename T>
@@ -106,8 +122,8 @@ namespace NFormatPrivate {
     template <typename T, size_t Base>
     using TUnsignedBaseNumber = TBaseNumber<std::make_unsigned_t<std::remove_cv_t<T>>, Base>;
 
-    template <typename T, size_t Base>
-    IOutputStream& operator<<(IOutputStream& stream, const TBaseNumber<T, Base>& value) {
+    template <typename TStream, typename T, size_t Base>
+    TStream& ToStreamImpl(TStream& stream, const TBaseNumber<T, Base>& value) {
         char buf[8 * sizeof(T) + 1]; /* Add 1 for sign. */
         TStringBuf str(buf, IntToString<Base>(value.Value, buf, sizeof(buf)));
 
@@ -118,9 +134,9 @@ namespace NFormatPrivate {
 
         if (value.Flags & HF_ADDX) {
             if (Base == 16) {
-                stream << AsStringBuf("0x");
+                stream << TStringBuf("0x");
             } else if (Base == 2) {
-                stream << AsStringBuf("0b");
+                stream << TStringBuf("0b");
             }
         }
 
@@ -130,6 +146,16 @@ namespace NFormatPrivate {
 
         stream << str;
         return stream;
+    }
+
+    template <typename T, size_t Base>
+    IOutputStream& operator<<(IOutputStream& stream, const TBaseNumber<T, Base>& value) {
+        return ToStreamImpl(stream, value);
+    }
+
+    template <typename T, size_t Base>
+    std::ostream& operator<<(std::ostream& stream, const TBaseNumber<T, Base>& value) {
+        return ToStreamImpl(stream, value);
     }
 
     template <typename Char, size_t Base>
@@ -329,7 +355,7 @@ static constexpr ::NFormatPrivate::TBaseNumber<T, 2> SBin(const T& value, const 
  *
  * Example usage:
  * @code
- * stream << HexText(AsStringBuf("abcи"));  // Will output "61 62 63 D0 B8"
+ * stream << HexText(TStringBuf("abcи"));  // Will output "61 62 63 D0 B8"
  * stream << HexText(TWtringBuf(u"abcи")); // Will output "0061 0062 0063 0438"
  * @endcode
  *
@@ -348,7 +374,7 @@ static inline ::NFormatPrivate::TBaseText<TChar, 16> HexText(const TBasicStringB
  *
  * Example usage:
  * @code
- * stream << BinText(AsStringBuf("aaa"));  // Will output "01100001 01100001 01100001"
+ * stream << BinText(TStringBuf("aaa"));  // Will output "01100001 01100001 01100001"
  * @endcode
  *
  * @param value                         String to output.

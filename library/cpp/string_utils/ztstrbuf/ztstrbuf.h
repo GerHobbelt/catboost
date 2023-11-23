@@ -2,6 +2,7 @@
 
 #include <util/generic/strbuf.h>
 #include <util/generic/string.h>
+#include <util/str_stl.h>
 
 /*
  * Zero-terminated string view.
@@ -15,7 +16,7 @@
 
 class TZtStringBuf: public TStringBuf {
 public:
-    TZtStringBuf(const char* s)
+    constexpr TZtStringBuf(const char* s)
         : TStringBuf(s)
     {
     }
@@ -33,4 +34,8 @@ public:
     const char* c_str() const {
         return data();
     }
+};
+
+template <>
+struct THash<TZtStringBuf> : public THash<TStringBuf> {
 };

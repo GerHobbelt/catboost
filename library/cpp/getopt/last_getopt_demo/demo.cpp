@@ -11,12 +11,12 @@ Y_COMPLETER(HeaderCompleter) {
     bool addPostHeaders = false;
 
     for (int i = 0; i < argc; ++i) {
-        if (argv[i] == AsStringBuf("--method") && i + 1 < argc) {
+        if (argv[i] == TStringBuf("--method") && i + 1 < argc) {
             auto method = TString(argv[i + 1]);
             method.to_upper();
             addPostHeaders = method == "POST" || method == "PUT";
             break;
-        } else if (argv[i] == AsStringBuf("--post-data") || argv[i] == AsStringBuf("--post-file")) {
+        } else if (argv[i] == TStringBuf("--post-data") || argv[i] == TStringBuf("--post-file")) {
             addPostHeaders = true;
             break;
         }
@@ -81,17 +81,16 @@ protected:
             .Help("specify HTTP method")
             .CompletionArgHelp("http method")
             .StoreResult(&ExplicitMethod_)
-            .Completer(
-                NLastGetopt::NComp::Choice(
-                    {{"GET", "request representation of the specified resource"},
-                     {"HEAD", "request response identical to that of GET, but without response body"},
-                     {"POST", "submit an entry to the specified resource"},
-                     {"PUT", "replace representation of the specified resource with the request body"},
-                     {"DELETE", "delete the specified resource"},
-                     {"CONNECT", "establish a tunnel to the server identified by the target resource"},
-                     {"OPTIONS", "describe the communication options for the target resource"},
-                     {"TRACE", "perform a message loop-back test"},
-                     {"PATCH", "apply partial modifications to the specified resource"}}));
+            .ChoicesWithCompletion({
+                {"GET", "request representation of the specified resource"},
+                {"HEAD", "request response identical to that of GET, but without response body"},
+                {"POST", "submit an entry to the specified resource"},
+                {"PUT", "replace representation of the specified resource with the request body"},
+                {"DELETE", "delete the specified resource"},
+                {"CONNECT", "establish a tunnel to the server identified by the target resource"},
+                {"OPTIONS", "describe the communication options for the target resource"},
+                {"TRACE", "perform a message loop-back test"},
+                {"PATCH", "apply partial modifications to the specified resource"}});
 
         opts.AddLongOption('U', "user-agent")
             .RequiredArgument("agent-string")

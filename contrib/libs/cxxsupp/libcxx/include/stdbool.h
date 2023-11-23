@@ -1,5 +1,5 @@
 // -*- C++ -*-
-//===--------------------------- stdbool.h --------------------------------===//
+//===----------------------------------------------------------------------===//
 //
 // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 // See https://llvm.org/LICENSE.txt for license information.
@@ -8,7 +8,6 @@
 //===----------------------------------------------------------------------===//
 #ifndef _LIBCPP_STDBOOL_H
 #define _LIBCPP_STDBOOL_H
-
 
 /*
     stdbool.h synopsis
@@ -22,11 +21,11 @@ Macros:
 #include <__config>
 
 #if !defined(_LIBCPP_HAS_NO_PRAGMA_SYSTEM_HEADER)
-#pragma GCC system_header
+#  pragma GCC system_header
 #endif
 
 #ifdef _LIBCPP_COMPILER_MSVC
-#include _LIBCPP_MSVC_INCLUDE(stdbool.h)
+#include Y_MSVC_INCLUDE_NEXT(stdbool.h)
 #else
 #include_next <stdbool.h>
 #endif
@@ -39,4 +38,4 @@ Macros:
 #define __bool_true_false_are_defined 1
 #endif
 
-#endif  // _LIBCPP_STDBOOL_H
+#endif // _LIBCPP_STDBOOL_H

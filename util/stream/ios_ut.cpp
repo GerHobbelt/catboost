@@ -4,14 +4,13 @@
 #include "buffered.h"
 #include "walk.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <util/string/cast.h>
 #include <util/memory/tempbuf.h>
 #include <util/charset/wide.h>
 
 #include <string>
-#include <iostream>
 
 class TStreamsTest: public TTestBase {
     UNIT_TEST_SUITE(TStreamsTest);
@@ -261,21 +260,21 @@ void TStreamsTest::TestBufferStream() {
 
     stream.Write(s.data(), s.size());
     char buf[5];
-    size_t readed = stream.Read(buf, 4);
-    UNIT_ASSERT_EQUAL(4, readed);
+    size_t bytesRead = stream.Read(buf, 4);
+    UNIT_ASSERT_EQUAL(4, bytesRead);
     UNIT_ASSERT_EQUAL(0, strncmp(s.data(), buf, 4));
 
     stream.Write(s.data(), s.size());
-    readed = stream.Read(buf, 2);
-    UNIT_ASSERT_EQUAL(2, readed);
+    bytesRead = stream.Read(buf, 2);
+    UNIT_ASSERT_EQUAL(2, bytesRead);
     UNIT_ASSERT_EQUAL(0, strncmp("te", buf, 2));
 
-    readed = stream.Read(buf, 2);
-    UNIT_ASSERT_EQUAL(2, readed);
+    bytesRead = stream.Read(buf, 2);
+    UNIT_ASSERT_EQUAL(2, bytesRead);
     UNIT_ASSERT_EQUAL(0, strncmp("st", buf, 2));
 
-    readed = stream.Read(buf, 2);
-    UNIT_ASSERT_EQUAL(0, readed);
+    bytesRead = stream.Read(buf, 2);
+    UNIT_ASSERT_EQUAL(0, bytesRead);
 }
 
 namespace {
@@ -455,24 +454,28 @@ void TStreamsTest::TestWchar16Output() {
     TString s;
     TStringOutput os(s);
     os << wchar16(97); // latin a
-    os << u'\u044E'; // cyrillic ю
+    os << u'\u044E';   // cyrillic ю
     os << u'я';
     os << wchar16(0xD801); // high surrogate is printed as replacement character U+FFFD
     os << u'b';
 
-    UNIT_ASSERT_VALUES_EQUAL(s, "aюя" "\xEF\xBF\xBD" "b");
+    UNIT_ASSERT_VALUES_EQUAL(s, "aюя"
+                                "\xEF\xBF\xBD"
+                                "b");
 }
 
 void TStreamsTest::TestWchar32Output() {
     TString s;
     TStringOutput os(s);
     os << wchar32(97); // latin a
-    os << U'\u044E'; // cyrillic ю
+    os << U'\u044E';   // cyrillic ю
     os << U'я';
     os << U'\U0001F600'; // grinning face
     os << u'b';
 
-    UNIT_ASSERT_VALUES_EQUAL(s, "aюя" "\xF0\x9F\x98\x80" "b");
+    UNIT_ASSERT_VALUES_EQUAL(s, "aюя"
+                                "\xF0\x9F\x98\x80"
+                                "b");
 }
 
 void TStreamsTest::TestUtf16StingOutputByChars() {

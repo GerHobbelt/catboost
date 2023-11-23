@@ -7,7 +7,7 @@
 #include <stdint.h>
 #include <string>
 
-#include "util/test.h"
+#include "gtest/gtest.h"
 #include "util/utf.h"
 #include "re2/testing/string_generator.h"
 #include "re2/testing/regexp_generator.h"
@@ -31,23 +31,23 @@ static int64_t IntegerPower(int i, int e) {
 // If all of these hold, the StringGenerator is behaving.
 // Assumes that the alphabet is sorted, so that the generated
 // strings can just be compared lexicographically.
-static void RunTest(int len, const string& alphabet, bool donull) {
+static void RunTest(int len, const std::string& alphabet, bool donull) {
   StringGenerator g(len, Explode(alphabet));
 
   int n = 0;
   int last_l = -1;
-  string last_s;
+  std::string last_s;
 
   if (donull) {
     g.GenerateNULL();
     EXPECT_TRUE(g.HasNext());
-    StringPiece sp = g.Next();
+    absl::string_view sp = g.Next();
     EXPECT_EQ(sp.data(), static_cast<const char*>(NULL));
     EXPECT_EQ(sp.size(), 0);
   }
 
   while (g.HasNext()) {
-    string s = g.Next().ToString();
+    std::string s = std::string(g.Next());
     n++;
 
     // Check that all characters in s appear in alphabet.

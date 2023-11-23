@@ -1,4 +1,4 @@
-#include <library/testing/benchmark/bench.h>
+#include <library/cpp/testing/benchmark/bench.h>
 
 #include <util/generic/xrange.h>
 #include <util/generic/algorithm.h>
@@ -193,7 +193,7 @@ Y_CPU_BENCHMARK(FunctionCallCost_TwoArg, iface) {
  *        │    ↓ je     25
  *        │      xor    %edi,%edi
  *        │      xor    %esi,%esi
- *        │    → callq  FS1(TBasicStringBuf<char, TCharTraits<char
+ *        │    → callq  FS1(TBasicStringBuf<char, std::char_traits<char
  *        │      nop
  * 100.00 │20:┌─→dec    %rbx
  *        │   └──jne    20

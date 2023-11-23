@@ -1,20 +1,23 @@
 #include "input.h"
 #include "output.h"
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 #include <util/system/file.h>
 #include <util/system/yassert.h>
 
+#ifdef _win_
+    #include <io.h>
+#endif
+
 class TMockStdIn {
 public:
     TMockStdIn()
-        : StdIn(0)
-        , StdInCopy(StdIn.Duplicate())
+        : StdInCopy_(dup(0))
     {
     }
     ~TMockStdIn() {
-        StdIn.Release();
+        close(StdInCopy_);
     }
 
     template <typename FuncType>
@@ -25,18 +28,17 @@ public:
         tempFile.Seek(0, sSet);
 
         TFileHandle tempFh(tempFile.GetHandle());
-        StdIn.LinkTo(tempFh);
+        tempFh.Duplicate2Posix(0);
         tempFh.Release();
 
         func();
         Cin.ReadAll();
-        StdIn.LinkTo(StdInCopy);
+        dup2(StdInCopy_, 0);
         clearerr(stdin);
     }
 
 private:
-    TFileHandle StdIn;
-    TFileHandle StdInCopy;
+    int StdInCopy_;
 };
 
 class TNoInput: public IInputStream {
@@ -77,8 +79,9 @@ protected:
     size_t DoRead(void* buf, size_t len) override {
         Y_ASSERT(len != 0);
 
-        if (String_.empty())
+        if (String_.empty()) {
             return 0;
+        }
 
         *static_cast<char*>(buf) = String_[0];
         String_.remove(0, 1);

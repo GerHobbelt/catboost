@@ -2,6 +2,7 @@
 
 #include <catboost/cuda/cuda_lib/cuda_base.h>
 #include <catboost/cuda/cuda_lib/cuda_events_provider.h>
+#include <library/cpp/deprecated/atomic/atomic.h>
 #include <util/system/spinlock.h>
 #include <util/generic/hash.h>
 
@@ -155,11 +156,11 @@ namespace NCudaLib {
                 }
                 state = Current[handle].Get();
             }
-            return new TStreamSection(handle,
+            return THolder<TStreamSection>(new TStreamSection(handle,
                                       state->NotReadyToEnter,
                                       state->NotReadyToLeave,
                                       stream,
-                                      *this);
+                                      *this));
         }
 
         ui64 NextUid() {

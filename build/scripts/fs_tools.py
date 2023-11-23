@@ -1,22 +1,50 @@
+from __future__ import print_function
+
 import os
 import platform
 import sys
 import shutil
+import errno
+
+import process_command_files as pcf
+
+
+def link_or_copy(src, dst, trace={}):
+    if dst not in trace:
+        trace[dst] = src
+
+    try:
+        if platform.system().lower() == 'windows':
+            shutil.copy(src, dst)
+        else:
+            os.link(src, dst)
+    except OSError as e:
+        if e.errno == errno.EEXIST:
+            if dst in trace:
+                print(
+                    '[[bad]]link_or_copy: copy collision found - tried to copy {} to {} which was copied earlier from {}[[rst]]'.format(
+                        src, dst, trace[dst]
+                    ),
+                    file=sys.stderr,
+                )
+            else:
+                print('[[bad]]link_or_copy: destination file already exists: {}[[rst]]'.format(dst), file=sys.stderr)
+        if e.errno == errno.ENOENT:
+            print('[[bad]]link_or_copy: source file doesn\'t exists: {}[[rst]]'.format(src), file=sys.stderr)
+        raise
+
 
 if __name__ == '__main__':
-    # Support @response-file notation for windows to reduce cmd length
-    if sys.argv[1].startswith('@'):
-        with open(sys.argv[1][1:]) as afile:
-            sys.argv[1:] = afile.read().splitlines()
-
     mode = sys.argv[1]
-    args = sys.argv[2:]
+    args = pcf.get_args(sys.argv[2:])
 
     if mode == 'copy':
         shutil.copy(args[0], args[1])
     elif mode == 'copy_tree_no_link':
         dst = args[1]
-        shutil.copytree(args[0], dst, ignore=lambda dirname, names: [n for n in names if os.path.islink(os.path.join(dirname, n))])
+        shutil.copytree(
+            args[0], dst, ignore=lambda dirname, names: [n for n in names if os.path.islink(os.path.join(dirname, n))]
+        )
     elif mode == 'copy_files':
         src = args[0]
         dst = args[1]
@@ -64,10 +92,17 @@ if __name__ == '__main__':
             except OSError:
                 pass
     elif mode == 'link_or_copy':
-        if platform.system().lower() == 'windows':
-            shutil.copy(args[0], args[1])
-        else:
-            os.link(args[0], args[1])
+        link_or_copy(args[0], args[1])
+    elif mode == 'link_or_copy_to_dir':
+        assert len(args) > 1
+        start = 0
+        if args[0] == '--no-check':
+            if args == 2:
+                sys.exit()
+            start = 1
+        dst = args[-1]
+        for src in args[start:-1]:
+            link_or_copy(src, os.path.join(dst, os.path.basename(src)))
     elif mode == 'cat':
         with open(args[0], 'w') as dst:
             for input_name in args[1:]:

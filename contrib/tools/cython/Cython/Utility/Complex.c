@@ -253,7 +253,6 @@ static {{type}} __Pyx_PyComplex_As_{{type_name}}(PyObject* o) {
                     case 1:
                         return a;
                     case 2:
-                        z = __Pyx_c_prod{{func_suffix}}(a, a);
                         return __Pyx_c_prod{{func_suffix}}(a, a);
                     case 3:
                         z = __Pyx_c_prod{{func_suffix}}(a, a);
@@ -266,7 +265,7 @@ static {{type}} __Pyx_PyComplex_As_{{type_name}}(PyObject* o) {
             if (a.imag == 0) {
                 if (a.real == 0) {
                     return a;
-                } else if (b.imag == 0) {
+                } else if ((b.imag == 0) && (a.real >= 0)) {
                     z.real = pow{{m}}(a.real, b.real);
                     z.imag = 0;
                     return z;

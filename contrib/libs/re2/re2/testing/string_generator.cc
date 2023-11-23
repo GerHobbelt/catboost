@@ -11,14 +11,14 @@
 #include <string>
 #include <vector>
 
-#include "util/test.h"
+#include "gtest/gtest.h"
 #include "util/logging.h"
 #include "re2/testing/string_generator.h"
 
 namespace re2 {
 
 StringGenerator::StringGenerator(int maxlen,
-                                 const std::vector<string>& alphabet)
+                                 const std::vector<std::string>& alphabet)
     : maxlen_(maxlen), alphabet_(alphabet),
       generate_null_(false),
       random_(false), nrandom_(0) {
@@ -81,11 +81,11 @@ bool StringGenerator::RandomDigits() {
 // currently described by digits_.  Calls IncrementDigits
 // after computing the string, so that it knows the answer
 // for subsequent HasNext() calls.
-const StringPiece& StringGenerator::Next() {
+absl::string_view StringGenerator::Next() {
   CHECK(hasnext_);
   if (generate_null_) {
     generate_null_ = false;
-    sp_ = StringPiece();
+    sp_ = absl::string_view();
     return sp_;
   }
   s_.clear();
@@ -109,6 +109,33 @@ void StringGenerator::Random(int32_t seed, int n) {
 void StringGenerator::GenerateNULL() {
   generate_null_ = true;
   hasnext_ = true;
+}
+
+std::string DeBruijnString(int n) {
+  CHECK_GE(n, 1);
+  CHECK_LE(n, 29);
+  const size_t size = size_t{1} << static_cast<size_t>(n);
+  const size_t mask = size - 1;
+  std::vector<bool> did(size, false);
+  std::string s;
+  s.reserve(static_cast<size_t>(n) + size);
+  for (size_t i = 0; i < static_cast<size_t>(n - 1); i++)
+    s += '0';
+  size_t bits = 0;
+  for (size_t i = 0; i < size; i++) {
+    bits <<= 1;
+    bits &= mask;
+    if (!did[bits | 1]) {
+      bits |= 1;
+      s += '1';
+    } else {
+      s += '0';
+    }
+    CHECK(!did[bits]);
+    did[bits] = true;
+  }
+  CHECK_EQ(s.size(), static_cast<size_t>(n - 1) + size);
+  return s;
 }
 
 }  // namespace re2

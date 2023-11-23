@@ -6,11 +6,11 @@
 THolder<NCatboostCuda::TCtrTargets<NCudaLib::TMirrorMapping>> NCatboostCuda::BuildCtrTarget(const NCatboostCuda::TBinarizedFeaturesManager& featuresManager,
                                                                                             const NCB::TTrainingDataProvider& dataProvider,
                                                                                             const NCB::TTrainingDataProvider* test) {
-    TVector<float> joinedTarget = Join(*dataProvider.TargetData->GetOneDimensionalTarget(),
-                                       test ? MakeMaybe(*test->TargetData->GetOneDimensionalTarget()) : Nothing());
+    TVector<float> joinedTarget = Join((*dataProvider.TargetData->GetTarget())[0],
+                                       test ? MakeMaybe((*test->TargetData->GetTarget())[0]) : Nothing()); // espetrov: fix for multi-target + cat features
 
     THolder<TCtrTargets<NCudaLib::TMirrorMapping>> ctrsTargetPtr;
-    ctrsTargetPtr = new TCtrTargets<NCudaLib::TMirrorMapping>;
+    ctrsTargetPtr = MakeHolder<TCtrTargets<NCudaLib::TMirrorMapping>>();
     auto& ctrsTarget = *ctrsTargetPtr;
     ctrsTarget.BinarizedTarget = BuildBinarizedTarget(featuresManager,
                                                       joinedTarget);

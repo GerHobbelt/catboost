@@ -1,5 +1,7 @@
 #pragma once
 
+#include "exception.h"
+
 #include <util/generic/maybe.h>
 #include <util/generic/noncopyable.h>
 #include <util/generic/stack.h>
@@ -39,7 +41,7 @@ private:
 */
 class TXmlOutputContext : public TNonCopyable {
 public:
-    TXmlOutputContext(IOutputStream* out, TString rootName, TStringBuf version = AsStringBuf("1.0"));
+    TXmlOutputContext(IOutputStream* out, TString rootName, TStringBuf version = TStringBuf("1.0"));
 
     ~TXmlOutputContext() {
         if (!std::uncaught_exceptions()) {
@@ -52,7 +54,7 @@ public:
 
     template <class TValue>
     TXmlOutputContext& AddAttr(TStringBuf name, const TValue& value) {
-        Y_ENSURE(CurrentElementIsEmpty, "Adding attribute inside element body");
+        CB_ENSURE(CurrentElementIsEmpty, "Adding attribute inside element body");
         CheckIsValidXmlAsciiName(name, "AddAttr");
 
         (*Out) << ' ' << name << "=\"";

@@ -9,6 +9,7 @@ namespace NKernel {
 
 
     void ComputeOptimalSplits(const TCBinFeature* binaryFeatures, ui32 binaryFeatureCount,
+                              const float* binFeaturesWeights, ui32 binFeaturesWeightsCount,
                               const float* histograms,
                               const double* partStats, int statCount,
                               const ui32* partIds, int partBlockSize, int partBlockCount,
@@ -31,6 +32,7 @@ namespace NKernel {
                                TCudaStream stream);
 
     void ComputeOptimalSplitsRegion(const TCBinFeature* binaryFeatures, ui32 binaryFeatureCount,
+                                    const float* binFeaturesWeights, ui32 binFeaturesWeightsCount,
                                     const float* histograms,
                                     const double* partStats, int statCount,
                                     const ui32* partIds, int partCount,
@@ -44,6 +46,7 @@ namespace NKernel {
                                     TCudaStream stream);
 
     void ComputeOptimalSplit(const TCBinFeature* binaryFeatures, ui32 binaryFeatureCount,
+                             const float* binFeaturesWeights, ui32 binFeaturesWeightsCount,
                              const float* histograms,
                              const double* partStats, int statCount,
                              const ui32 firstPartId, const ui32 maybeSecondPartId,

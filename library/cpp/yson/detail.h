@@ -10,7 +10,7 @@
 #include <util/string/cast.h>
 #include <util/stream/input.h>
 
-namespace NYT {
+namespace NYson {
     namespace NDetail {
         ////////////////////////////////////////////////////////////////////////////////
 
@@ -214,7 +214,7 @@ namespace NYT {
             }
 
             bool ReadVarint32Fallback(ui32* value) {
-                if (BeginByte() + MaxVarint32Bytes <= EndByte() ||
+                if (BeginByte() + MaxVarintBytes <= EndByte() ||
                     // Optimization:  If the Varint ends at exactly the end of the buffer,
                     // we can detect that and still use the fast path.
                     (BeginByte() < EndByte() && !(EndByte()[-1] & 0x80)))
@@ -425,10 +425,10 @@ namespace NYT {
 
             template <bool AllowFinish>
             double ReadNanOrInf() {
-                static const auto nanString = AsStringBuf("nan");
-                static const auto infString = AsStringBuf("inf");
-                static const auto plusInfString = AsStringBuf("+inf");
-                static const auto minusInfString = AsStringBuf("-inf");
+                static const TStringBuf nanString = "nan";
+                static const TStringBuf infString = "inf";
+                static const TStringBuf plusInfString = "+inf";
+                static const TStringBuf minusInfString = "-inf";
 
                 TStringBuf expectedString;
                 double expectedValue;
@@ -560,8 +560,8 @@ namespace NYT {
             bool ReadBoolean() {
                 Buffer_.clear();
 
-                static auto trueString = AsStringBuf("true");
-                static auto falseString = AsStringBuf("false");
+                static TStringBuf trueString = "true";
+                static TStringBuf falseString = "false";
 
                 auto throwIncorrectBoolean = [&]() {
                     ythrow TYsonException() << "Incorrect boolean string " << TString(Buffer_.data(), Buffer_.size());
@@ -591,7 +591,7 @@ namespace NYT {
                     throwIncorrectBoolean();
                 }
 
-                Y_FAIL("unreachable");
+                Y_ABORT("unreachable");
                 ;
             }
 
@@ -735,7 +735,7 @@ namespace NYT {
         }
 
         void RefreshBlock() {
-            Y_FAIL("unreachable");
+            Y_ABORT("unreachable");
         }
 
         void Advance(size_t bytes) {
@@ -803,4 +803,4 @@ namespace NYT {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-}
+} // namespace NYson

@@ -31,7 +31,7 @@ namespace NCatboostOptions {
 }
 
 namespace NPar {
-    class TLocalExecutor;
+    class ILocalExecutor;
 }
 
 
@@ -52,15 +52,16 @@ public:
     // objectsData must be from the corresponding source data for this split
     TSplit GetSplit(
         int binId,
-        const NCB::TQuantizedForCPUObjectsDataProvider& objectsData,
+        const NCB::TQuantizedObjectsDataProvider& objectsData,
         ui32 oneHotMaxSize
     ) const;
 };
 
 struct TCandidatesInfoList {
     TCandidatesInfoList() = default;
-    explicit TCandidatesInfoList(const TCandidateInfo& oneCandidate) {
-        Candidates.emplace_back(oneCandidate);
+    explicit TCandidatesInfoList(TCandidateInfo&& oneCandidate)
+    : Candidates{std::move(oneCandidate)}
+    {
     }
 
     SAVELOAD(Candidates, ShouldDropCtrAfterCalc);
@@ -76,7 +77,7 @@ public:
 using TCandidateList = TVector<TCandidatesInfoList>;
 
 struct TCandidatesContext {
-    NCB::TQuantizedForCPUObjectsDataProviderPtr LearnData;
+    NCB::TQuantizedObjectsDataProviderPtr LearnData;
 
     ui32 OneHotMaxSize; // needed to select for which categorical features in bundles to calc stats
     TConstArrayRef<NCB::TExclusiveFeaturesBundle> BundlesMetaData;
@@ -92,11 +93,11 @@ struct TCandidatesContext {
 void Bootstrap(
     const NCatboostOptions::TCatBoostOptions& params,
     bool hasOfflineEstimatedFeatures,
-    const TVector<TIndexType>& indices,
+    TConstArrayRef<TIndexType> indices,
     const TVector<TVector<TVector<double>>>& leafValues,
     TFold* fold,
     TCalcScoreFold* sampledDocs,
-    NPar::TLocalExecutor* localExecutor,
+    NPar::ILocalExecutor* localExecutor,
     TRestorableFastRng64* rand,
     bool shouldSortByLeaf = false,
     ui32 leavesCount = 0
@@ -113,12 +114,20 @@ void CalcWeightedDerivatives(
     const NCatboostOptions::TCatBoostOptions& params,
     ui64 randomSeed,
     TFold* takenFold,
-    NPar::TLocalExecutor* localExecutor
+    NPar::ILocalExecutor* localExecutor
 );
+
+inline ERandomScoreDistribution GetScoreDistribution(ERandomScoreType randomScoreType) {
+    return randomScoreType == ERandomScoreType::NormalWithModelSizeDecrease
+        ? ERandomScoreDistribution::Normal
+        : ERandomScoreDistribution::Gumbel;
+}
+
 
 void SetBestScore(
     ui64 randSeed,
     const TVector<TVector<double>>& allScores,
+    ERandomScoreDistribution scoreDistribution,
     double scoreStDev,
     const TCandidatesContext& candidatesContext, // candidates from it is not used, subcan
     TVector<TCandidateInfo>* subcandidates

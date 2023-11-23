@@ -1,6 +1,6 @@
 /**/#include "gather_bins.cuh"
 #include <catboost/cuda/cuda_util/kernel/kernel_helpers.cuh>
-#include <library/cuda/wrappers/arch.cuh>
+#include <library/cpp/cuda/wrappers/arch.cuh>
 #include <cooperative_groups.h>
 
 
@@ -90,6 +90,9 @@ namespace NKernel {
                 const int maxBlocksPerGpu = blocksPerSm * TArchProps::SMCount();\
                 const int mult = partCount > 1 ? 2 : 1;\
                 numBlocks.x = CeilDivide(mult * maxBlocksPerGpu, (int) (numBlocks.y * numBlocks.z));\
+                if (IsGridEmpty(numBlocks)) {\
+                    return;\
+                }\
                 GatherCompressedIndexImpl<K, Unroll> <<< numBlocks, blockSize, 0, stream >>> (feature, featuresPerBlock, groupCount, parts, partIds, \
                                                                                               indices,  cindex, gatheredIndexLineSize, gatheredIndex);
 //            if (groupCount > 4) {
@@ -192,6 +195,9 @@ namespace NKernel {
             const int maxBlocksPerGpu = blocksPerSm * TArchProps::SMCount();\
             const int mult = 1;\
             numBlocks.x = CeilDivide(mult * maxBlocksPerGpu, (int) (numBlocks.y * numBlocks.z));\
+            if (IsGridEmpty(numBlocks)) {\
+                return;\
+            }\
             GatherCompressedIndexSingleLeafImpl<K, Unroll> <<< numBlocks, blockSize, 0, stream >>> (feature, featuresPerBlock, groupCount, parts, partId, \
             indices,  cindex, gatheredIndexLineSize, gatheredIndex);
 

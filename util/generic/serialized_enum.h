@@ -29,8 +29,7 @@ in your ya.make
  * @tparam EnumT     enum type
  */
 template <typename EnumT>
-Y_CONST_FUNCTION
-constexpr size_t GetEnumItemsCount();
+Y_CONST_FUNCTION constexpr size_t GetEnumItemsCount();
 
 namespace NEnumSerializationRuntime {
     namespace NDetail {
@@ -82,6 +81,14 @@ namespace NEnumSerializationRuntime {
      */
     template <typename EnumT>
     const TVector<TString>& GetEnumAllCppNamesImpl();
+
+    /**
+     * Converts @c e to a string. Works like @c ToString(e) function, but returns @c TStringBuf instead of @c TString.
+     * Thus works slightly faster and usually avoids any dynamic memory allocation.
+     * @throw yexception is case of unknown enum value
+     */
+    template <typename EnumT>
+    TStringBuf ToStringBuf(EnumT e);
 }
 
 /**
@@ -90,8 +97,7 @@ namespace NEnumSerializationRuntime {
  * @tparam EnumT     enum type
  */
 template <typename EnumT>
-Y_CONST_FUNCTION
-::NEnumSerializationRuntime::TMappedDictView<EnumT, TString> GetEnumNames() {
+Y_CONST_FUNCTION ::NEnumSerializationRuntime::TMappedDictView<EnumT, TString> GetEnumNames() {
     return ::NEnumSerializationRuntime::GetEnumNamesImpl<EnumT>();
 }
 
@@ -101,8 +107,7 @@ Y_CONST_FUNCTION
  * @tparam EnumT     enum type
  */
 template <typename EnumT>
-Y_CONST_FUNCTION
-::NEnumSerializationRuntime::TMappedArrayView<EnumT> GetEnumAllValues() {
+Y_CONST_FUNCTION ::NEnumSerializationRuntime::TMappedArrayView<EnumT> GetEnumAllValues() {
     return ::NEnumSerializationRuntime::GetEnumAllValuesImpl<EnumT>();
 }
 
@@ -112,8 +117,7 @@ Y_CONST_FUNCTION
  * @tparam EnumT     enum type
  */
 template <typename EnumT>
-Y_CONST_FUNCTION
-const TString& GetEnumAllNames() {
+Y_CONST_FUNCTION const TString& GetEnumAllNames() {
     return ::NEnumSerializationRuntime::GetEnumAllNamesImpl<EnumT>();
 }
 
@@ -123,8 +127,7 @@ const TString& GetEnumAllNames() {
  * @tparam EnumT     enum type
  */
 template <typename EnumT>
-Y_CONST_FUNCTION
-const TVector<TString>& GetEnumAllCppNames() {
+Y_CONST_FUNCTION const TVector<TString>& GetEnumAllCppNames() {
     return ::NEnumSerializationRuntime::GetEnumAllCppNamesImpl<EnumT>();
 }
 
@@ -252,8 +255,7 @@ namespace NEnumSerializationRuntime {
                 return Ref.size();
             }
 
-            Y_PURE_FUNCTION
-            bool empty() const {
+            Y_PURE_FUNCTION bool empty() const {
                 return Ref.empty();
             }
 
@@ -376,8 +378,7 @@ namespace NEnumSerializationRuntime {
                 return Ref.size();
             }
 
-            Y_PURE_FUNCTION
-            bool empty() const {
+            Y_PURE_FUNCTION bool empty() const {
                 return Ref.empty();
             }
 

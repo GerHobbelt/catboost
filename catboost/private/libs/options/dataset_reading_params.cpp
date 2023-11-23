@@ -12,17 +12,20 @@ using namespace NCB;
 void NCatboostOptions::TDatasetReadingParams::BindParserOpts(NLastGetopt::TOpts* parser) {
     BindColumnarPoolFormatParams(parser, &ColumnarPoolFormatParams);
     parser->AddLongOption("input-path", "input path")
-        .DefaultValue("input.tsv")
         .Handler1T<TStringBuf>([&](const TStringBuf& pathWithScheme) {
             PoolPath = TPathWithScheme(pathWithScheme, "dsv");
         });
     parser->AddLongOption("input-pairs", "PATH")
         .Handler1T<TStringBuf>([&](const TStringBuf& pathWithScheme) {
-            PairsFilePath = TPathWithScheme(pathWithScheme, "dsv");
+            PairsFilePath = TPathWithScheme(pathWithScheme, "dsv-flat");
         });
     parser->AddLongOption("feature-names-path", "PATH")
         .Handler1T<TStringBuf>([&](const TStringBuf& pathWithScheme) {
             FeatureNamesPath = TPathWithScheme(pathWithScheme, "dsv");
+        });
+    parser->AddLongOption("pool-metainfo-path", "PATH")
+        .Handler1T<TStringBuf>([&](const TStringBuf& pathWithScheme) {
+            PoolMetaInfoPath = TPathWithScheme(pathWithScheme);
         });
 }
 

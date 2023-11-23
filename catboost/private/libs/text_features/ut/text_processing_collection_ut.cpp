@@ -2,10 +2,9 @@
 #include <catboost/private/libs/text_features/text_processing_collection.h>
 
 #include <catboost/private/libs/text_features/bow.h>
-#include <catboost/private/libs/text_processing/embedding.h>
 #include <catboost/private/libs/text_processing/text_column_builder.h>
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 
 using namespace NCB;
 using namespace NCBTest;
@@ -72,7 +71,7 @@ static void AssertApplyEqual(
 
 static void AssertAllApplyEqual(
     const TVector<TTextFeature>& features,
-    const TVector<TTokenizedTextFeature>& tokenizedTextFeatures,
+    const TMap<ui32, TTokenizedTextFeature>& tokenizedTextFeatures,
     const TVector<TVector<ui32>>& perFeatureDigitizers,
     const TVector<TVector<ui32>>& perTokenizedFeatureCalcers,
     const TVector<TTextFeatureCalcerPtr>& calcers,
@@ -85,7 +84,7 @@ static void AssertAllApplyEqual(
             for (ui32 calcerId : perTokenizedFeatureCalcers[tokenizedFeatureId]) {
                 AssertApplyEqual(
                     features[featureId],
-                    tokenizedTextFeatures[tokenizedFeatureId],
+                    tokenizedTextFeatures.at(tokenizedFeatureId + features.size()),
                     TTextProcessingIdx{ featureId, digitizerId, calcerId },
                     calcers[calcerId],
                     collection
@@ -138,7 +137,7 @@ Y_UNIT_TEST_SUITE(TestTextProcessingCollection) {
 
     Y_UNIT_TEST(TestApply) {
         TVector<TTextFeature> features;
-        TVector<TTokenizedTextFeature> tokenizedFeatures;
+        TMap<ui32, TTokenizedTextFeature> tokenizedFeatures;
         TVector<TDigitizer> digitizers;
         TVector<TTextFeatureCalcerPtr> calcers;
         TVector<TVector<ui32>> perFeatureDigitizers;
@@ -172,7 +171,7 @@ Y_UNIT_TEST_SUITE(TestTextProcessingCollection) {
 
     Y_UNIT_TEST(TestSerialization) {
         TVector<TTextFeature> features;
-        TVector<TTokenizedTextFeature> tokenizedFeatures;
+        TMap<ui32, TTokenizedTextFeature> tokenizedFeatures;
         TVector<TDigitizer> digitizers;
         TVector<TTextFeatureCalcerPtr> calcers;
         TVector<TVector<ui32>> perFeatureDigitizers;

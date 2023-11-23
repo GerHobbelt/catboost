@@ -79,7 +79,7 @@ static void ReadDatasetParts(
     TConstArrayRef<NCatboostOptions::TLossDescription> metricDescriptions,
     const TFullModel& model,
     TRestorableFastRng64* rand,
-    NPar::TLocalExecutor* executor,
+    NPar::ILocalExecutor* executor,
     TVector<TProcessedDataProvider>* processedDatasetParts) {
 
     processedDatasetParts->clear();
@@ -127,6 +127,7 @@ int mode_eval_metrics(int argc, const char* argv[]) {
     }
     TSetLoggingVerboseOrSilent inThisScope(verbose);
 
+    params.DatasetReadingParams.ForceUnitAutoPairWeights = false;
     params.DatasetReadingParams.ValidatePoolParams();
 
     TFullModel model = ReadModel(params.ModelFileName, params.ModelFormat);

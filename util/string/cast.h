@@ -2,6 +2,7 @@
 
 #include <util/system/defaults.h>
 #include <util/stream/str.h>
+#include <util/generic/maybe.h>
 #include <util/generic/string.h>
 #include <util/generic/strbuf.h>
 #include <util/generic/typetraits.h>
@@ -147,7 +148,7 @@ inline T FromString(const TChar* data, size_t len) {
 
 template <typename T, typename TChar>
 inline T FromString(const TChar* data) {
-    return ::FromString<T>(data, TCharTraits<TChar>::GetLength(data));
+    return ::FromString<T>(data, std::char_traits<TChar>::length(data));
 }
 
 template <class T>
@@ -157,6 +158,11 @@ inline T FromString(const TStringBuf& s) {
 
 template <class T>
 inline T FromString(const TString& s) {
+    return ::FromString<T>(s.data(), s.size());
+}
+
+template <class T>
+inline T FromString(const std::string& s) {
     return ::FromString<T>(s.data(), s.size());
 }
 
@@ -202,7 +208,7 @@ inline ::NPrivate::TFromString<TChar> FromString(const TChar* data, size_t len) 
 
 template <typename TChar>
 inline ::NPrivate::TFromString<TChar> FromString(const TChar* data) {
-    return ::NPrivate::TFromString<TChar>(data, TCharTraits<TChar>::GetLength(data));
+    return ::NPrivate::TFromString<TChar>(data, std::char_traits<TChar>::length(data));
 }
 
 template <typename T>
@@ -228,7 +234,7 @@ inline bool TryFromString(const TChar* data, size_t len, T& result) {
 
 template <typename T, typename TChar>
 inline bool TryFromString(const TChar* data, T& result) {
-    return TryFromString<T>(data, TCharTraits<TChar>::GetLength(data), result);
+    return TryFromString<T>(data, std::char_traits<TChar>::length(data), result);
 }
 
 template <class T, class TChar>
@@ -251,6 +257,11 @@ inline bool TryFromString(const TString& s, T& result) {
 }
 
 template <class T>
+inline bool TryFromString(const std::string& s, T& result) {
+    return TryFromString<T>(s.data(), s.size(), result);
+}
+
+template <class T>
 inline bool TryFromString(const TWtringBuf& s, T& result) {
     return TryFromString<T>(s.data(), s.size(), result);
 }
@@ -258,6 +269,36 @@ inline bool TryFromString(const TWtringBuf& s, T& result) {
 template <class T>
 inline bool TryFromString(const TUtf16String& s, T& result) {
     return TryFromString<T>(s.data(), s.size(), result);
+}
+
+template <class T, class TChar>
+inline TMaybe<T> TryFromString(TBasicStringBuf<TChar> s) {
+    TMaybe<T> result{NMaybe::TInPlace{}};
+    if (!TryFromString<T>(s, *result)) {
+        result.Clear();
+    }
+
+    return result;
+}
+
+template <class T, class TChar>
+inline TMaybe<T> TryFromString(const TChar* data) {
+    return TryFromString<T>(TBasicStringBuf<TChar>(data));
+}
+
+template <class T>
+inline TMaybe<T> TryFromString(const TString& s) {
+    return TryFromString<T>(TStringBuf(s));
+}
+
+template <class T>
+inline TMaybe<T> TryFromString(const std::string& s) {
+    return TryFromString<T>(TStringBuf(s));
+}
+
+template <class T>
+inline TMaybe<T> TryFromString(const TUtf16String& s) {
+    return TryFromString<T>(TWtringBuf(s));
 }
 
 template <class T, class TStringType>
@@ -326,7 +367,7 @@ TInt IntFromString(const TChar* str, size_t len);
 
 template <class TInt, int base, class TChar>
 inline TInt IntFromString(const TChar* str) {
-    return IntFromString<TInt, base>(str, TCharTraits<TChar>::GetLength(str));
+    return IntFromString<TInt, base>(str, std::char_traits<TChar>::length(str));
 }
 
 template <class TInt, int base, class TStringType>
@@ -345,3 +386,94 @@ static inline TUtf16String ToWtring(const TWtringBuf wtr) {
 static inline TUtf32String ToUtf32String(const TUtf32StringBuf wtr) {
     return TUtf32String(wtr);
 }
+
+template <typename T, unsigned radix = 10, class TChar = char>
+class TIntStringBuf {
+private:
+    // inline constexprs are not supported by CUDA yet
+    static constexpr char IntToChar[16] = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
+    static_assert(1 < radix && radix < 17, "expect 1 < radix && radix < 17");
+
+    // auxiliary recursive template used to calculate maximum buffer size for the given type
+    template <T v>
+    struct TBufSizeRec {
+        // MSVC is tries to evaluate both sides of ?: operator and doesn't break recursion
+        static constexpr ui32 GetValue() {
+            if (v == 0) {
+                return 1;
+            }
+            return 1 + TBufSizeRec<v / radix>::value;
+        }
+
+        static constexpr ui32 value = GetValue();
+    };
+
+public:
+    static constexpr ui32 bufferSize = (std::is_signed<T>::value ? 1 : 0) +
+                                       ((radix == 2) ? sizeof(T) * 8 : TBufSizeRec<std::numeric_limits<T>::max()>::value);
+
+    template <std::enable_if_t<std::is_integral<T>::value, bool> = true>
+    explicit constexpr TIntStringBuf(T t) {
+        Size_ = Convert(t, Buf_, sizeof(Buf_));
+#if __cplusplus >= 202002L // is_constant_evaluated is not supported by CUDA yet
+        if (std::is_constant_evaluated()) {
+#endif
+            // Init the rest of the array,
+            // otherwise constexpr copy and move constructors don't work due to uninitialized data access
+            std::fill(Buf_ + Size_, Buf_ + sizeof(Buf_), '\0');
+#if __cplusplus >= 202002L
+        }
+#endif
+    }
+
+    constexpr operator TStringBuf() const noexcept {
+        return TStringBuf(Buf_, Size_);
+    }
+
+    constexpr static ui32 Convert(T t, TChar* buf, size_t bufLen) {
+        bufLen = std::min<size_t>(bufferSize, bufLen);
+        if (std::is_signed<T>::value && t < 0) {
+            Y_ENSURE(bufLen >= 2, TStringBuf("not enough room in buffer"));
+            buf[0] = '-';
+            const auto mt = std::make_unsigned_t<T>(-(t + 1)) + std::make_unsigned_t<T>(1);
+            return ConvertUnsigned(mt, &buf[1], bufLen - 1) + 1;
+        } else {
+            return ConvertUnsigned(t, buf, bufLen);
+        }
+    }
+
+private:
+    constexpr static ui32 ConvertUnsigned(typename std::make_unsigned<T>::type t, TChar* buf, ui32 bufLen) {
+        Y_ENSURE(bufLen, TStringBuf("zero length"));
+
+        if (t == 0) {
+            *buf = '0';
+            return 1;
+        }
+        auto* be = buf + bufLen;
+        ui32 l = 0;
+        while (t > 0 && be > buf) {
+            const auto v = t / radix;
+            const auto r = (radix == 2 || radix == 4 || radix == 8 || radix == 16) ? t & (radix - 1) : t - radix * v;
+            --be;
+            if /*constexpr*/ (radix <= 10) { // if constexpr is not supported by CUDA yet
+                *be = r + '0';
+            } else {
+                *be = IntToChar[r];
+            }
+            ++l;
+            t = v;
+        }
+        Y_ENSURE(!t, TStringBuf("not enough room in buffer"));
+        if (buf != be) {
+            for (ui32 i = 0; i < l; ++i) {
+                *buf = *be;
+                ++buf;
+                ++be;
+            }
+        }
+        return l;
+    }
+    ui32 Size_;
+    TChar Buf_[bufferSize];
+};

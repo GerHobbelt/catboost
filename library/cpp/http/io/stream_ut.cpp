@@ -3,8 +3,8 @@
 
 #include <library/cpp/http/server/http_ex.h>
 
-#include <library/cpp/unittest/registar.h>
-#include <library/cpp/unittest/tests_data.h>
+#include <library/cpp/testing/unittest/registar.h>
+#include <library/cpp/testing/unittest/tests_data.h>
 
 #include <util/string/printf.h>
 #include <util/network/socket.h>
@@ -355,7 +355,7 @@ Y_UNIT_TEST_SUITE(THttpStreamTest) {
         size_t bodyPos = str.find(bodyDelimiter);
         UNIT_ASSERT(bodyPos != TString::npos);
         return str.substr(bodyPos + strlen(bodyDelimiter));
-    };
+    }
 
     TString SimulateBodyEncoding(const char* body) {
         TString bodyStr;
@@ -364,7 +364,7 @@ Y_UNIT_TEST_SUITE(THttpStreamTest) {
         TZLibCompress comprOut(&chunkOut, ZLib::GZip);
         comprOut << body;
         return bodyStr;
-    };
+    }
 
     Y_UNIT_TEST(TestRebuildStreamOnPost) {
         const char* body = "<html>Hello</html>";
@@ -634,7 +634,7 @@ Y_UNIT_TEST_SUITE(THttpStreamTest) {
             }
 
         private:
-            TString Data_{AsStringBuf("HEAD / HTTP/1.1\r\nHost: yandex.ru\r\n\r\n")};
+            TString Data_{TStringBuf("HEAD / HTTP/1.1\r\nHost: yandex.ru\r\n\r\n")};
             size_t Pos_{0};
             bool Eof_{false};
         };
@@ -662,7 +662,7 @@ Y_UNIT_TEST_SUITE(THttpStreamTest) {
         out << "";
         out.Finish();
         TString result = outBuf.Str();
-        UNIT_ASSERT(!result.Contains(AsStringBuf("0\r\n")));
+        UNIT_ASSERT(!result.Contains(TStringBuf("0\r\n")));
     }
 
     Y_UNIT_TEST(TestHttpOutputDisableCompressionHeader) {

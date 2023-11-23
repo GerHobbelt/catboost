@@ -7,8 +7,10 @@
 #include <memory>
 #include <string>
 #include <vector>
+#include <utility>
 
-#include "util/test.h"
+#include "absl/base/macros.h"
+#include "gtest/gtest.h"
 #include "util/logging.h"
 #include "re2/filtered_re2.h"
 #include "re2/re2.h"
@@ -19,7 +21,7 @@ struct FilterTestVars {
   FilterTestVars() {}
   explicit FilterTestVars(int min_atom_len) : f(min_atom_len) {}
 
-  std::vector<string> atoms;
+  std::vector<std::string> atoms;
   std::vector<int> atom_indices;
   std::vector<int> matches;
   RE2::Options opts;
@@ -105,12 +107,13 @@ AtomTest atom_tests[] = {
     // substring in an OR are removed; that is, only the shortest
     // substring is kept.
     "SubstrAtomRemovesSuperStrInOr", {
-      "(abc123|abc|ghi789|abc1234).*[x-z]+",
+      "(abc123|abc|defxyz|ghi789|abc1234|xyz).*[x-z]+",
       "abcd..yyy..yyyzzz",
       "mnmnpp[a-z]+PPP"
     }, {
       "abc",
       "ghi789",
+      "xyz",
       "abcd",
       "yyy",
       "yyyzzz",
@@ -144,9 +147,9 @@ AtomTest atom_tests[] = {
 };
 
 void AddRegexpsAndCompile(const char* regexps[],
-                          int n,
+                          size_t n,
                           struct FilterTestVars* v) {
-  for (int i = 0; i < n; i++) {
+  for (size_t i = 0; i < n; i++) {
     int id;
     v->f.Add(regexps[i], v->opts, &id);
   }
@@ -154,18 +157,18 @@ void AddRegexpsAndCompile(const char* regexps[],
 }
 
 bool CheckExpectedAtoms(const char* atoms[],
-                        int n,
+                        size_t n,
                         const char* testname,
                         struct FilterTestVars* v) {
-  std::vector<string> expected;
-  for (int i = 0; i < n; i++)
+  std::vector<std::string> expected;
+  for (size_t i = 0; i < n; i++)
     expected.push_back(atoms[i]);
 
   bool pass = expected.size() == v->atoms.size();
 
   std::sort(v->atoms.begin(), v->atoms.end());
   std::sort(expected.begin(), expected.end());
-  for (int i = 0; pass && i < n; i++)
+  for (size_t i = 0; pass && i < n; i++)
       pass = pass && expected[i] == v->atoms[i];
 
   if (!pass) {
@@ -183,14 +186,14 @@ bool CheckExpectedAtoms(const char* atoms[],
 
 TEST(FilteredRE2Test, AtomTests) {
   int nfail = 0;
-  for (int i = 0; i < arraysize(atom_tests); i++) {
+  for (size_t i = 0; i < ABSL_ARRAYSIZE(atom_tests); i++) {
     FilterTestVars v;
     AtomTest* t = &atom_tests[i];
-    int natom, nregexp;
-    for (nregexp = 0; nregexp < arraysize(t->regexps); nregexp++)
+    size_t nregexp, natom;
+    for (nregexp = 0; nregexp < ABSL_ARRAYSIZE(t->regexps); nregexp++)
       if (t->regexps[nregexp] == NULL)
         break;
-    for (natom = 0; natom < arraysize(t->atoms); natom++)
+    for (natom = 0; natom < ABSL_ARRAYSIZE(t->atoms); natom++)
       if (t->atoms[natom] == NULL)
         break;
     AddRegexpsAndCompile(t->regexps, nregexp, &v);
@@ -200,8 +203,8 @@ TEST(FilteredRE2Test, AtomTests) {
   EXPECT_EQ(0, nfail);
 }
 
-void FindAtomIndices(const std::vector<string>& atoms,
-                     const std::vector<string>& matched_atoms,
+void FindAtomIndices(const std::vector<std::string>& atoms,
+                     const std::vector<std::string>& matched_atoms,
                      std::vector<int>* atom_indices) {
   atom_indices->clear();
   for (size_t i = 0; i < matched_atoms.size(); i++) {
@@ -220,13 +223,13 @@ TEST(FilteredRE2Test, MatchEmptyPattern) {
   // We are using the regexps used in one of the atom tests
   // for this test. Adding the EXPECT here to make sure
   // the index we use for the test is for the correct test.
-  EXPECT_EQ("CheckEmptyPattern", string(t->testname));
-  int nregexp;
-  for (nregexp = 0; nregexp < arraysize(t->regexps); nregexp++)
+  EXPECT_EQ("CheckEmptyPattern", std::string(t->testname));
+  size_t nregexp;
+  for (nregexp = 0; nregexp < ABSL_ARRAYSIZE(t->regexps); nregexp++)
     if (t->regexps[nregexp] == NULL)
       break;
   AddRegexpsAndCompile(t->regexps, nregexp, &v);
-  string text = "0123";
+  std::string text = "0123";
   std::vector<int> atom_ids;
   std::vector<int> matching_regexps;
   EXPECT_EQ(0, v.f.FirstMatch(text, atom_ids));
@@ -237,17 +240,17 @@ TEST(FilteredRE2Test, MatchTests) {
   AtomTest* t = &atom_tests[2];
   // We are using the regexps used in one of the atom tests
   // for this test.
-  EXPECT_EQ("SubstrAtomRemovesSuperStrInOr", string(t->testname));
-  int nregexp;
-  for (nregexp = 0; nregexp < arraysize(t->regexps); nregexp++)
+  EXPECT_EQ("SubstrAtomRemovesSuperStrInOr", std::string(t->testname));
+  size_t nregexp;
+  for (nregexp = 0; nregexp < ABSL_ARRAYSIZE(t->regexps); nregexp++)
     if (t->regexps[nregexp] == NULL)
       break;
   AddRegexpsAndCompile(t->regexps, nregexp, &v);
 
-  string text = "abc121212xyz";
+  std::string text = "abc121212xyz";
   // atoms = abc
   std::vector<int> atom_ids;
-  std::vector<string> atoms;
+  std::vector<std::string> atoms;
   atoms.push_back("abc");
   FindAtomIndices(v.atoms, atoms, &atom_ids);
   std::vector<int> matching_regexps;
@@ -275,6 +278,65 @@ TEST(FilteredRE2Test, MatchTests) {
     LOG(INFO) << "i: " << i << " : " << atom_ids[i];
   v.f.AllMatches(text, atom_ids, &matching_regexps);
   EXPECT_EQ(2, matching_regexps.size());
+}
+
+TEST(FilteredRE2Test, EmptyStringInStringSetBug) {
+  // Bug due to find() finding "" at the start of everything in a string
+  // set and thus SimplifyStringSet() would end up erasing everything.
+  // In order to test this, we have to keep PrefilterTree from discarding
+  // the OR entirely, so we have to make the minimum atom length zero.
+
+  FilterTestVars v(0);  // override the minimum atom length
+  const char* regexps[] = {"-R.+(|ADD=;AA){12}}"};
+  const char* atoms[] = {"", "-r", "add=;aa", "}"};
+  AddRegexpsAndCompile(regexps, ABSL_ARRAYSIZE(regexps), &v);
+  EXPECT_TRUE(CheckExpectedAtoms(atoms, ABSL_ARRAYSIZE(atoms),
+                                 "EmptyStringInStringSetBug", &v));
+}
+
+TEST(FilteredRE2Test, MoveSemantics) {
+  FilterTestVars v1;
+  int id;
+  v1.f.Add("foo\\d+", v1.opts, &id);
+  EXPECT_EQ(0, id);
+  v1.f.Compile(&v1.atoms);
+  EXPECT_EQ(1, v1.atoms.size());
+  EXPECT_EQ("foo", v1.atoms[0]);
+  v1.f.AllMatches("abc foo1 xyz", {0}, &v1.matches);
+  EXPECT_EQ(1, v1.matches.size());
+  EXPECT_EQ(0, v1.matches[0]);
+  v1.f.AllMatches("abc bar2 xyz", {0}, &v1.matches);
+  EXPECT_EQ(0, v1.matches.size());
+
+  // The moved-to object should do what the moved-from object did.
+  FilterTestVars v2;
+  v2.f = std::move(v1.f);
+  v2.f.AllMatches("abc foo1 xyz", {0}, &v2.matches);
+  EXPECT_EQ(1, v2.matches.size());
+  EXPECT_EQ(0, v2.matches[0]);
+  v2.f.AllMatches("abc bar2 xyz", {0}, &v2.matches);
+  EXPECT_EQ(0, v2.matches.size());
+
+  // The moved-from object should have been reset and be reusable.
+  v1.f.Add("bar\\d+", v1.opts, &id);
+  EXPECT_EQ(0, id);
+  v1.f.Compile(&v1.atoms);
+  EXPECT_EQ(1, v1.atoms.size());
+  EXPECT_EQ("bar", v1.atoms[0]);
+  v1.f.AllMatches("abc foo1 xyz", {0}, &v1.matches);
+  EXPECT_EQ(0, v1.matches.size());
+  v1.f.AllMatches("abc bar2 xyz", {0}, &v1.matches);
+  EXPECT_EQ(1, v1.matches.size());
+  EXPECT_EQ(0, v1.matches[0]);
+
+  // Verify that "overwriting" works and also doesn't leak memory.
+  // (The latter will need a leak detector such as LeakSanitizer.)
+  v1.f = std::move(v2.f);
+  v1.f.AllMatches("abc foo1 xyz", {0}, &v1.matches);
+  EXPECT_EQ(1, v1.matches.size());
+  EXPECT_EQ(0, v1.matches[0]);
+  v1.f.AllMatches("abc bar2 xyz", {0}, &v1.matches);
+  EXPECT_EQ(0, v1.matches.size());
 }
 
 }  //  namespace re2

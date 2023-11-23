@@ -3,7 +3,7 @@
 #include <util/string/vector.h>
 #include <util/string/printf.h>
 
-namespace NYT {
+namespace NYson {
     ////////////////////////////////////////////////////////////////////////////////
 
     ETokenType CharToTokenType(char ch) {
@@ -72,12 +72,12 @@ namespace NYT {
             case ETokenType::Comma:
                 return ',';
             default:
-                Y_FAIL("unreachable");
+                Y_ABORT("unreachable");
         }
     }
 
     TString TokenTypeToString(ETokenType type) {
-        return TString(TokenTypeToChar(type));
+        return TString(1, TokenTypeToChar(type));
     }
 
     ////////////////////////////////////////////////////////////////////////////////
@@ -106,7 +106,7 @@ namespace NYT {
             case ETokenType::Uint64:
             case ETokenType::Double:
             case ETokenType::Boolean:
-                Y_FAIL("unreachable");
+                Y_ABORT("unreachable");
             default:
                 break;
         }
@@ -233,4 +233,4 @@ namespace NYT {
 
     ////////////////////////////////////////////////////////////////////////////////
 
-}
+} // namespace NYson

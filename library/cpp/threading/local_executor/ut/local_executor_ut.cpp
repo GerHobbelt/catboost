@@ -1,7 +1,7 @@
 #include <library/cpp/threading/local_executor/local_executor.h>
 #include <library/cpp/threading/future/future.h>
 
-#include <library/cpp/unittest/registar.h>
+#include <library/cpp/testing/unittest/registar.h>
 #include <util/system/mutex.h>
 #include <util/system/rwlock.h>
 #include <util/generic/algorithm.h>
@@ -233,7 +233,6 @@ Y_UNIT_TEST(RunOneAndCheckExceptionsWithWaitCompleteZeroExtraThreads) {
     RunRangeAndCheckExceptionsWithWaitComplete(1, 0);
 }
 }
-;
 
 Y_UNIT_TEST_SUITE(ExecRangeWithThrow){
     void RunParallelWhichThrowsTTestException(int rangeStart, int rangeSize, int threadsCount, int flags, TAtomic& processed){
@@ -323,7 +322,6 @@ Y_UNIT_TEST(NestedParallelExceptionsDoNotLeak) {
     UNIT_ASSERT_EQUAL(AtomicGet(processed2), DefaultRangeSize);
 }
 }
-;
 
 Y_UNIT_TEST_SUITE(ExecLargeRangeWithThrow){
 
@@ -368,4 +366,4 @@ Y_UNIT_TEST_SUITE(ExecLargeRangeWithThrow){
             TTestException
         );
     }
-};
+}

@@ -28,6 +28,10 @@ namespace NCatboostOptions {
 
         NCB::TPathWithScheme PairsFilePath;
         NCB::TPathWithScheme FeatureNamesPath;
+        NCB::TPathWithScheme PoolMetaInfoPath;
+
+        bool LoadSampleIds = false;
+        bool ForceUnitAutoPairWeights = false;
 
         TVector<ui32> IgnoredFeatures;
     };

@@ -16,8 +16,8 @@ namespace NCatboostCuda {
      */
     class TDocParallelLeavesEstimator {
     public:
-        TDocParallelLeavesEstimator(const TLeavesEstimationConfig& leavesEstimationConfig)
-            : LeavesEstimationConfig(leavesEstimationConfig)
+        TDocParallelLeavesEstimator(const TLeavesEstimationConfig& leavesEstimationConfig, TGpuAwareRandom& random)
+            : LeavesEstimationConfig(leavesEstimationConfig), Random(random)
         {
         }
 
@@ -30,12 +30,12 @@ namespace NCatboostCuda {
             task.Model = model;
             task.Cursor = std::move(cursor);
             task.DataSet = &dataSet;
-            task.DerCalcerFactory = new TOracleFactory<TTarget>(target);
+            task.DerCalcerFactory = MakeHolder<TOracleFactory<TTarget>>(target);
             Tasks.push_back(std::move(task));
             return *this;
         }
 
-        void Estimate(NPar::TLocalExecutor* localExecutor) {
+        void Estimate(NPar::ILocalExecutor* localExecutor) {
             for (ui32 taskId = 0; taskId < Tasks.size(); ++taskId) {
                 Estimate(taskId, localExecutor);
             }
@@ -52,10 +52,11 @@ namespace NCatboostCuda {
     private:
         THolder<ILeavesEstimationOracle> CreateDerCalcer(const TTask& task);
 
-        void Estimate(ui32 taskId, NPar::TLocalExecutor* localExecutor);
+        void Estimate(ui32 taskId, NPar::ILocalExecutor* localExecutor);
 
     private:
         TLeavesEstimationConfig LeavesEstimationConfig;
         TVector<TTask> Tasks;
+        TGpuAwareRandom& Random;
     };
 }

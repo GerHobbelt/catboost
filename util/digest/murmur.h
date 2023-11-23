@@ -8,11 +8,9 @@
  *
  */
 namespace NMurmurPrivate {
-    Y_PURE_FUNCTION
-    ui32 MurmurHash32(const void* key, size_t len, ui32 seed) noexcept;
+    Y_PURE_FUNCTION ui32 MurmurHash32(const void* key, size_t len, ui32 seed) noexcept;
 
-    Y_PURE_FUNCTION
-    ui64 MurmurHash64(const void* key, size_t len, ui64 seed) noexcept;
+    Y_PURE_FUNCTION ui64 MurmurHash64(const void* key, size_t len, ui64 seed) noexcept;
 
     template <unsigned N>
     struct TMurHelper;
@@ -32,17 +30,14 @@ namespace NMurmurPrivate {
 }
 
 template <class T>
-static inline T MurmurHash(const void* buf, size_t len, T init) noexcept {
+inline T MurmurHash(const void* buf, size_t len, T init) noexcept {
     return (T)NMurmurPrivate::TMurHelper<8 * sizeof(T)>::MurmurHash(buf, len, init);
 }
 
 template <class T>
-static inline T MurmurHash(const void* buf, size_t len) noexcept {
+inline T MurmurHash(const void* buf, size_t len) noexcept {
     return MurmurHash<T>(buf, len, (T)0);
 }
-
-//non-inline version
-size_t MurmurHashSizeT(const char* buf, size_t len) noexcept;
 
 template <typename TOut = size_t>
 struct TMurmurHash {

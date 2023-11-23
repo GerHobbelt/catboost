@@ -59,20 +59,23 @@ TVector<TVector<TFloatFeatureBucketRange>> CalculateBucketRangesAndWeightsOblivi
         const TVector<ui32>& borderIdxForSplit,
         const TVector<double>& leafWeights,
         TVector<double>* leafWeightsNew,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
 ) {
+    CB_ENSURE_INTERNAL(model.IsOblivious(), "Partial dependence is supported only for symmetric trees");
+
     const auto& binSplits = model.ModelTrees->GetBinFeatures();
-    const auto& treeSplitOffsets = model.ModelTrees->GetTreeStartOffsets();
-    const auto& leafOffsets = model.ModelTrees->GetFirstLeafOffsets();
-    const auto& treeSizes = model.ModelTrees->GetTreeSizes();
-    const auto& treeSplits = model.ModelTrees->GetTreeSplits();
-    size_t leafNum = model.ModelTrees->GetLeafValues().size();
+    const auto& treeSplitOffsets = model.ModelTrees->GetModelTreeData()->GetTreeStartOffsets();
+    auto applyData = model.ModelTrees->GetApplyData();
+    const auto& leafOffsets = applyData->TreeFirstLeafOffsets;
+    const auto& treeSizes = model.ModelTrees->GetModelTreeData()->GetTreeSizes();
+    const auto& treeSplits = model.ModelTrees->GetModelTreeData()->GetTreeSplits();
+    size_t leafNum = model.ModelTrees->GetModelTreeData()->GetLeafValues().size();
 
     const TVector<TFloatFeatureBucketRange> defaultRanges = PrepareFeatureRanges(model, features);
     TVector<TVector<TFloatFeatureBucketRange>> leafBucketRanges(leafNum, defaultRanges);
 
     int treeCount = model.ModelTrees->GetTreeCount();
-    NPar::TLocalExecutor::TExecRangeParams blockParams(0, treeCount);
+    NPar::ILocalExecutor::TExecRangeParams blockParams(0, treeCount);
     localExecutor->ExecRange([&] (size_t treeId) {
         size_t offset = leafOffsets[treeId];
         size_t treeDepth = treeSizes[treeId];
@@ -110,7 +113,6 @@ TVector<TVector<TFloatFeatureBucketRange>> CalculateBucketRangesAndWeightsOblivi
         }
     }, blockParams, NPar::TLocalExecutor::WAIT_COMPLETE);
 
-
     return leafBucketRanges;
 }
 
@@ -121,7 +123,7 @@ TVector<double> MergeBucketRanges(
         const TVector<TVector<TFloatFeatureBucketRange>>& leafBucketRanges,
         const TVector<double> leafWeights
 ) {
-    const auto& leafValues = model.ModelTrees->GetLeafValues();
+    const auto& leafValues = model.ModelTrees->GetModelTreeData()->GetLeafValues();
     TVector<TFloatFeatureBucketRange> defaultRanges = PrepareFeatureRanges(model, features);
     CB_ENSURE(defaultRanges.size() == 2, "Number of features must be 2");
 
@@ -165,7 +167,7 @@ TVector<double> CalculatePartialDependence(
         const TDataProvider& dataProvider,
         const TVector<ui32>& borderIdxForSplit,
         const TVector<double> leafWeights,
-        NPar::TLocalExecutor* localExecutor
+        NPar::ILocalExecutor* localExecutor
 ) {
     TVector<double> leafWeightsNew(leafWeights.size(), 0.0);
     const auto& leafBucketRanges = CalculateBucketRangesAndWeightsOblivious(
@@ -191,6 +193,8 @@ TVector<double> GetPartialDependence(
     CB_ENSURE(model.ModelTrees->GetDimensionsCount() == 1,  "Is not supported for multiclass");
     CB_ENSURE(model.GetNumCatFeatures() == 0, "Models with categorical features are not supported");
     CB_ENSURE(features.size() > 0 && features.size() <= 2, "Number of features should be equal to one or two");
+    //TODO(eermishkina): support non symmetric trees
+    CB_ENSURE(model.IsOblivious(), "Partial dependence is supported only for symmetric trees");
 
     NPar::TLocalExecutor localExecutor;
     localExecutor.RunAdditionalThreads(threadCount - 1);

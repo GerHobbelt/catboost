@@ -1,6 +1,5 @@
 #include <util/stream/output.h>
 #include <util/stream/null.h>
-#include <util/system/compat.h>
 #include <util/system/yassert.h>
 #include <util/system/defaults.h>
 #include <util/generic/singleton.h>
@@ -76,7 +75,7 @@ namespace {
     class TSysLogInstance: public TLog {
     public:
         inline TSysLogInstance()
-            : TLog(new TStreamLogBackend(&Cnull))
+            : TLog(MakeHolder<TStreamLogBackend>(&Cnull))
         {
         }
     };

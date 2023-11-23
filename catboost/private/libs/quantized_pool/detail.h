@@ -1,5 +1,7 @@
 #pragma once
 
+#include <catboost/idl/pool/proto/metainfo.pb.h>
+
 #include <catboost/libs/column_description/column.h>
 
 namespace NCB {
@@ -17,12 +19,14 @@ namespace NCB {
 
         constexpr bool IsUi32Column(const EColumn type) {
             return type == EColumn::SubgroupId ||
-                type == EColumn::Categ;
+                type == EColumn::Categ ||
+                type == EColumn::HashedCateg;
         }
 
         constexpr bool IsUi64Column(const EColumn type) {
             return type == EColumn::SampleId ||
-                type == EColumn::GroupId;
+                type == EColumn::GroupId ||
+                type == EColumn::Timestamp;
         }
 
         constexpr bool IsStringColumn(const EColumn type) {
@@ -47,5 +51,7 @@ namespace NCB {
         constexpr ui32 GetFakeSubgroupIdColumnIndex(ui32 columnCount) {
             return columnCount + 2;
         }
+
+        EColumn IdlColumnTypeToEColumn(NCB::NIdl::EColumnType pbType);
     }
 }

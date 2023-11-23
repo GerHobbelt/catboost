@@ -1,6 +1,6 @@
 // Used indirectly. See build/scripts/vcs_info.py
 // ya-bin dump vcs-info > vcs.json
-// python build/scripts/vcs_info.py vcs.json out.c build/scripts/c_templates/svn_interface.c <any_prefix>library/svnversion<any_suffix>
+// python build/scripts/vcs_info.py vcs.json out.c build/scripts/c_templates/svn_interface.c <any_prefix>library/cpp/svnversion<any_suffix>
 
 
 #include "build/scripts/c_templates/svnversion.h"
@@ -74,6 +74,15 @@ int GetProgramSvnRevision() {
 #endif
 }
 
+const char* GetVCSDirty()
+{
+#if defined(DIRTY)
+    return DIRTY;
+#else
+    return 0;
+#endif
+}
+
 const char* GetProgramHash() {
 #if defined(ARCADIA_SOURCE_HG_HASH)
     return ARCADIA_SOURCE_HG_HASH;
@@ -133,6 +142,14 @@ const char* GetProgramBuildDate() {
 #endif
 }
 
+const char* GetCustomVersion() {
+#if defined(CUSTOM_VERSION)
+    return CUSTOM_VERSION;
+#else
+    return "";
+#endif
+}
+
 int GetProgramBuildTimestamp() {
 #if defined(BUILD_TIMESTAMP)
     return BUILD_TIMESTAMP;
@@ -158,7 +175,7 @@ const char* GetBranch() {
 #endif
 }
 
-int GetArcadiaGitPatchNumber() {
+int GetArcadiaPatchNumber() {
 #if defined(ARCADIA_PATCH_NUMBER)
     return ARCADIA_PATCH_NUMBER;
 #else
