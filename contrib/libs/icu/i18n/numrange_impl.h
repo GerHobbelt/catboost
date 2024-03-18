@@ -17,7 +17,8 @@
 #include "formattedval_impl.h"
 #include "pluralranges.h"
 
-U_NAMESPACE_BEGIN namespace number {
+U_NAMESPACE_BEGIN
+namespace number {
 namespace impl {
 
 
