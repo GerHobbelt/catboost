@@ -113,15 +113,17 @@ void IDerCalcer::CalcDersRange(
     useTDers, IsExpApprox, hasDelta);
 }
 
-TVector<size_t> ArgSort(
+static TVector<int> ArgSort(
     int start,
     int count,
     const float* targets
 ) {
-    TVector<size_t> labelOrder(count);
+    TVector<int> labelOrder(count);
     std::iota(labelOrder.begin(), labelOrder.end(), start);
-    std::sort(labelOrder.begin(), labelOrder.end(), [&]
-        (size_t lhs, size_t rhs){
+    std::sort(
+        labelOrder.begin(),
+        labelOrder.end(),
+        [=] (int lhs, int rhs) {
             return std::abs(targets[lhs]) < std::abs(targets[rhs]);
         }
     );
@@ -129,19 +131,20 @@ TVector<size_t> ArgSort(
     return labelOrder;
 }
 
-double CalcCoxApproxSum(
+static double CalcCoxApproxSum(
     int start,
     int count,
+    double maxApprox,
     const double* approxes,
     const double* approxesDeltas
 ) {
     double expPSum = 0;
-    for (yssize_t i = 0; i < count; ++i) {
-        double updatedApprox = approxes[start + i];
+    for (auto i : xrange(start, start + count)) {
+        double updatedApprox = approxes[i];
         if (approxesDeltas != nullptr) {
-            updatedApprox += approxesDeltas[start + i];
+            updatedApprox += approxesDeltas[i];
         }
-        expPSum += std::exp(updatedApprox);
+        expPSum += std::exp(updatedApprox - maxApprox);
     }
 
     return expPSum;
@@ -157,96 +160,96 @@ void TCoxError::CalcDersRange(
     const float* /*weights*/,
     TDers* ders
 ) const {
+    const TVector<int> labelOrder = ArgSort(start, count, targets);
 
-    TVector<size_t> labelOrder = ArgSort(start, count, targets);
+    const auto getApprox = [=] (int i) {
+        return approxes[i] + (approxesDeltas == nullptr ? 0 : approxesDeltas[i]);
+    };
 
-    double expPSum = CalcCoxApproxSum(start, count, approxes, approxesDeltas);
+    double maxApprox = getApprox(start);
+    for (auto i : xrange(start + 1, start + count)) {
+        const auto approx = getApprox(i);
+        if (approx > maxApprox) {
+            maxApprox = approx;
+        }
+    }
+
+    double expPSum = CalcCoxApproxSum(start, count, maxApprox, approxes, approxesDeltas);
 
     double rk = 0;
     double sk = 0;
     double lastExpP = 0.0;
-    double lastAbsY = 0.0;
     double accumulatedSum = 0;
-    for (yssize_t i = 0; i < count; ++i) {
-        const size_t ind = labelOrder[i];
-        const double p = approxes[ind] + (approxesDeltas == nullptr ? 0 : approxesDeltas[ind]);
+    for (auto i : xrange(start, start + count)) {
+        const int ind = labelOrder[i];
+        const double p = getApprox(ind) - maxApprox;
 
         const double expP = std::exp(p);
         const double y = targets[ind];
-        const double absY = std::abs(y);
-        // only update the denominator after we move forward in time (labels are sorted)
-        // this is Breslow's method for ties
         accumulatedSum += lastExpP;
-        if (lastAbsY < absY) {
-            expPSum -= accumulatedSum;
-            accumulatedSum = 0;
-        } else {
-            CB_ENSURE(lastAbsY <= absY);
-        }
 
         if (y > 0) {
+            expPSum -= accumulatedSum;
+            accumulatedSum = 0;
             rk += 1.0 / expPSum;
             sk += 1.0 / (expPSum * expPSum);
         }
 
-        const double grad = expP * rk - static_cast<float>(y > 0);
+        const double grad = static_cast<double>(y > 0) - expP * rk;
         const double hess = expP * rk - expP * expP * sk;
         ders[ind].Der1 = - grad;
         ders[ind].Der2 = - hess;
 
-        lastAbsY = absY;
         lastExpP = expP;
     }
 }
 
 
 void TCoxError::CalcFirstDerRange(
-        int start,
-        int count,
-        const double* approxes,
-        const double* approxesDeltas,
-        const float* targets,
-        const float* /*weights*/,
-        double* firstDers
-    ) const {
+    int start,
+    int count,
+    const double* approxes,
+    const double* approxesDeltas,
+    const float* targets,
+    const float* /*weights*/,
+    double* firstDers
+) const {
+    const TVector<int> labelOrder = ArgSort(start, count, targets);
 
-    //CalcCoxDersRange(start, count, approxes, approxesDeltas, targets, );
-    // object weights are not supported yet
+    const auto getApprox = [=] (int i) {
+        return approxes[i] + (approxesDeltas == nullptr ? 0 : approxesDeltas[i]);
+    };
 
-    TVector<size_t> labelOrder = ArgSort(start, count, targets);
+    double maxApprox = getApprox(0);
+    for (auto i : xrange(start, start + count)) {
+        const auto approx = getApprox(i);
+        if (approx > maxApprox) {
+            maxApprox = approx;
+        }
+    }
 
-    double expPSum = CalcCoxApproxSum(start, count, approxes, approxesDeltas);
-
+    double expPSum = CalcCoxApproxSum(start, count, maxApprox, approxes, approxesDeltas);
 
     double rk = 0;
     double lastExpP = 0.0;
-    double lastAbsY = 0.0;
     double accumulatedSum = 0;
-    for (yssize_t i = 0; i < count; ++i) {
-        const size_t ind = labelOrder[start + i];
-        const double p = approxes[ind] + (approxesDeltas == nullptr ? 0 : approxesDeltas[ind]);
+    for (auto i : xrange(start, start + count)) {
+        const int ind = labelOrder[i];
+        const double p = getApprox(ind) - maxApprox;
 
         const double expP = std::exp(p);
         const double y = targets[ind];
-        const double absY = std::abs(y);
-        // only update the denominator after we move forward in time (labels are sorted)
-        // this is Breslow's method for ties
         accumulatedSum += lastExpP;
-        if (lastAbsY < absY) {
-            expPSum -= accumulatedSum;
-            accumulatedSum = 0;
-        } else {
-            CB_ENSURE(lastAbsY <= absY);
-        }
 
         if (y > 0) {
+            expPSum -= accumulatedSum;
+            accumulatedSum = 0;
             rk += 1.0 / expPSum;
         }
 
-        const double grad = expP * rk - static_cast<float>(y > 0);
-        firstDers[ind] =  - grad; // GradientPair(grad * w, hess * w);
+        const double grad = static_cast<double>(y > 0) - expP * rk;
+        firstDers[ind] = - grad;
 
-        lastAbsY = absY;
         lastExpP = expP;
     }
 }
@@ -311,9 +314,6 @@ static void CalcCrossEntropyDerRangeImpl(
     TExpForwardView</*Capacity*/16> expApproxes(MakeArrayRef(approxes + start, count));
     TExpForwardView</*Capacity*/16> expApproxDeltas(MakeArrayRef(approxDeltas + start, count));
     Y_ASSERT(HasDelta == (approxDeltas != nullptr));
-#if defined(NDEBUG) && !defined(address_sanitizer_enabled) && !defined(CLANG_COVERAGE)
-#pragma clang loop vectorize_width(4) interleave_count(2)
-#endif
     for (int i = start; i < start + count; ++i) {
         double e;
         if (UseExpApprox) {
@@ -366,12 +366,11 @@ void TSurvivalAftError::CalcDers(
 ) const {
     double transformedTargetLower = 0, transformedTargetUpper = 0;
     double firstDerNumerator, firstDerDenominator, secondDerNumerator, secondDerDenominator;
-    bool target_sign;
+    bool targetSign;
     ECensoredType censorType;
-    const auto distributionType = Distribution->GetDistributionType();
     if (target[0] == target[1]) {
         transformedTargetLower = InverseMonotoneTransform(approx[0], target[0], Scale);
-        target_sign = transformedTargetLower > 0;
+        targetSign = transformedTargetLower > 0;
         censorType = ECensoredType::Uncensored;
         const auto pdf = Distribution->CalcPdf(transformedTargetLower);
         const auto der1 = Distribution->CalcPdfDer1(pdf, transformedTargetLower);
@@ -382,8 +381,8 @@ void TSurvivalAftError::CalcDers(
             Y_ASSERT(der2->HessianType == EHessianType::Diagonal &&
                         der2->ApproxDimension == approx.ysize());
 
-            secondDerNumerator = -(pdf * Distribution->CalcPdfDer2(pdf, transformedTargetLower) - std::pow(der1, 2));
-            secondDerDenominator = std::pow(Scale * pdf, 2);
+            secondDerNumerator = -(pdf * Distribution->CalcPdfDer2(pdf, transformedTargetLower) - Sqr(der1));
+            secondDerDenominator = Sqr(Scale * pdf);
         }
     } else {
         censorType = ECensoredType::IntervalCensored;
@@ -406,11 +405,11 @@ void TSurvivalAftError::CalcDers(
             censorType = ECensoredType::LeftCensored;
         } else {
             transformedTargetLower = InverseMonotoneTransform(approx[0], target[0], Scale);
-            pdfLower = Distribution->CalcPdf(transformedTargetLower);;
+            pdfLower = Distribution->CalcPdf(transformedTargetLower);
             cdfLower = Distribution->CalcCdf(transformedTargetLower);
             der1Lower = Distribution->CalcPdfDer1(pdfLower, transformedTargetLower);
         }
-        target_sign = (transformedTargetLower > 0 || transformedTargetUpper > 0);
+        targetSign = (transformedTargetLower > 0 || transformedTargetUpper > 0);
         const auto pdfDiff = pdfUpper - pdfLower;
         const auto der1Diff = der1Upper - der1Lower;
         const auto cdfDiff = cdfUpper - cdfLower;
@@ -422,18 +421,19 @@ void TSurvivalAftError::CalcDers(
             Y_ASSERT(der2->HessianType == EHessianType::Diagonal &&
                         der2->ApproxDimension == approx.ysize());
 
-            secondDerNumerator = -cdfDiff * der1Diff + std::pow(pdfDiff, 2);
-            secondDerDenominator = std::pow(Scale * cdfDiff, 2);
+            secondDerNumerator = -cdfDiff * der1Diff + Sqr(pdfDiff);
+            secondDerDenominator = Sqr(Scale * cdfDiff);
         }
     }
 
 
+    const auto distributionType = Distribution->GetDistributionType();
     (*der)[0] = firstDerNumerator / firstDerDenominator;
     if (firstDerDenominator < TDerivativeConstants::Epsilon && (IsNan((*der)[0]) || !IsFinite((*der)[0]))) {
         const auto& ders =  DispatchDerivativeLimits(distributionType, EDerivativeOrder::First, censorType, Scale);
         auto minDer1 = std::get<0>(ders);
         auto maxDer1 = std::get<1>(ders);
-        (*der)[0] = target_sign ? minDer1 : maxDer1;
+        (*der)[0] = targetSign ? minDer1 : maxDer1;
     }
     (*der)[0] = -ClipDerivatives((*der)[0], TDerivativeConstants::MinFirstDer, TDerivativeConstants::MaxFirstDer);
 
@@ -443,7 +443,7 @@ void TSurvivalAftError::CalcDers(
             const auto& ders =  DispatchDerivativeLimits(distributionType, EDerivativeOrder::Second, censorType, Scale);
             auto minDer2 = std::get<0>(ders);
             auto maxDer2 = std::get<1>(ders);
-            der2->Data[0] = target_sign ? minDer2 : maxDer2;
+            der2->Data[0] = targetSign ? minDer2 : maxDer2;
         }
         der2->Data[0] = -ClipDerivatives(der2->Data[0], TDerivativeConstants::MinSecondDer, TDerivativeConstants::MaxSecondDer);
     }

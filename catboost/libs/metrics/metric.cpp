@@ -376,6 +376,7 @@ namespace {
             }
 
         static TVector<THolder<IMetric>> Create(const TMetricConfig& config);
+        static TVector<TParamSet> ValidParamSets();
 
         TMetricHolder EvalSingleThread(
             TConstArrayRef<TConstArrayRef<double>> approx,
@@ -394,6 +395,12 @@ TVector<THolder<IMetric>> TSurvivalAftMetric::Create(const TMetricConfig& config
     config.ValidParams->insert("scale");
     config.ValidParams->insert("dist");
     return AsVector(MakeHolder<TSurvivalAftMetric>(config.Params));
+}
+
+TVector<TParamSet> TSurvivalAftMetric::ValidParamSets() {
+    // TODO(akhropov): SurvivalAft has 'scale' and 'dist' when it is used as an objective but no such params
+    // when used as a metric, it's better to have objectives as separate entities
+    return {TParamSet{{TParamInfo{"use_weights", false, true}}, ""}};
 }
 
 TMetricHolder TSurvivalAftMetric::EvalSingleThread(
@@ -841,6 +848,7 @@ namespace {
         {}
 
         static TVector<THolder<IMetric>> Create(const TMetricConfig& config);
+        static TVector<TParamSet> ValidParamSets();
 
         TMetricHolder Eval(
             TConstArrayRef<TConstArrayRef<double>> approx,
@@ -863,9 +871,13 @@ TVector<THolder<IMetric>> TCoxMetric::Create(const TMetricConfig& config) {
     return AsVector(MakeHolder<TCoxMetric>(config.Params));
 }
 
+TVector<TParamSet> TCoxMetric::ValidParamSets() {
+    return {TParamSet{{}, ""}};
+};
+
 TMetricHolder TCoxMetric::Eval(
     TConstArrayRef<TConstArrayRef<double>> approx,
-    TConstArrayRef<TConstArrayRef<double>> /*approxDelta*/,
+    TConstArrayRef<TConstArrayRef<double>> approxDelta,
     bool isExpApprox,
     TConstArrayRef<float> targets,
     TConstArrayRef<float> /*weight*/,
@@ -879,46 +891,49 @@ TMetricHolder TCoxMetric::Eval(
     TMetricHolder error(2);
     error.Stats[1] = 1;
 
-    TVector<size_t> labelOrder(targets.ysize());
+    const auto ndata = targets.ysize();
+    TVector<int> labelOrder(ndata);
     std::iota(labelOrder.begin(), labelOrder.end(), 0);
-    std::sort(labelOrder.begin(), labelOrder.end(), [&]
-        (size_t lhs, size_t rhs){
+    std::sort(
+        labelOrder.begin(),
+        labelOrder.end(),
+        [=] (int lhs, int rhs) {
             return std::abs(targets[lhs]) < std::abs(targets[rhs]);
         }
     );
 
-    const yssize_t ndata = targets.ysize();
+    const auto approxRef = approx[0];
+    const auto approxDeltaRef = GetRowRef(approxDelta, /*row idx*/ 0);
+    const auto getApprox = [=] (int i) {
+        return approxRef[i] + (approxDelta.empty() ? 0 : approxDeltaRef[i]);
+    };
+
     double expPSum = 0;
-    for (yssize_t i = 0; i < ndata; ++i) {
-        expPSum += std::exp(approx[0][i]);
+    for (auto i = 0; i < ndata; ++i) {
+        expPSum += std::exp(getApprox(i));
     }
 
     double lastExpP = 0.0;
-    double lastAbsY = 0.0;
     double accumulatedSum = 0;
-    for (yssize_t i = 0; i < ndata; ++i) {
-        const size_t ind = labelOrder[i];
+    for (auto i : xrange(ndata)) {
+        const int ind = labelOrder[i];
 
         const double y = targets[ind];
-        const double absY = std::abs(y);
 
-        const double p = approx[0][ind];
+        const double p = getApprox(ind);
         const double expP = std::exp(p);
 
         accumulatedSum += lastExpP;
-        if (lastAbsY < absY) {
-            expPSum -= accumulatedSum;
-            accumulatedSum = 0;
-        }
 
         if (y > 0) {
-            error.Stats[0] += p - std::log(expPSum);
+            expPSum -= accumulatedSum;
+            accumulatedSum = 0;
+            error.Stats[0] += p - std::log(std::max(expPSum, 1e-20));
         }
 
-        lastAbsY = absY;
         lastExpP = expP;
     }
-    error.Stats[0] = - error.Stats[0];
+    error.Stats[0] = error.Stats[0];
 
     return error;
 }
@@ -4728,6 +4743,7 @@ namespace {
     public:
         explicit TUserDefinedPerObjectMetric(const TLossParams& params);
         static TVector<THolder<IMetric>> Create(const TMetricConfig& config);
+        static TVector<TParamSet> ValidParamSets();
         TMetricHolder Eval(
             const TVector<TVector<double>>& approx,
             TConstArrayRef<float> target,
@@ -4775,6 +4791,18 @@ TUserDefinedPerObjectMetric::TUserDefinedPerObjectMetric(const TLossParams& para
         , Alpha(params.GetParamsMap().contains("alpha") ? FromString<float>(params.GetParamsMap().at("alpha")) : DefaultAlpha) {
     UseWeights.MakeIgnored();
 }
+
+TVector<TParamSet> TUserDefinedPerObjectMetric::ValidParamSets() {
+    return {
+        TParamSet{
+            {
+                TParamInfo{"use_weights", false, true},
+                TParamInfo{"alpha", false, DefaultAlpha}
+            },
+            ""
+        }
+    };
+};
 
 TMetricHolder TUserDefinedPerObjectMetric::Eval(
     const TVector<TVector<double>>& /*approx*/,
@@ -6357,6 +6385,8 @@ TVector<TParamSet> ValidParamSets(ELossFunction metric) {
             return TPoissonMetric::ValidParamSets();
         case ELossFunction::Tweedie:
             return TTweedieMetric::ValidParamSets();
+        case ELossFunction::Cox:
+            return TCoxMetric::ValidParamSets();
         case ELossFunction::Focal:
             return TFocalMetric::ValidParamSets();
         case ELossFunction::LogCosh:
@@ -6377,6 +6407,7 @@ TVector<TParamSet> ValidParamSets(ELossFunction metric) {
         case ELossFunction::MultiCrossEntropy:
             return TMultiCrossEntropyMetric::ValidParamSets();
         case ELossFunction::PairLogit:
+        case ELossFunction::PairLogitPairwise:
             return TPairLogitMetric::ValidParamSets();
         case ELossFunction::QueryRMSE:
             return TQueryRMSEMetric::ValidParamSets();
@@ -6411,6 +6442,8 @@ TVector<TParamSet> ValidParamSets(ELossFunction metric) {
             return TRecallAtKMetric::ValidParamSets();
         case ELossFunction::MAP:
             return TMAPKMetric::ValidParamSets();
+        case ELossFunction::UserPerObjMetric:
+            return TUserDefinedPerObjectMetric::ValidParamSets();
         case ELossFunction::UserQuerywiseMetric:
             return TUserDefinedQuerywiseMetric::ValidParamSets();
         case ELossFunction::QueryCrossEntropy:
@@ -6419,6 +6452,8 @@ TVector<TParamSet> ValidParamSets(ELossFunction metric) {
             return TMRRMetric::ValidParamSets();
         case ELossFunction::ERR:
             return TERRMetric::ValidParamSets();
+        case ELossFunction::SurvivalAft:
+            return TSurvivalAftMetric::ValidParamSets();
         case ELossFunction::Huber:
             return THuberLossMetric::ValidParamSets();
         case ELossFunction::FilteredDCG:
@@ -6435,30 +6470,50 @@ TVector<TParamSet> ValidParamSets(ELossFunction metric) {
             return TCtrFactorMetric::ValidParamSets();
         default:
             return CachingMetricValidParamSets(metric);
-            // includes ELossFunction::UserPerObjMetric
     }
 }
+
+
+static bool IsSkipInMetricsParamsExport(ELossFunction lossFunction) {
+    switch (lossFunction) {
+        case ELossFunction::YetiRank:
+        case ELossFunction::YetiRankPairwise:
+        case ELossFunction::StochasticFilter:
+        case ELossFunction::LambdaMart:
+        case ELossFunction::StochasticRank:
+            // objectives, cannot be used as metrics
+            return true;
+        case ELossFunction::PythonUserDefinedPerObject:
+        case ELossFunction::PythonUserDefinedMultiTarget:
+            // user-defined metrics and objectives in Python
+            return true;
+
+        default:
+            return false;
+    }
+}
+
 
 NJson::TJsonValue ExportAllMetricsParamsToJson() {
     NJson::TJsonValue exportJson;
     for (const ELossFunction& loss : GetEnumAllValues<ELossFunction>()) {
-        try {
-            NJson::TJsonValue paramSets;
-            for (const auto& paramSet : ValidParamSets(loss)) {
-                NJson::TJsonValue metricJson;
-                metricJson.InsertValue("_name_suffix", paramSet.NameSuffix);
-                for (const auto& paramInfo : paramSet.ValidParams) {
-                    NJson::TJsonValue paramJson;
-                    paramJson.InsertValue("is_mandatory", paramInfo.IsMandatory);
-                    paramJson.InsertValue("default_value", paramInfo.DefaultValue);
-                    metricJson.InsertValue(paramInfo.Name, paramJson);
-                }
-                paramSets.AppendValue(metricJson);
-            }
-            exportJson.InsertValue(ToString(loss), paramSets);
-        } catch (...) {
+        if (IsSkipInMetricsParamsExport(loss)) {
             continue;
         }
+
+        NJson::TJsonValue paramSets;
+        for (const auto& paramSet : ValidParamSets(loss)) {
+            NJson::TJsonValue metricJson;
+            metricJson.InsertValue("_name_suffix", paramSet.NameSuffix);
+            for (const auto& paramInfo : paramSet.ValidParams) {
+                NJson::TJsonValue paramJson;
+                paramJson.InsertValue("is_mandatory", paramInfo.IsMandatory);
+                paramJson.InsertValue("default_value", paramInfo.DefaultValue);
+                metricJson.InsertValue(paramInfo.Name, paramJson);
+            }
+            paramSets.AppendValue(metricJson);
+        }
+        exportJson.InsertValue(ToString(loss), paramSets);
     }
     return exportJson;
 }

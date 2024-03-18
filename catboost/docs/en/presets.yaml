@@ -238,6 +238,8 @@ default:
   error-function__MedianAbsoluteError: MedianAbsoluteError
   error-function__BalancedAccuracy: BalancedAccuracy
   error-function__BalancedErrorRate: BalancedErrorRate
+  error-function__Cox: Cox
+  error-function__SurvivalAft: SurvivalAft
   error-function__SMAPE: SMAPE
   error-function__CtrFactor: CtrFactor
   error-function--AUC: AUC
@@ -556,6 +558,10 @@ default:
   loss-functions__params__max_pairs_default: All possible pairs are generated in each group
   loss-functions__params__q__default: Obligatory parameter
   loss-functions__params__mode: mode
+  loss-functions__params__survivalaft_scale: scale
+  loss-functions__params__survivalaft_scale_default: '1.0'
+  loss-functions__params__survivalaft_dist: dist
+  loss-functions__params__survivalaft_dist_default: '`Normal`'
   loss-functions__obligatory-text: This parameter is obligatory (the default value is not defined)
   loss-functions__params__default: 'true'
   ctr-types__TargetBorderCount: TargetBorderCount
@@ -640,7 +646,7 @@ default:
   learning-to-select-for-predefined-ranking: 'http://proceedings.mlr.press/v97/vorobev19a/vorobev19a.pdf'
   stochastic-gradient-langevin-boosting: 'https://arxiv.org/abs/2001.07248'
   releases-page: 'https://github.com/catboost/catboost/releases'
-  release-version: 1.2.2
+  release-version: 1.2.3
   pmml-supported-version: '4.3'
   cpu-gpu: CPU and GPU
 internal:

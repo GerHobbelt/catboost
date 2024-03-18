@@ -8,6 +8,8 @@ import tarfile
 import zipfile
 import sys
 
+import process_command_files as pcf
+
 
 def parse_args(args):
     parser = argparse.ArgumentParser(description='Wrapper to invoke Java compilation from ya make build')
@@ -40,7 +42,9 @@ def split_cmd_by_delim(cmd, delim='DELIM'):
 
 
 def main():
-    cmd_parts = split_cmd_by_delim(sys.argv[1:])
+    loaded_args = pcf.get_args(sys.argv[1:])
+
+    cmd_parts = split_cmd_by_delim(loaded_args)
     assert len(cmd_parts) == 4
     args, javac_opts, peers, ktc_opts = cmd_parts
     opts, jsrcs = parse_args(args)
@@ -78,11 +82,28 @@ def main():
             ts.write(' '.join(ktsrcs + srcs))
         kt_classes_dir = 'kt_cls'
         mkdir_p(kt_classes_dir)
-        sp.check_call([opts.java_bin, '-Didea.max.content.load.filesize=30720', '-jar', opts.kotlin_compiler, '-classpath', classpath, '-d', kt_classes_dir] + ktc_opts + ['@' + temp_kt_sources_file])
+        sp.check_call(
+            [
+                opts.java_bin,
+                '-Didea.max.content.load.filesize=30720',
+                '-jar',
+                opts.kotlin_compiler,
+                '-classpath',
+                classpath,
+                '-d',
+                kt_classes_dir,
+            ]
+            + ktc_opts
+            + ['@' + temp_kt_sources_file]
+        )
         classpath = os.pathsep.join([kt_classes_dir, classpath])
 
     if srcs:
-        sp.check_call([opts.javac_bin, '-nowarn', '-g', '-classpath', classpath, '-encoding', 'UTF-8', '-d', classes_dir] + javac_opts + ['@' + temp_sources_file])
+        sp.check_call(
+            [opts.javac_bin, '-nowarn', '-g', '-classpath', classpath, '-encoding', 'UTF-8', '-d', classes_dir]
+            + javac_opts
+            + ['@' + temp_sources_file]
+        )
 
     for s in jsrcs:
         if s.endswith('-sources.jar'):

@@ -134,8 +134,8 @@ THolder<IDerCalcer> BuildError(
     switch (params.LossFunctionDescription->GetLossFunction()) {
         case ELossFunction::SurvivalAft: {
             const auto& lossParams = params.LossFunctionDescription->GetLossParamsMap();
-            for (auto &param: lossParams) {
-            CB_ENSURE(
+            for (const auto& param : lossParams) {
+                CB_ENSURE(
                     param.first == "dist" || param.first == "scale",
                     "Invalid loss description" << ToString(params.LossFunctionDescription.Get()));
             }
@@ -666,7 +666,7 @@ void CalcWeightedDerivatives(
             } else {
                 error.CalcFirstDerRange(
                     /*start*/ 0,
-                    /*count*/ target.size(),
+                    /*count*/ tailFinish,
                     /*approx*/ approx[0].data(),
                     /*approx deltas*/ nullptr,
                     /*targets*/ target.data(),

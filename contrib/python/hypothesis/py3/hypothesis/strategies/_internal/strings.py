@@ -11,15 +11,17 @@
 import copy
 import re
 import warnings
-from functools import lru_cache
+from functools import lru_cache, partial
 
 from hypothesis.errors import HypothesisWarning, InvalidArgument
 from hypothesis.internal import charmap
-from hypothesis.internal.conjecture.utils import biased_coin, integer_range
+from hypothesis.internal.filtering import max_len, min_len
 from hypothesis.internal.intervalsets import IntervalSet
 from hypothesis.strategies._internal.collections import ListStrategy
 from hypothesis.strategies._internal.lazy import unwrap_strategies
+from hypothesis.strategies._internal.numbers import IntegersStrategy
 from hypothesis.strategies._internal.strategies import SearchStrategy
+from hypothesis.vendor.pretty import pretty
 
 
 class OneCharStringStrategy(SearchStrategy):
@@ -29,10 +31,6 @@ class OneCharStringStrategy(SearchStrategy):
         assert isinstance(intervals, IntervalSet)
         self.intervals = intervals
         self._force_repr = force_repr
-        self.zero_point = self.intervals.index_above(ord("0"))
-        self.Z_point = min(
-            self.intervals.index_above(ord("Z")), len(self.intervals) - 1
-        )
 
     @classmethod
     def from_characters_args(
@@ -78,44 +76,47 @@ class OneCharStringStrategy(SearchStrategy):
         return self._force_repr or f"OneCharStringStrategy({self.intervals!r})"
 
     def do_draw(self, data):
-        if len(self.intervals) > 256:
-            if biased_coin(data, 0.2):
-                i = integer_range(data, 256, len(self.intervals) - 1)
-            else:
-                i = integer_range(data, 0, 255)
-        else:
-            i = integer_range(data, 0, len(self.intervals) - 1)
+        return data.draw_string(self.intervals, min_size=1, max_size=1)
 
-        i = self.rewrite_integer(i)
 
-        return chr(self.intervals[i])
-
-    def rewrite_integer(self, i):
-        # We would like it so that, where possible, shrinking replaces
-        # characters with simple ascii characters, so we rejig this
-        # bit so that the smallest values are 0, 1, 2, ..., Z.
-        #
-        # Imagine that numbers are laid out as abc0yyyZ...
-        # this rearranges them so that they are laid out as
-        # 0yyyZcba..., which gives a better shrinking order.
-        if i <= self.Z_point:
-            # We want to rewrite the integers [0, n] inclusive
-            # to [zero_point, Z_point].
-            n = self.Z_point - self.zero_point
-            if i <= n:
-                i += self.zero_point
-            else:
-                # We want to rewrite the integers [n + 1, Z_point] to
-                # [zero_point, 0] (reversing the order so that codepoints below
-                # zero_point shrink upwards).
-                i = self.zero_point - (i - n)
-                assert i < self.zero_point
-            assert 0 <= i <= self.Z_point
-        return i
+_nonempty_names = (
+    "capitalize",
+    "expandtabs",
+    "join",
+    "lower",
+    "rsplit",
+    "split",
+    "splitlines",
+    "swapcase",
+    "title",
+    "upper",
+)
+_nonempty_and_content_names = (
+    "islower",
+    "isupper",
+    "isalnum",
+    "isalpha",
+    "isascii",
+    "isdigit",
+    "isspace",
+    "istitle",
+    "lstrip",
+    "rstrip",
+    "strip",
+)
 
 
 class TextStrategy(ListStrategy):
     def do_draw(self, data):
+        # if our element strategy is OneCharStringStrategy, we can skip the
+        # ListStrategy draw and jump right to our nice IR string draw.
+        # Doing so for user-provided element strategies is not correct in
+        # general, as they may define a different distribution than our IR.
+        elems = unwrap_strategies(self.element_strategy)
+        if isinstance(elems, OneCharStringStrategy):
+            return data.draw_string(
+                elems.intervals, min_size=self.min_size, max_size=self.max_size
+            )
         return "".join(super().do_draw(data))
 
     def __repr__(self):
@@ -133,44 +134,17 @@ class TextStrategy(ListStrategy):
     _nonempty_filters = (
         *ListStrategy._nonempty_filters,
         str,
-        str.capitalize,
         str.casefold,
         str.encode,
-        str.expandtabs,
-        str.join,
-        str.lower,
-        str.rsplit,
-        str.split,
-        str.splitlines,
-        str.swapcase,
-        str.title,
-        str.upper,
+        *(getattr(str, n) for n in _nonempty_names),
     )
     _nonempty_and_content_filters = (
-        str.isidentifier,
-        str.islower,
-        str.isupper,
-        str.isalnum,
-        str.isalpha,
-        str.isascii,
         str.isdecimal,
-        str.isdigit,
         str.isnumeric,
-        str.isspace,
-        str.istitle,
-        str.lstrip,
-        str.rstrip,
-        str.strip,
+        *(getattr(str, n) for n in _nonempty_and_content_names),
     )
 
     def filter(self, condition):
-        if condition in (str.lower, str.title, str.upper):
-            warnings.warn(
-                f"You applied str.{condition.__name__} as a filter, but this allows "
-                f"all nonempty strings!  Did you mean str.is{condition.__name__}?",
-                HypothesisWarning,
-                stacklevel=2,
-            )
         elems = unwrap_strategies(self.element_strategy)
         if (
             condition is str.isidentifier
@@ -192,17 +166,76 @@ class TextStrategy(ListStrategy):
                 ),
                 # Filter to ensure that NFKC normalization keeps working in future
             ).filter(str.isidentifier)
-
-        # We use ListStrategy filter logic for the conditions that *only* imply
-        # the string is nonempty.  Here, we increment the min_size but still apply
-        # the filter for conditions that imply nonempty *and specific contents*.
-        if condition in self._nonempty_and_content_filters:
-            assert self.max_size >= 1, "Always-empty is special cased in st.text()"
-            self = copy.copy(self)
-            self.min_size = max(1, self.min_size)
-            return ListStrategy.filter(self, condition)
-
+        if (new := _string_filter_rewrite(self, str, condition)) is not None:
+            return new
         return super().filter(condition)
+
+
+def _string_filter_rewrite(self, kind, condition):
+    if condition in (kind.lower, kind.title, kind.upper):
+        k = kind.__name__
+        warnings.warn(
+            f"You applied {k}.{condition.__name__} as a filter, but this allows "
+            f"all nonempty strings!  Did you mean {k}.is{condition.__name__}?",
+            HypothesisWarning,
+            stacklevel=2,
+        )
+
+    elems = unwrap_strategies(self.element_strategy)
+    if (
+        (kind is bytes or isinstance(elems, OneCharStringStrategy))
+        and isinstance(pattern := getattr(condition, "__self__", None), re.Pattern)
+        and isinstance(pattern.pattern, kind)
+    ):
+        from hypothesis.strategies._internal.regex import regex_strategy
+
+        print(f"{condition=}")
+        print(f"{condition.__name__=}")
+
+        if condition.__name__ == "match":
+            # Replace with an easier-to-handle equivalent condition
+            caret = "^" if kind is str else b"^"
+            pattern = re.compile(caret + pattern.pattern, flags=pattern.flags)
+            condition = pattern.search
+
+        if condition.__name__ in ("search", "findall", "fullmatch"):
+            s = regex_strategy(
+                pattern,
+                fullmatch=condition.__name__ == "fullmatch",
+                alphabet=self.element_strategy if kind is str else None,
+            )
+            if self.min_size > 0:
+                s = s.filter(partial(min_len, self.min_size))
+            if self.max_size < 1e999:
+                s = s.filter(partial(max_len, self.max_size))
+            return s
+        elif condition.__name__ in ("finditer", "scanner"):
+            # PyPy implements `finditer` as an alias to their `scanner` method
+            warnings.warn(
+                f"You applied {pretty(condition)} as a filter, but this allows "
+                f"any string at all!  Did you mean .findall ?",
+                HypothesisWarning,
+                stacklevel=3,
+            )
+            return self
+        elif condition.__name__ == "split":
+            warnings.warn(
+                f"You applied {pretty(condition)} as a filter, but this allows "
+                f"any nonempty string!  Did you mean .search ?",
+                HypothesisWarning,
+                stacklevel=3,
+            )
+            return self.filter(bool)
+
+    # We use ListStrategy filter logic for the conditions that *only* imply
+    # the string is nonempty.  Here, we increment the min_size but still apply
+    # the filter for conditions that imply nonempty *and specific contents*.
+    if condition in self._nonempty_and_content_filters and self.max_size >= 1:
+        self = copy.copy(self)
+        self.min_size = max(1, self.min_size)
+        return ListStrategy.filter(self, condition)
+
+    return None
 
 
 # Excerpted from https://www.unicode.org/Public/15.0.0/ucd/PropList.txt
@@ -258,9 +291,26 @@ def _identifier_characters():
     return id_start, id_continue
 
 
-class FixedSizeBytes(SearchStrategy):
-    def __init__(self, size):
-        self.size = size
+class BytesStrategy(ListStrategy):
+    def __init__(self, min_size, max_size):
+        super().__init__(IntegersStrategy(0, 255), min_size=min_size, max_size=max_size)
 
     def do_draw(self, data):
-        return bytes(data.draw_bytes(self.size))
+        # TODO: refactor the underlying provider to support variable-length bytes
+        if self.min_size == self.max_size:
+            return bytes(data.draw_bytes(self.min_size))
+        return bytes(super().do_draw(data))
+
+    _nonempty_filters = (
+        *ListStrategy._nonempty_filters,
+        bytes,
+        *(getattr(bytes, n) for n in _nonempty_names),
+    )
+    _nonempty_and_content_filters = (
+        *(getattr(bytes, n) for n in _nonempty_and_content_names),
+    )
+
+    def filter(self, condition):
+        if (new := _string_filter_rewrite(self, bytes, condition)) is not None:
+            return new
+        return super().filter(condition)

@@ -31,7 +31,7 @@ namespace {
         EModelType ModelType = EModelType::CatboostBinary;
         TString OutputModelFileName;
         TMaybe<EModelType> OutputModelType;
-        NCatboostOptions::TColumnarPoolFormatParams ColumnarPoolFormatParams;
+        NCatboostOptions::TDatasetReadingBaseParams DatasetReadingBaseParams;
         TMaybe<double> Scale;
         TMaybe<TVector<double>> Bias;
         ELoggingLevel LoggingLevel;
@@ -44,7 +44,7 @@ namespace {
             parser.AddHelpOption();
             parser.SetFreeArgsNum(0);
             BindModelFileParams(&parser, &ModelFileName, &ModelType);
-            BindColumnarPoolFormatParams(&parser, &ColumnarPoolFormatParams);
+            DatasetReadingBaseParams.BindParserOpts(&parser);
             parser.AddLongOption("set-scale").RequiredArgument("SCALE")
                 .Handler1T<double>([=](auto scale){ Scale = scale; })
                 .Help("Scale")
@@ -158,18 +158,13 @@ namespace {
         ) const {
             TMinMax<double> result{+DBL_MAX, -DBL_MAX};
             TMutex result_guard;
+
+            NCatboostOptions::TDatasetReadingParams datasetReadingParams;
+            ((NCatboostOptions::TDatasetReadingBaseParams&)datasetReadingParams) = modeParams.DatasetReadingBaseParams;
+            datasetReadingParams.PoolPath = poolPath;
+
             ReadAndProceedPoolInBlocks(
-                NCatboostOptions::TDatasetReadingParams{
-                    modeParams.ColumnarPoolFormatParams,
-                    poolPath,
-                    TVector<NJson::TJsonValue>(),  // ClassLabels
-                    TPathWithScheme(),  // PairsFilePath
-                    TPathWithScheme(),  // FeatureNamesPath
-                    TPathWithScheme(),  // PoolMetaInfoPath
-                    false,  // LoadSampleIds
-                    false,  // ForceUnitAutoPairWeights
-                    TVector<ui32>(),  // IgnoredFeatures
-                },
+                datasetReadingParams,
                 10000,  // blockSize
                 [&](const TDataProviderPtr datasetPart) {
                     auto approx = ApplyModelForMinMax(
@@ -188,4 +183,4 @@ namespace {
     };
 }
 
-TModeNormalizeModelImplementationFactory::TRegistrator<TOpenSourceModeNormalizeModelImplementation> YandexSpecificModeNormalizeModelImplementationRegistrator(EImplementationType::OpenSource);
+TModeNormalizeModelImplementationFactory::TRegistrator<TOpenSourceModeNormalizeModelImplementation> OpenSourceModeNormalizeModelImplementationRegistrator(EImplementationType::OpenSource);

@@ -16,7 +16,7 @@
 # release.  'dev' as a _version_extra string means this is a development
 # version
 _version_major = 8
-_version_minor = 17
+_version_minor = 22
 _version_patch = 2
 _version_extra = ".dev"
 # _version_extra = "rc1"

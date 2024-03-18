@@ -56,8 +56,6 @@ TMetricHolder EvalErrorsWithLeaves(
     const IMetric& error,
     NPar::ILocalExecutor* localExecutor
 ) {
-    CB_ENSURE(error.IsAdditiveMetric(), "EvalErrorsWithLeaves is not implemented for non-additive metric " + error.GetDescription());
-
     const auto approxDimension = approx.size();
     TVector<TVector<double>> localLeafDelta;
     ResizeRank2(approxDimension, leafDelta[0].size(), localLeafDelta);
@@ -68,14 +66,13 @@ TMetricHolder EvalErrorsWithLeaves(
         }
     }
 
-    NPar::TLocalExecutor sequentialExecutor;
+    const size_t MaxQueryBlockSize = error.IsAdditiveMetric() ? 4096 : target[0].size();
     const auto evalMetric = [&] (int from, int to) { // objects or queries
         TVector<TConstArrayRef<double>> approxBlock(approxDimension, TArrayRef<double>{});
         TVector<TConstArrayRef<float>> targetBlock(target.size(), TArrayRef<float>{});
 
         const bool isObjectwise = error.GetErrorType() == EErrorType::PerObjectError;
         CB_ENSURE(isObjectwise || !queriesInfo.empty(), "Need queries to evaluate metric " + error.GetDescription());
-        constexpr size_t MaxQueryBlockSize = 4096;
         int maxApproxBlockSize = MaxQueryBlockSize;
         if (!isObjectwise) {
             const auto maxQuerySize = MaxElementBy(
@@ -90,6 +87,7 @@ TMetricHolder EvalErrorsWithLeaves(
         TVector<TQueryInfo> queriesInfoBlock(MaxQueryBlockSize);
 
         TMetricHolder result;
+        NPar::TLocalExecutor sequentialExecutor;
         for (int idx = from; idx < to; /*see below*/) {
             const int nextIdx = GetNextIdx(isObjectwise, queriesInfo, to, maxApproxBlockSize, idx);
             const int approxBlockSize = GetBlockSize(isObjectwise, queriesInfo, idx, nextIdx);
@@ -142,5 +140,9 @@ TMetricHolder EvalErrorsWithLeaves(
     }
 
     CB_ENSURE(end > 0, "Not enough data to calculate metric: groupwise metric w/o group id's, or objectwise metric w/o samples");
-    return ParallelEvalMetric(evalMetric, GetMinBlockSize(end - begin), begin, end, *localExecutor);
+    if (error.IsAdditiveMetric()) {
+        return ParallelEvalMetric(evalMetric, GetMinBlockSize(end - begin), begin, end, *localExecutor);
+    } else {
+        return evalMetric(begin, end);
+    }
 }
