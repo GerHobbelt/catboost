@@ -2,7 +2,7 @@ DLL_JAVA(catboost4j-spark-impl)
 
 NO_WERROR()
 
-OWNER(
+SUBSCRIBER(
     akhropov
     g:matrixnet
 )
@@ -60,7 +60,7 @@ PEERDIR(
 )
 
 IF (OS_WINDOWS)
-    ALLOCATOR(J)
+    ALLOCATOR(SYSTEM)
 ELSE()
     ALLOCATOR(MIM)
 ENDIF()

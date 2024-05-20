@@ -292,7 +292,7 @@ namespace NCatboostCuda {
 
         void Write(const TVector<ui32>& featureIds) {
             using namespace std::placeholders;
-            THashSet<ui32> genericFeaturesToEstimate = TakeFeaturesToEstimate(featureIds);
+            const THashSet<ui32> genericFeaturesToEstimate = TakeFeaturesToEstimate(featureIds);
             Write(
                 genericFeaturesToEstimate,
                 std::bind(&TEstimatorsExecutor::ExecEstimators, EstimatorsExecutor, _1, _2, _3)
@@ -356,7 +356,7 @@ namespace NCatboostCuda {
                 if (FeaturesManager.IsEstimatedFeature(feature)) {
                     const ui32 featureBinCount = FeaturesManager.GetBinCount(feature);
                     if (
-                        (takeBinaryFeatures && (featureBinCount == 2)) ||
+                        (takeBinaryFeatures && (featureBinCount == 2) && FeaturesManager.IsEmbedding(feature)) ||
                         (!takeBinaryFeatures && (featureBinCount > 2))
                     ) {
                         result.insert(feature);

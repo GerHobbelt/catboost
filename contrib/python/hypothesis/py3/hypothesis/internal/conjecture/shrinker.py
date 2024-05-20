@@ -20,7 +20,13 @@ from hypothesis.internal.conjecture.choicetree import (
     prefix_selection_order,
     random_selection_order,
 )
-from hypothesis.internal.conjecture.data import ConjectureData, ConjectureResult, Status
+from hypothesis.internal.conjecture.data import (
+    ConjectureData,
+    ConjectureResult,
+    Status,
+    bits_to_bytes,
+    ir_value_permitted,
+)
 from hypothesis.internal.conjecture.dfa import ConcreteDFA
 from hypothesis.internal.conjecture.floats import is_simple
 from hypothesis.internal.conjecture.junkdrawer import (
@@ -376,9 +382,7 @@ class Shrinker:
         return self.engine.call_count
 
     def consider_new_tree(self, tree):
-        data = ConjectureData.for_ir_tree(tree)
-        self.engine.test_function(data)
-
+        data = self.engine.ir_tree_to_data(tree)
         return self.consider_new_buffer(data.buffer)
 
     def consider_new_buffer(self, buffer):
@@ -826,12 +830,10 @@ class Shrinker:
         )
 
         ls = self.examples_by_label[label]
-
         i = chooser.choose(range(len(ls) - 1))
-
         ancestor = ls[i]
 
-        if i + 1 == len(ls) or ls[i + 1].start >= ancestor.end:
+        if i + 1 == len(ls) or ls[i + 1].ir_start >= ancestor.ir_end:
             return
 
         @self.cached(label, i)
@@ -840,22 +842,22 @@ class Shrinker:
             hi = len(ls)
             while lo + 1 < hi:
                 mid = (lo + hi) // 2
-                if ls[mid].start >= ancestor.end:
+                if ls[mid].ir_start >= ancestor.ir_end:
                     hi = mid
                 else:
                     lo = mid
-            return [t for t in ls[i + 1 : hi] if t.length < ancestor.length]
+            return [t for t in ls[i + 1 : hi] if t.ir_length < ancestor.ir_length]
 
-        descendant = chooser.choose(descendants, lambda ex: ex.length > 0)
+        descendant = chooser.choose(descendants, lambda ex: ex.ir_length > 0)
 
-        assert ancestor.start <= descendant.start
-        assert ancestor.end >= descendant.end
-        assert descendant.length < ancestor.length
+        assert ancestor.ir_start <= descendant.ir_start
+        assert ancestor.ir_end >= descendant.ir_end
+        assert descendant.ir_length < ancestor.ir_length
 
-        self.incorporate_new_buffer(
-            self.buffer[: ancestor.start]
-            + self.buffer[descendant.start : descendant.end]
-            + self.buffer[ancestor.end :]
+        self.consider_new_tree(
+            self.nodes[: ancestor.ir_start]
+            + self.nodes[descendant.ir_start : descendant.ir_end]
+            + self.nodes[ancestor.ir_end :]
         )
 
     def lower_common_block_offset(self):
@@ -1192,7 +1194,6 @@ class Shrinker:
             block,
             lambda b: self.try_shrinking_blocks(targets, b),
             random=self.random,
-            full=False,
         )
 
     @defines_shrink_pass()
@@ -1215,14 +1216,13 @@ class Shrinker:
 
         node = chooser.choose(
             self.nodes,
-            lambda node: node.ir_type == "float" and not node.was_forced
+            lambda node: node.ir_type == "float" and not node.trivial
             # avoid shrinking integer-valued floats. In our current ordering, these
             # are already simpler than all other floats, so it's better to shrink
             # them in other passes.
             and not is_simple(node.value),
         )
 
-        i = self.nodes.index(node)
         # the Float shrinker was only built to handle positive floats. We'll
         # shrink the positive portion and reapply the sign after, which is
         # equivalent to this shrinker's previous behavior. We'll want to refactor
@@ -1232,9 +1232,9 @@ class Shrinker:
         Float.shrink(
             abs(node.value),
             lambda val: self.consider_new_tree(
-                self.nodes[:i]
+                self.nodes[: node.index]
                 + [node.copy(with_value=sign * val)]
-                + self.nodes[i + 1 :]
+                + self.nodes[node.index + 1 :]
             ),
             random=self.random,
             node=node,
@@ -1246,32 +1246,56 @@ class Shrinker:
         to exceed some bound, lowering one of them requires raising the
         other. This pass enables that."""
 
-        block = chooser.choose(self.blocks, lambda b: not b.all_zero)
+        node = chooser.choose(
+            self.nodes, lambda node: node.ir_type == "integer" and not node.trivial
+        )
 
-        for j in range(block.index + 1, len(self.blocks)):
-            next_block = self.blocks[j]
-            if next_block.length == block.length:
+        # The preconditions for this pass are that the two integer draws are only
+        # separated by non-integer nodes, and have the same size value in bytes.
+        #
+        # This isn't particularly principled. For instance, this wouldn't reduce
+        # e.g. @given(integers(), integers(), integers()) where the sum property
+        # involves the first and last integers.
+        #
+        # A better approach may be choosing *two* such integer nodes arbitrarily
+        # from the list, instead of conditionally scanning forward.
+
+        for j in range(node.index + 1, len(self.nodes)):
+            next_node = self.nodes[j]
+            if next_node.ir_type == "integer" and bits_to_bytes(
+                node.value.bit_length()
+            ) == bits_to_bytes(next_node.value.bit_length()):
                 break
         else:
             return
 
-        buffer = self.buffer
+        if next_node.was_forced:
+            # avoid modifying a forced node. Note that it's fine for next_node
+            # to be trivial, because we're going to explicitly make it *not*
+            # trivial by adding to its value.
+            return
 
-        m = int_from_bytes(buffer[block.start : block.end])
-        n = int_from_bytes(buffer[next_block.start : next_block.end])
+        m = node.value
+        n = next_node.value
 
         def boost(k):
             if k > m:
                 return False
-            attempt = bytearray(buffer)
-            attempt[block.start : block.end] = int_to_bytes(m - k, block.length)
-            try:
-                attempt[next_block.start : next_block.end] = int_to_bytes(
-                    n + k, next_block.length
-                )
-            except OverflowError:
+
+            node_value = m - k
+            next_node_value = n + k
+            if (not ir_value_permitted(node_value, "integer", node.kwargs)) or (
+                not ir_value_permitted(next_node_value, "integer", next_node.kwargs)
+            ):
                 return False
-            return self.consider_new_buffer(attempt)
+
+            return self.consider_new_tree(
+                self.nodes[: node.index]
+                + [node.copy(with_value=node_value)]
+                + self.nodes[node.index + 1 : next_node.index]
+                + [next_node.copy(with_value=next_node_value)]
+                + self.nodes[next_node.index + 1 :]
+            )
 
         find_integer(boost)
 
@@ -1339,7 +1363,6 @@ class Shrinker:
             self.shrink_target.buffer[u:v],
             lambda b: self.try_shrinking_blocks((i,), b),
             random=self.random,
-            full=False,
         )
 
         if self.shrink_target is not initial:
@@ -1413,20 +1436,31 @@ class Shrinker:
         ex = chooser.choose(self.examples)
         label = chooser.choose(ex.children).label
 
-        group = [c for c in ex.children if c.label == label]
-        if len(group) <= 1:
+        examples = [c for c in ex.children if c.label == label]
+        if len(examples) <= 1:
             return
-
         st = self.shrink_target
-        pieces = [st.buffer[ex.start : ex.end] for ex in group]
-        endpoints = [(ex.start, ex.end) for ex in group]
+        endpoints = [(ex.ir_start, ex.ir_end) for ex in examples]
 
         Ordering.shrink(
-            pieces,
-            lambda ls: self.consider_new_buffer(
-                replace_all(st.buffer, [(u, v, r) for (u, v), r in zip(endpoints, ls)])
+            range(len(examples)),
+            lambda indices: self.consider_new_tree(
+                replace_all(
+                    st.examples.ir_nodes,
+                    [
+                        (
+                            u,
+                            v,
+                            st.examples.ir_nodes[
+                                examples[i].ir_start : examples[i].ir_end
+                            ],
+                        )
+                        for (u, v), i in zip(endpoints, indices)
+                    ],
+                )
             ),
             random=self.random,
+            key=lambda i: st.buffer[examples[i].start : examples[i].end],
         )
 
     def run_block_program(self, i, description, original, repeats=1):
