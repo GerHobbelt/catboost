@@ -16,6 +16,10 @@ else:
     import shlex
 
 
+MSVS_TO_DEFAULT_MSVC_TOOLSET = {
+    '2019': '14.28.29333',
+    '2022': '14.39.33519'
+}
 
 class Target(object):
     def __init__(self, catboost_component, need_pic, macos_binaries_paths):
@@ -90,7 +94,11 @@ class Opts(object):
             Option('Microsoft Visual Studio installation path (default is "{Program Files}\\Microsoft Visual Studio\\")'
         ),
         'msvs_version': Option('Microsoft Visual Studio version (like "2019", "2022")', default='2019'),
-        'msvc_toolset': Option('Microsoft Visual C++ Toolset version to use', default='14.28.29333'),
+        'msvc_toolset': Option(
+            'Microsoft Visual C++ Toolset version to use'
+            + f'(default for Visual Studio 2019 is "{MSVS_TO_DEFAULT_MSVC_TOOLSET["2019"]}",'
+            + f' for Visual Studio 2022 is "{MSVS_TO_DEFAULT_MSVC_TOOLSET["2022"]}")'
+        ),
         'macosx_version_min': Option('Minimal macOS version to target', default='11.0'),
         'have_cuda': Option('Enable CUDA support', default=False, opt_type=bool),
         'cuda_root_dir': Option('CUDA root dir (taken from CUDA_PATH or CUDA_ROOT by default)'),
@@ -385,6 +393,10 @@ def get_msvs_dir(msvs_installation_path, msvs_version):
 
 def get_msvc_environ(msvs_installation_path, msvs_version, msvc_toolset, cmd_runner, dry_run):
     msvs_dir = get_msvs_dir(msvs_installation_path, msvs_version)
+    if msvc_toolset is None:
+        if msvs_version not in MSVS_TO_DEFAULT_MSVC_TOOLSET:
+            raise RuntimeError(f'No default C++ toolset for Microsoft Visual Studio {msvs_version}')
+        msvc_toolset = MSVS_TO_DEFAULT_MSVC_TOOLSET[msvs_version]
 
     env_vars = {}
 
@@ -434,6 +446,30 @@ def get_default_build_platform_toolchain(source_root_dir):
     else:
         return os.path.abspath(os.path.join(source_root_dir, 'build', 'toolchains', 'clang.toolchain'))
 
+def get_build_environ(opts, target_platform, cmd_runner):
+    if platform.system().lower() == 'windows':
+        # Need vcvars set up for Ninja generator
+        build_environ = get_msvc_environ(
+            opts.msvs_installation_path,
+            opts.msvs_version,
+            opts.msvc_toolset,
+            cmd_runner,
+            opts.dry_run
+        )
+    else:
+        build_environ = copy.deepcopy(os.environ)
+        if target_platform == 'linux-aarch64':
+            # Inject these flags to conan builds
+            # TODO(akhropov): Prefer a more general solution at CMake/conan level
+            build_environ['CFLAGS'] = '-mno-outline-atomics'
+            build_environ['CXXFLAGS'] = '-mno-outline-atomics'
+
+    if opts.have_cuda:
+        cuda_root_dir = get_cuda_root_dir(opts.cuda_root_dir)
+        # CMake requires nvcc to be available in $PATH
+        add_cuda_bin_path_to_system_path(build_environ, cuda_root_dir)
+
+    return build_environ
 
 def build(
     opts=None,
@@ -469,7 +505,9 @@ def build(
     else:
         target_platform = get_host_platform()
 
-    require_pic = get_require_pic(opts.targets)
+    # require_pic = get_require_pic(opts.targets)
+    # TODO(akhropov): return when -fPIC is removed from explicit linking flags
+    require_pic = True
 
     logging.info(
         f'target_platform={target_platform}. Building targets {" ".join(opts.targets)} {"with" if require_pic else "without"} PIC'
@@ -482,17 +520,7 @@ def build(
     else:
         cmake_target_toolchain = opts.cmake_target_toolchain
 
-    if platform.system().lower() == 'windows':
-        # Need vcvars set up for Ninja generator
-        build_environ = get_msvc_environ(
-            opts.msvs_installation_path,
-            opts.msvs_version,
-            opts.msvc_toolset,
-            cmd_runner,
-            opts.dry_run
-        )
-    else:
-        build_environ = os.environ
+    build_environ = get_build_environ(opts, target_platform, cmd_runner)
 
     # can be empty if called for tools build
     catboost_components = get_catboost_components(opts.targets)
@@ -527,8 +555,6 @@ def build(
     cmake_cmd += [f'-DHAVE_CUDA={"yes" if opts.have_cuda else "no"}']
     if opts.have_cuda:
         cuda_root_dir = get_cuda_root_dir(opts.cuda_root_dir)
-        # CMake requires nvcc to be available in $PATH
-        add_cuda_bin_path_to_system_path(build_environ, cuda_root_dir)
         cmake_cmd += [
             f'-DCUDAToolkit_ROOT={cuda_root_dir}',
             f'-DCMAKE_CUDA_RUNTIME_LIBRARY={opts.cuda_runtime_library}'
