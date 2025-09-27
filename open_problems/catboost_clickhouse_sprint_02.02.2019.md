@@ -256,7 +256,7 @@ Issue: <https://github.com/catboost/catboost/issues/608>
 ## 23. `use_weights_in_quantization` training parameter
 
 CatBoost quantizes (also called discretization, binning and sometimes binarization) floating point features' values into bins. For some quantization algorithms like `MinEntropy` and `MaxSumLog` it is possible to use objects' (samples') weights but this feature is not currently implemented in CatBoost, but already implemented in quantization library called by CatBoost internally.
-The task is to create a training parameter `use_weights_in_quantization` (and add it to CLI parameters and to python and R packages methods that accept training paramters) and if enabled call an appropriate quantization library method.
+The task is to create a training parameter `use_weights_in_quantization` (and add it to CLI parameters and to python and R packages methods that accept training parameters) and if enabled call an appropriate quantization library method.
 The case when specified quantization algorithm does not support weights but `use_weights_in_quantization` is enabled should be an error (in the form `CB_ENSURE(false, "Weights are not supported for quantization algorithm ...")`).
 It also requires refactoring of quantization library to expose the quantization function that accepts weights as a parameter.
 
